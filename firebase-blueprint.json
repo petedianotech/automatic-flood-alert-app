@@ -1,0 +1,53 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with name, village, and authentication details.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "User ID", "maxLength": 128 },
+        "name": { "type": "string", "description": "User full name", "maxLength": 100 },
+        "village": { "type": "string", "description": "Village or community name", "maxLength": 100 },
+        "email": { "type": "string", "description": "Optional email address", "maxLength": 200 },
+        "photoURL": { "type": "string", "description": "Optional profile photo URL", "maxLength": 500 },
+        "authProvider": { "type": "string", "description": "Authentication method", "enum": ["name_village", "google"] },
+        "hasPassword": { "type": "boolean", "description": "Whether an optional password was set" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of account creation" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of last update" }
+      },
+      "required": ["uid", "name", "village", "authProvider"]
+    },
+    "FloodAlert": {
+      "title": "FloodAlert",
+      "description": "Critical flood and water vibration sensor telemetry alerts.",
+      "type": "object",
+      "properties": {
+        "timestamp": { "type": "number", "description": "Epoch timestamp in milliseconds" },
+        "formattedTime": { "type": "string", "description": "Human readable time", "maxLength": 50 },
+        "peakDelta": { "type": "number", "description": "Peak vibration magnitude delta" },
+        "durationSeconds": { "type": "number", "description": "Duration of continuous vibration" },
+        "nodeId": { "type": "string", "description": "Sensor node identifier", "maxLength": 64 },
+        "nodeName": { "type": "string", "description": "Human readable sensor location name", "maxLength": 100 },
+        "village": { "type": "string", "description": "Village where sensor is stationed", "maxLength": 100 },
+        "status": { "type": "string", "description": "Alert status", "enum": ["active", "dismissed"] },
+        "dismissedBy": { "type": "string", "description": "Name or role of person who dismissed alert", "maxLength": 100 },
+        "dismissedAt": { "type": "number", "description": "Epoch timestamp of dismissal" },
+        "source": { "type": "string", "description": "Detection source", "enum": ["hardware_sensor", "manual_test", "simulated"] },
+        "notes": { "type": "string", "description": "Optional incident notes", "maxLength": 500 },
+        "userId": { "type": "string", "description": "Authoring user UID", "maxLength": 128 },
+        "createdAt": { "type": "string", "description": "Creation timestamp" }
+      },
+      "required": ["timestamp", "peakDelta", "nodeId", "nodeName", "status", "source"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile records containing name and village affiliation."
+    },
+    "/flood_alerts/{alertId}": {
+      "schema": "FloodAlert",
+      "description": "Community and sensor flood event telemetry alerts."
+    }
+  }
+}

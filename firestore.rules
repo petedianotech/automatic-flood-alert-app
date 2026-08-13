@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default Deny All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidUser(data) {
+      return data.uid is string &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+        data.village is string && data.village.size() > 0 && data.village.size() <= 100 &&
+        data.authProvider in ['name_village', 'google'];
+    }
+
+    function isValidFloodAlert(data) {
+      return data.timestamp is number &&
+        data.peakDelta is number &&
+        data.nodeId is string && data.nodeId.size() <= 64 &&
+        data.nodeName is string && data.nodeName.size() <= 100 &&
+        data.status in ['active', 'dismissed'] &&
+        data.source in ['hardware_sensor', 'manual_test', 'simulated'];
+    }
+
+    // User Profiles
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create, update: if isOwner(userId) && isValidUser(request.resource.data);
+      allow delete: if isOwner(userId);
+    }
+
+    // Flood Alerts
+    match /flood_alerts/{alertId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidFloodAlert(request.resource.data);
+      allow update: if isSignedIn() && 
+        request.resource.data.status == 'dismissed' &&
+        request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'dismissedBy', 'dismissedAt']);
+      allow delete: if false;
+    }
+
+    // Connection test document
+    match /test/{docId} {
+      allow read: if true;
+    }
+  }
+}

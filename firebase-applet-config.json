@@ -1,0 +1,12 @@
+{
+  "projectId": "automatic-flood-alert",
+  "appId": "1:158763014091:web:5c5f57835516089c37084e",
+  "apiKey": "AIzaSyDsh5VHm1rk4tiacIYVkkxZF3LK5lPmH0w",
+  "authDomain": "automatic-flood-alert.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-automaticfloodal-78b68bcf-4195-42fb-b8c9-9f30466756de",
+  "storageBucket": "automatic-flood-alert.firebasestorage.app",
+  "messagingSenderId": "158763014091",
+  "measurementId": "",
+  "oAuthClientId": "158763014091-74pp71vgs0q81v8u19m9u9f7rk4ha160.apps.googleusercontent.com",
+  "recaptchaSiteKey": ""
+}

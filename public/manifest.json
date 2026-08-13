@@ -1,0 +1,20 @@
+{
+  "name": "Automatic Flood Alert System",
+  "short_name": "FloodAlert",
+  "description": "Offline-first Community Flood Alert & Sensor Telemetry Network",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#141517",
+  "theme_color": "#1A73E8",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["utilities", "safety", "weather"]
+}
