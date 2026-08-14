@@ -24,8 +24,10 @@ import { VillageCommunityView } from './components/VillageCommunityView';
 import { SensorNodeView } from './components/SensorNodeView';
 import { ReceiverNodeView } from './components/ReceiverNodeView';
 import { DiagnosticsView } from './components/DiagnosticsView';
+import { AdminSafetyDashboardView } from './components/AdminSafetyDashboardView';
 import { CriticalAlarmModal } from './components/CriticalAlarmModal';
 import { FirebaseConfigModal } from './components/FirebaseConfigModal';
+import { SafetyCheckInModal } from './components/SafetyCheckInModal';
 import {
   MotionData,
   FloodAlert,
@@ -38,6 +40,7 @@ import {
   AuthState,
   isAppAdmin,
   ADMIN_EMAIL,
+  ResidentSafetyReport,
 } from './types';
 import { wakeLockService } from './services/wakeLock';
 import { motionSensorService } from './services/motionSensor';
@@ -125,6 +128,12 @@ export default function App() {
   const [alerts, setAlerts] = useState<FloodAlert[]>(() => firebaseFloodService.getLocalAlerts());
   const [activeAlert, setActiveAlert] = useState<FloodAlert | null>(null);
 
+  // Community Safety Reports state
+  const [safetyReports, setSafetyReports] = useState<ResidentSafetyReport[]>(() =>
+    firebaseFloodService.getLocalSafetyReports()
+  );
+  const [isSafetyModalOpen, setIsSafetyModalOpen] = useState(false);
+
   // Modals & UI helpers
   const [isFirebaseModalOpen, setIsFirebaseModalOpen] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(() =>
@@ -139,15 +148,23 @@ export default function App() {
     return () => unsubNetwork();
   }, []);
 
+  // Subscribe to Safety Reports in real-time
+  useEffect(() => {
+    const unsubSafety = firebaseFloodService.subscribeSafetyReports((updatedReports) => {
+      setSafetyReports(updatedReports);
+    });
+    return () => unsubSafety();
+  }, []);
+
   // Subscribe to Auth State
   useEffect(() => {
     const unsubAuth = firebaseFloodService.subscribeAuth((state) => {
       setAuthState(state);
-      // If user is admin upon login and currently on receiver, allow switching to sensor mode
+      // If user is admin upon login, allow switching to admin dashboard or sensor mode
       if (isAppAdmin(state.user)) {
-        setCurrentMode('sensor');
+        setCurrentMode('admin');
       } else {
-        setCurrentMode((prev) => (prev === 'sensor' || prev === 'diagnostics' ? 'receiver' : prev));
+        setCurrentMode((prev) => (prev === 'sensor' || prev === 'diagnostics' || prev === 'admin' ? 'receiver' : prev));
       }
     });
     return () => {
@@ -157,7 +174,7 @@ export default function App() {
 
   // Mode access security: non-admins can only access receiver & village
   useEffect(() => {
-    if (!isAdmin && (currentMode === 'sensor' || currentMode === 'diagnostics')) {
+    if (!isAdmin && (currentMode === 'sensor' || currentMode === 'diagnostics' || currentMode === 'admin')) {
       setCurrentMode('receiver');
     }
   }, [isAdmin, currentMode]);
@@ -203,8 +220,32 @@ export default function App() {
 
       // Check if there is an active alert for this node
       const currentActive = updatedAlerts.find((a) => a.status === 'active');
-      if (currentActive && !activeAlert) {
+      if (currentActive && (!activeAlert || activeAlert.id !== currentActive.id)) {
         setActiveAlert(currentActive);
+        
+        // Trigger push notification if this is a newly received active alert from another device
+        const isYellow = currentActive.severity === 'yellow';
+        const userVillage = authState.user?.village || 'Riverbank East';
+        const locationSummary = currentActive.riverName && currentActive.village
+          ? `${currentActive.riverName}, ${currentActive.village}`
+          : userVillage;
+
+        NotificationService.sendFloodPushNotification(
+          isYellow ? `⚠️ FLOOD WARNING: ${locationSummary}` : `🚨 CRITICAL FLOOD: ${locationSummary}`,
+          isYellow
+            ? `Water vibration warning at ${currentActive.riverName || 'River Station'} (Δ ${currentActive.peakDelta.toFixed(2)} m/s²). Prepare emergency kits!`
+            : `CRITICAL FLOOD ALARM at ${currentActive.riverName || 'River Station'} (${currentActive.locationLabel || userVillage}). Evacuate immediately!`,
+          {
+            village: currentActive.village || userVillage,
+            riverName: currentActive.riverName,
+            locationLabel: currentActive.locationLabel,
+            mapsUrl: currentActive.mapsUrl,
+            latitude: currentActive.latitude,
+            longitude: currentActive.longitude,
+            peakDelta: currentActive.peakDelta,
+            isTest: currentActive.source === 'simulated' || currentActive.source === 'manual_test',
+          }
+        );
       }
     });
 
@@ -242,35 +283,17 @@ export default function App() {
           : `Dangerous water vibration of ${peakDelta.toFixed(2)} m/s² detected! Move to high ground now.`,
         notes: `Immediate trigger upon reaching ${severity.toUpperCase()} threshold (${peakDelta.toFixed(2)} m/s²)`,
       });
-
-      setActiveAlert(newAlert);
-
-      // Send Offline-ready Background Push Notification (works even in background or offline)
-      const locationSummary = newAlert.riverName && newAlert.village
-        ? `${newAlert.riverName}, ${newAlert.village}`
-        : userVillage;
-
-      NotificationService.sendFloodPushNotification(
-        isYellow ? `⚠️ FLOOD WARNING: ${locationSummary}` : `🚨 CRITICAL FLOOD: ${locationSummary}`,
-        isYellow
-          ? `Water vibration warning at ${newAlert.riverName || 'River Station'} (Δ ${peakDelta.toFixed(2)} m/s²). Prepare emergency kits!`
-          : `CRITICAL FLOOD ALARM at ${newAlert.riverName || 'River Station'} (${newAlert.locationLabel || userVillage}). Evacuate immediately!`,
-        {
-          village: newAlert.village || userVillage,
-          riverName: newAlert.riverName,
-          locationLabel: newAlert.locationLabel,
-          mapsUrl: newAlert.mapsUrl,
-          latitude: newAlert.latitude,
-          longitude: newAlert.longitude,
-          peakDelta,
-          isTest: source === 'simulated' || source === 'manual_test',
-        }
-      );
     },
     [config.nodeId, config.sensorName, authState.user?.village]
   );
 
   useEffect(() => {
+    // ONLY Admin devices carry the physical water vibration sensor and listen to hardware motion
+    if (!isAdmin) {
+      motionSensorService.stopListening();
+      return;
+    }
+
     const unsubMotion = motionSensorService.onMotion((data, sustained, progress) => {
       setMotion(data);
       setSustainedDuration(sustained);
@@ -288,11 +311,11 @@ export default function App() {
       unsubTrigger();
       unsubState();
     };
-  }, [handleFloodTrigger]);
+  }, [isAdmin, handleFloodTrigger]);
 
-  // Handle arming / disarming
+  // Handle arming / disarming (ADMIN ONLY)
   useEffect(() => {
-    if (isArmed) {
+    if (isAdmin && isArmed) {
       motionSensorService.startListening();
       if (config.autoWakeLock) {
         wakeLockService.request();
@@ -300,7 +323,7 @@ export default function App() {
     } else {
       motionSensorService.stopListening();
     }
-  }, [isArmed, config.autoWakeLock]);
+  }, [isAdmin, isArmed, config.autoWakeLock]);
 
   // Toggle Arm Handler
   const handleToggleArm = () => {
@@ -413,11 +436,21 @@ export default function App() {
           activeAlertCount={activeAlertCount}
         />
 
-        {/* 3. Fixed Mobile Content Screen */}
+        {/* 3. Fixed Mobile Content Screen (Smoothly scrollable, Bottom Nav stays fixed) */}
         <main
           id="mobile-main-scroll-area"
-          className="flex-1 w-full overflow-hidden flex flex-col px-3.5 sm:px-4 py-4"
+          className="flex-1 w-full overflow-y-auto min-h-0 px-3.5 sm:px-4 py-4 overscroll-contain"
         >
+          {currentMode === 'admin' && isAdmin && (
+            <AdminSafetyDashboardView
+              safetyReports={safetyReports}
+              alerts={alerts}
+              currentUser={authState.user}
+              isDarkMode={isDarkMode}
+              onOpenCheckInModal={() => setIsSafetyModalOpen(true)}
+            />
+          )}
+
           {currentMode === 'sensor' && isAdmin && (
             <SensorNodeView
               motion={motion}
@@ -460,6 +493,7 @@ export default function App() {
             <VillageCommunityView
               currentUser={authState.user}
               alerts={alerts}
+              safetyReports={safetyReports}
               isDarkMode={isDarkMode}
               onOpenAuthModal={() => setIsAuthModalOpen(true)}
             />
@@ -503,7 +537,15 @@ export default function App() {
         isSoundEnabled={config.soundAlarmOnDevice}
       />
 
-      {/* 7. Mobile Authentication & Profile Modal */}
+      {/* 7. Safety Status Check-In Modal */}
+      <SafetyCheckInModal
+        isOpen={isSafetyModalOpen}
+        onClose={() => setIsSafetyModalOpen(false)}
+        currentUser={authState.user}
+        isDarkMode={isDarkMode}
+      />
+
+      {/* 8. Mobile Authentication & Profile Modal */}
       <MobileAuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
@@ -511,7 +553,7 @@ export default function App() {
         isDarkMode={isDarkMode}
       />
 
-      {/* 8. Firebase Modular Web SDK Config Modal */}
+      {/* 9. Firebase Modular Web SDK Config Modal */}
       <FirebaseConfigModal
         isOpen={isFirebaseModalOpen}
         onClose={() => setIsFirebaseModalOpen(false)}

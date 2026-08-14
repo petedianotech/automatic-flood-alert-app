@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, BellRing, MapPin, Sliders, Lock } from 'lucide-react';
+import { Activity, BellRing, MapPin, Sliders, LayoutDashboard, ShieldCheck } from 'lucide-react';
 import { NodeMode } from '../types';
 
 interface MobileBottomNavProps {
@@ -21,9 +21,14 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   isDarkMode,
   isAdmin = false,
 }) => {
-  // If admin, show all 4 tabs (Sensor, Alerts, Village, Tools). If villager, only show Alerts & Village.
+  // If admin, show all 5 tabs (Dashboard, Sensor, Alerts, Village, Tools). If villager, only show Alerts & Village.
   const tabs = isAdmin
     ? [
+        {
+          id: 'admin' as NodeMode,
+          label: 'Dashboard',
+          icon: LayoutDashboard,
+        },
         {
           id: 'sensor' as NodeMode,
           label: 'Sensor',
@@ -68,13 +73,13 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   return (
     <nav
       id="mobile-bottom-navigation-bar"
-      className={`sticky bottom-0 z-40 w-full border-t transition-colors select-none ${
+      className={`shrink-0 z-40 w-full border-t transition-colors select-none ${
         isDarkMode
-          ? 'bg-[#1E1F20]/95 border-[#303134] text-[#E3E3E3]'
-          : 'bg-white/95 border-[#E1E3E1] text-[#1F1F1F]'
-      } backdrop-blur-md pb-safe`}
+          ? 'bg-[#121316] border-[#27272A] text-[#EDEDED]'
+          : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
+      } backdrop-blur-md pb-safe shadow-lg`}
     >
-      <div className="max-w-md mx-auto px-2 py-1.5 flex items-center justify-around">
+      <div className="max-w-md mx-auto px-3 py-2 flex items-center justify-around">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = currentMode === tab.id;
@@ -84,17 +89,17 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
               key={tab.id}
               id={`tab-nav-${tab.id}`}
               onClick={() => onSelectMode(tab.id)}
-              className={`flex-1 py-1.5 px-2 rounded-2xl flex flex-col items-center justify-center relative transition-all active:scale-95 ${
+              className={`flex-1 py-1 px-2 rounded-2xl flex flex-col items-center justify-center relative transition-all active:scale-95 ${
                 isActive
-                  ? 'text-[#1A73E8] dark:text-[#8AB4F8] font-bold'
-                  : 'text-[#5F6368] dark:text-[#9AA0A6] hover:text-[#1F1F1F] dark:hover:text-[#E3E3E3]'
+                  ? 'text-[#38BDF8] dark:text-[#38BDF8] font-bold'
+                  : 'text-[#71717A] dark:text-[#A1A1AA] hover:text-[#1F1F1F] dark:hover:text-[#EDEDED]'
               }`}
             >
               {/* Active Indicator Pill */}
               <div
                 className={`w-12 h-7 rounded-full flex items-center justify-center mb-0.5 transition-colors relative ${
                   isActive
-                    ? 'bg-[#E8F0FE] dark:bg-[#1A73E8]/20'
+                    ? 'bg-[#0284C7]/20 text-[#38BDF8]'
                     : 'bg-transparent hover:bg-black/5 dark:hover:bg-white/5'
                 }`}
               >
@@ -109,13 +114,13 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 
                 {/* Badge Number */}
                 {tab.badge && (
-                  <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-[#D93025] text-white font-mono text-[10px] font-black flex items-center justify-center animate-bounce shadow-xs">
+                  <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-[#EF4444] text-white font-mono text-[10px] font-black flex items-center justify-center animate-bounce shadow-xs">
                     {tab.badge}
                   </span>
                 )}
               </div>
 
-              <span className="text-[10px] sm:text-[11px] font-medium tracking-tight truncate max-w-[70px]">
+              <span className="text-[11px] font-semibold tracking-tight truncate max-w-[80px]">
                 {tab.label}
               </span>
             </button>

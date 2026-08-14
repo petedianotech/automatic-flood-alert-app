@@ -35,10 +35,11 @@ import {
   Auth,
 } from 'firebase/auth';
 import firebaseConfigJson from '../../firebase-applet-config.json';
-import { FloodAlert, UserProfile, AuthState, ADMIN_EMAIL, isAppAdmin } from '../types';
+import { FloodAlert, UserProfile, AuthState, ADMIN_EMAIL, isAppAdmin, ResidentSafetyReport, SafetyStatusType } from '../types';
 
 const STORAGE_KEY_USER_PROFILE = 'flood_alert_user_profile';
 const STORAGE_KEY_ALERTS = 'flood_alert_history_local';
+const STORAGE_KEY_SAFETY_REPORTS = 'flood_alert_safety_reports_local';
 const BROADCAST_CHANNEL_NAME = 'flood_alert_system_sync';
 
 export enum OperationType {
@@ -73,8 +74,10 @@ class FirebaseFloodService {
   private auth: Auth | null = null;
   private broadcastChannel: BroadcastChannel | null = null;
   private alertListeners: Set<(alerts: FloodAlert[]) => void> = new Set();
+  private safetyListeners: Set<(reports: ResidentSafetyReport[]) => void> = new Set();
   private authListeners: Set<(state: AuthState) => void> = new Set();
   private firestoreUnsubscribe: Unsubscribe | null = null;
+  private safetyFirestoreUnsubscribe: Unsubscribe | null = null;
   private isFirebaseActive: boolean = false;
   private currentAuthState: AuthState = {
     user: null,
@@ -121,6 +124,10 @@ class FirebaseFloodService {
             this.handleLocalAlertUpdated(event.data.alert);
           } else if (event.data && event.data.type === 'CLEAR_ALERTS') {
             this.notifyAlerts([]);
+          } else if (event.data && event.data.type === 'NEW_SAFETY_REPORT') {
+            this.handleLocalSafetyReportReceived(event.data.report);
+          } else if (event.data && event.data.type === 'CLEAR_SAFETY_REPORTS') {
+            this.notifySafetyReports([]);
           }
         };
       } catch (err) {
@@ -171,6 +178,7 @@ class FirebaseFloodService {
       });
 
       this.subscribeFirestoreAlerts();
+      this.subscribeFirestoreSafetyReports();
     } catch (err) {
       console.warn('Firebase initialization error:', err);
       this.isFirebaseActive = false;
@@ -687,6 +695,12 @@ class FirebaseFloodService {
     return () => this.alertListeners.delete(cb);
   }
 
+  public subscribeSafetyReports(cb: (reports: ResidentSafetyReport[]) => void): () => void {
+    this.safetyListeners.add(cb);
+    cb(this.getLocalSafetyReports());
+    return () => this.safetyListeners.delete(cb);
+  }
+
   public subscribeAuth(cb: (state: AuthState) => void): () => void {
     this.authListeners.add(cb);
     cb(this.currentAuthState);
@@ -695,6 +709,176 @@ class FirebaseFloodService {
 
   private notifyAlerts(alerts: FloodAlert[]) {
     this.alertListeners.forEach((cb) => cb(alerts));
+  }
+
+  private notifySafetyReports(reports: ResidentSafetyReport[]) {
+    this.safetyListeners.forEach((cb) => cb(reports));
+  }
+
+  private subscribeFirestoreSafetyReports() {
+    if (!this.db) return;
+
+    if (this.safetyFirestoreUnsubscribe) {
+      this.safetyFirestoreUnsubscribe();
+    }
+
+    try {
+      const q = query(
+        collection(this.db, 'safety_reports'),
+        orderBy('timestamp', 'desc'),
+        limit(100)
+      );
+
+      this.safetyFirestoreUnsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const reports: ResidentSafetyReport[] = [];
+          snapshot.forEach((docSnapshot) => {
+            const data = docSnapshot.data();
+            reports.push({
+              id: docSnapshot.id,
+              userId: data.userId || 'anonymous',
+              userName: data.userName || 'Resident',
+              village: data.village || 'Dzenje Village',
+              status: data.status || 'safe',
+              statusLabel: data.statusLabel,
+              peopleCount: data.peopleCount,
+              phone: data.phone,
+              message: data.message,
+              timestamp: data.timestamp || Date.now(),
+              formattedTime: data.formattedTime || new Date(data.timestamp || Date.now()).toLocaleTimeString(),
+              latitude: data.latitude,
+              longitude: data.longitude,
+              mapsUrl: data.mapsUrl,
+              updatedAt: data.updatedAt,
+            });
+          });
+
+          this.saveLocalSafetyReports(reports);
+          this.notifySafetyReports(reports);
+        },
+        (error) => {
+          console.warn('Firestore safety reports snapshot listener error:', error);
+        }
+      );
+    } catch (err) {
+      console.warn('Firestore safety reports subscription failed:', err);
+    }
+  }
+
+  public async submitSafetyReport(
+    reportData: Omit<ResidentSafetyReport, 'id' | 'timestamp' | 'formattedTime'>
+  ): Promise<ResidentSafetyReport> {
+    const user = this.currentAuthState.user;
+    const now = Date.now();
+    const formatted = new Date(now).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const newReport: ResidentSafetyReport = {
+      ...reportData,
+      id: 'report_' + now + '_' + Math.random().toString(36).substring(2, 7),
+      userId: reportData.userId || user?.uid || this.currentAuthState.firebaseUid || 'anonymous_user',
+      userName: reportData.userName || user?.name || 'Resident',
+      village: reportData.village || user?.village || 'Dzenje Village',
+      timestamp: now,
+      formattedTime: formatted,
+      updatedAt: new Date(now).toISOString(),
+    };
+
+    // 1. Write to Firestore if connected
+    if (this.db) {
+      try {
+        const docRef = await addDoc(collection(this.db, 'safety_reports'), {
+          ...newReport,
+          createdAt: new Date().toISOString(),
+        });
+        newReport.id = docRef.id;
+      } catch (err) {
+        console.warn('Could not write safety report to Firestore, stored locally:', err);
+      }
+    }
+
+    // 2. Save locally and broadcast
+    const existing = this.getLocalSafetyReports();
+    // Replace any previous report by the same user or prepend
+    const filtered = existing.filter((r) => r.userId !== newReport.userId);
+    const updated = [newReport, ...filtered].slice(0, 100);
+    this.saveLocalSafetyReports(updated);
+    this.notifySafetyReports(updated);
+
+    if (this.broadcastChannel) {
+      this.broadcastChannel.postMessage({ type: 'NEW_SAFETY_REPORT', report: newReport });
+    }
+
+    return newReport;
+  }
+
+  public getLocalSafetyReports(): ResidentSafetyReport[] {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_SAFETY_REPORTS);
+      if (raw) {
+        return JSON.parse(raw);
+      }
+    } catch {
+      // ignore
+    }
+    // Default seed sample data if empty so UI looks alive
+    return [
+      {
+        id: 'seed-1',
+        userId: 'seed-user-1',
+        userName: 'Peter Damiano',
+        village: 'Dzenje Village',
+        status: 'safe',
+        statusLabel: 'Safe at Home (Flood Waters Receded)',
+        peopleCount: 4,
+        phone: '+265 999 123 456',
+        message: 'Ruo River banks receded. Family is safe, water clear.',
+        timestamp: Date.now() - 1000 * 60 * 15,
+        formattedTime: '15 mins ago',
+      },
+      {
+        id: 'seed-2',
+        userId: 'seed-user-2',
+        userName: 'Chikondi Phiri',
+        village: 'Dzenje Village',
+        status: 'evacuated',
+        statusLabel: 'Evacuated to High Ground',
+        peopleCount: 6,
+        phone: '+265 888 234 567',
+        message: 'Moved to Dzenje Primary School shelter.',
+        timestamp: Date.now() - 1000 * 60 * 45,
+        formattedTime: '45 mins ago',
+      },
+      {
+        id: 'seed-3',
+        userId: 'seed-user-3',
+        userName: 'Mary Banda',
+        village: 'Mabuka Village',
+        status: 'in_flooding',
+        statusLabel: 'In Flooding (Compound Flooded)',
+        peopleCount: 3,
+        phone: '+265 991 345 678',
+        message: 'Water entering front porch, observing river level.',
+        timestamp: Date.now() - 1000 * 60 * 60,
+        formattedTime: '1 hour ago',
+      },
+    ];
+  }
+
+  private saveLocalSafetyReports(reports: ResidentSafetyReport[]) {
+    try {
+      localStorage.setItem(STORAGE_KEY_SAFETY_REPORTS, JSON.stringify(reports));
+    } catch {
+      // ignore
+    }
+  }
+
+  private handleLocalSafetyReportReceived(report: ResidentSafetyReport) {
+    const existing = this.getLocalSafetyReports();
+    const filtered = existing.filter((r) => r.id !== report.id && r.userId !== report.userId);
+    const updated = [report, ...filtered].slice(0, 100);
+    this.saveLocalSafetyReports(updated);
+    this.notifySafetyReports(updated);
   }
 
   public getAuthState(): AuthState {

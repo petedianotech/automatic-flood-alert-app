@@ -31,6 +31,14 @@ service cloud.firestore {
         data.source in ['hardware_sensor', 'manual_test', 'simulated'];
     }
 
+    function isValidSafetyReport(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+        data.userName is string && data.userName.size() > 0 && data.userName.size() <= 100 &&
+        data.village is string && data.village.size() > 0 && data.village.size() <= 100 &&
+        data.status in ['safe', 'in_flooding', 'needs_help', 'evacuated'] &&
+        data.timestamp is number;
+    }
+
     // User Profiles
     match /users/{userId} {
       allow get: if isOwner(userId);
@@ -47,6 +55,14 @@ service cloud.firestore {
         request.resource.data.status == 'dismissed' &&
         request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'dismissedBy', 'dismissedAt']);
       allow delete: if false;
+    }
+
+    // Resident Safety Reports & Roll-call
+    match /safety_reports/{reportId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidSafetyReport(request.resource.data) && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && isValidSafetyReport(request.resource.data) && (request.resource.data.userId == request.auth.uid || resource.data.userId == request.auth.uid);
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
 
     // Connection test document

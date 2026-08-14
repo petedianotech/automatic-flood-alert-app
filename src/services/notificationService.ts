@@ -10,6 +10,10 @@
  * - Offline alert caching and automatic background synchronization
  */
 
+import firebaseConfigJson from '../../firebase-applet-config.json';
+import { getMessaging, getToken, onMessage, isSupported as isMessagingSupported, Messaging } from 'firebase/messaging';
+import { getApp } from 'firebase/app';
+
 export interface OfflineAlertPayload {
   title?: string;
   body?: string;
@@ -28,21 +32,35 @@ export class NotificationService {
   private static deferredInstallPrompt: any = null;
   private static installPromptListeners: Set<(canInstall: boolean) => void> = new Set();
   private static networkListeners: Set<(isOnline: boolean) => void> = new Set();
+  private static fcmToken: string | null = null;
+  private static messaging: Messaging | null = null;
+  public static readonly VAPID_KEY = (firebaseConfigJson as any).vapidKey || 'BO3GBoftBPynx-UIn-wqYpMwm_8xazmQ-hYdddRcFWZ1lf1C5DMMf2HK2fcBcyKE7lF2cn6VlqWC3_0PBg2C8as';
 
   public static init() {
     // 1. Register Service Worker
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       navigator.serviceWorker
-        .register('/sw.js')
+        .register('/firebase-messaging-sw.js')
         .then((reg) => {
           this.swRegistration = reg;
+          this.initFirebaseMessaging(reg);
         })
-        .catch((err) => {
-          console.warn('[PWA] Service Worker registration info:', err);
+        .catch(() => {
+          // Fallback to /sw.js
+          navigator.serviceWorker
+            .register('/sw.js')
+            .then((reg) => {
+              this.swRegistration = reg;
+              this.initFirebaseMessaging(reg);
+            })
+            .catch((err) => {
+              console.warn('[PWA] Service Worker registration info:', err);
+            });
         });
 
       navigator.serviceWorker.ready.then((reg) => {
         this.swRegistration = reg;
+        this.initFirebaseMessaging(reg);
       });
     }
 
@@ -70,6 +88,76 @@ export class NotificationService {
     }
   }
 
+  /**
+   * Initializes Firebase Cloud Messaging with service worker registration and VAPID key
+   */
+  public static async initFirebaseMessaging(registration?: ServiceWorkerRegistration) {
+    if (typeof window === 'undefined') return;
+    try {
+      const supported = await isMessagingSupported();
+      if (!supported) return;
+
+      const app = getApp();
+      if (!app) return;
+
+      this.messaging = getMessaging(app);
+
+      // Listen for foreground FCM push messages
+      onMessage(this.messaging, (payload) => {
+        console.log('[FCM] Foreground push message received:', payload);
+        const title = payload.notification?.title || payload.data?.title || '🚨 FLOOD ALERT';
+        const body = payload.notification?.body || payload.data?.body || 'Continuous water vibration detected!';
+        
+        this.sendFloodPushNotification(title, body, {
+          village: payload.data?.village,
+          riverName: payload.data?.riverName,
+          mapsUrl: payload.data?.mapsUrl,
+          peakDelta: Number(payload.data?.peakDelta) || 0,
+        });
+      });
+
+      // If notification permission is already granted, obtain and cache FCM token
+      if (Notification.permission === 'granted') {
+        await this.requestFcmToken(registration);
+      }
+    } catch (err) {
+      console.warn('[FCM] Error initializing Firebase Messaging:', err);
+    }
+  }
+
+  /**
+   * Requests FCM Device Registration Token using your Firebase VAPID Key
+   */
+  public static async requestFcmToken(registration?: ServiceWorkerRegistration): Promise<string | null> {
+    try {
+      if (!this.messaging) {
+        const supported = await isMessagingSupported();
+        if (!supported) return null;
+        this.messaging = getMessaging(getApp());
+      }
+
+      const swReg = registration || this.swRegistration || (await navigator.serviceWorker?.ready);
+      
+      const token = await getToken(this.messaging, {
+        vapidKey: this.VAPID_KEY,
+        serviceWorkerRegistration: swReg,
+      });
+
+      if (token) {
+        this.fcmToken = token;
+        console.log('[FCM] Push Notification Token generated with VAPID Key:', token);
+        return token;
+      }
+    } catch (err) {
+      console.warn('[FCM] Error generating token with VAPID Key:', err);
+    }
+    return null;
+  }
+
+  public static getFcmToken(): string | null {
+    return this.fcmToken;
+  }
+
   public static isSupported(): boolean {
     return typeof window !== 'undefined' && 'Notification' in window;
   }
@@ -94,12 +182,15 @@ export class NotificationService {
     if (!this.isSupported()) return 'denied';
     try {
       const result = await Notification.requestPermission();
-      if (result === 'granted' && !this.swRegistration && this.isServiceWorkerSupported()) {
-        try {
-          this.swRegistration = await navigator.serviceWorker.ready;
-        } catch {
-          // ignore
+      if (result === 'granted') {
+        if (!this.swRegistration && this.isServiceWorkerSupported()) {
+          try {
+            this.swRegistration = await navigator.serviceWorker.ready;
+          } catch {
+            // ignore
+          }
         }
+        await this.requestFcmToken(this.swRegistration || undefined);
       }
       return result;
     } catch (err) {

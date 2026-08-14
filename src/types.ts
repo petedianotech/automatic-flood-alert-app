@@ -128,7 +128,27 @@ export interface BatteryState {
   dischargingTime?: number;
 }
 
-export type NodeMode = 'sensor' | 'receiver' | 'village' | 'diagnostics' | 'settings';
+export type SafetyStatusType = 'safe' | 'in_flooding' | 'needs_help' | 'evacuated';
+
+export interface ResidentSafetyReport {
+  id: string;
+  userId: string;
+  userName: string;
+  village: string;
+  status: SafetyStatusType;
+  statusLabel?: string;
+  peopleCount?: number;
+  phone?: string;
+  message?: string;
+  timestamp: number;
+  formattedTime: string;
+  latitude?: number;
+  longitude?: number;
+  mapsUrl?: string;
+  updatedAt?: string;
+}
+
+export type NodeMode = 'sensor' | 'receiver' | 'village' | 'diagnostics' | 'admin' | 'settings';
 
 export interface FirebaseCustomConfig {
   apiKey: string;

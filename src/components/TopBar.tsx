@@ -12,6 +12,7 @@ import {
   MapPin,
   User,
   Sparkles,
+  Radio,
 } from 'lucide-react';
 import { NodeMode, MotionSensorState, WakeLockState, UserProfile, isAppAdmin } from '../types';
 
@@ -44,14 +45,15 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenAuthModal,
   activeAlertCount,
 }) => {
+  const isAdmin = isAppAdmin(currentUser);
   const isOnlineAndAwake = isArmed && !isPaused && wakeLockState.isActive;
 
   return (
     <header
       id="app-top-bar"
-      className={`sticky top-0 z-40 transition-colors border-b select-none ${
+      className={`shrink-0 sticky top-0 z-40 transition-colors border-b select-none ${
         isDarkMode
-          ? 'bg-[#1E1F20]/95 border-[#303134] text-[#E3E3E3]'
+          ? 'bg-[#121316]/95 border-[#27272A] text-[#EDEDED]'
           : 'bg-white/95 border-[#E1E3E1] text-[#1F1F1F]'
       } backdrop-blur-md shadow-xs`}
     >
@@ -61,14 +63,20 @@ export const TopBar: React.FC<TopBarProps> = ({
           <div className="flex items-center gap-2.5 min-w-0">
             <div
               className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-transform shrink-0 shadow-xs ${
-                isArmed
-                  ? 'bg-[#1A73E8] text-white shadow-[#1A73E8]/30'
+                isAdmin && isArmed
+                  ? 'bg-[#0284C7] text-white shadow-[#0284C7]/30'
+                  : !isAdmin
+                  ? 'bg-[#0284C7] text-white'
                   : isDarkMode
-                  ? 'bg-[#2D2E30] text-[#9AA0A6]'
+                  ? 'bg-[#27272A] text-[#A1A1AA]'
                   : 'bg-[#F1F3F4] text-[#5F6368]'
               }`}
             >
-              <Activity className={`w-5 h-5 ${isArmed ? 'animate-pulse' : ''}`} />
+              {isAdmin ? (
+                <Activity className={`w-5 h-5 ${isArmed ? 'animate-pulse' : ''}`} />
+              ) : (
+                <Radio className="w-5 h-5 animate-pulse" />
+              )}
             </div>
 
             <div className="min-w-0">
@@ -90,10 +98,10 @@ export const TopBar: React.FC<TopBarProps> = ({
               <button
                 id="btn-header-village-pill"
                 onClick={onOpenAuthModal}
-                className="flex items-center gap-1 text-[11px] font-semibold text-[#5F6368] dark:text-[#9AA0A6] hover:text-[#1A73E8] dark:hover:text-[#8AB4F8] transition-colors truncate"
+                className="flex items-center gap-1 text-[11px] font-semibold text-[#71717A] dark:text-[#A1A1AA] hover:text-[#38BDF8] dark:hover:text-[#38BDF8] transition-colors truncate"
               >
-                <MapPin className="w-3 h-3 text-[#D93025] shrink-0" />
-                <span className="truncate">{currentUser?.village || 'Riverbank East'}</span>
+                <MapPin className="w-3 h-3 text-[#EF4444] shrink-0" />
+                <span className="truncate">{currentUser?.village || 'Dzenje Village'}</span>
               </button>
             </div>
           </div>

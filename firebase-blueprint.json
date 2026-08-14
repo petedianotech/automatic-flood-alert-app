@@ -38,6 +38,28 @@
         "createdAt": { "type": "string", "description": "Creation timestamp" }
       },
       "required": ["timestamp", "peakDelta", "nodeId", "nodeName", "status", "source"]
+    },
+    "ResidentSafetyReport": {
+      "title": "ResidentSafetyReport",
+      "description": "Resident roll-call and flood safety status reports.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Resident UID", "maxLength": 128 },
+        "userName": { "type": "string", "description": "Resident name", "maxLength": 100 },
+        "village": { "type": "string", "description": "Village name", "maxLength": 100 },
+        "status": { "type": "string", "description": "Safety status", "enum": ["safe", "in_flooding", "needs_help", "evacuated"] },
+        "statusLabel": { "type": "string", "description": "Human readable description", "maxLength": 100 },
+        "peopleCount": { "type": "number", "description": "Family members headcount" },
+        "phone": { "type": "string", "description": "Emergency contact phone", "maxLength": 50 },
+        "message": { "type": "string", "description": "Condition note or rescue details", "maxLength": 500 },
+        "timestamp": { "type": "number", "description": "Epoch timestamp in milliseconds" },
+        "formattedTime": { "type": "string", "description": "Formatted time string", "maxLength": 50 },
+        "latitude": { "type": "number", "description": "GPS latitude" },
+        "longitude": { "type": "number", "description": "GPS longitude" },
+        "mapsUrl": { "type": "string", "description": "Google Maps link", "maxLength": 500 },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of update" }
+      },
+      "required": ["userId", "userName", "village", "status", "timestamp"]
     }
   },
   "firestore": {
@@ -48,6 +70,10 @@
     "/flood_alerts/{alertId}": {
       "schema": "FloodAlert",
       "description": "Community and sensor flood event telemetry alerts."
+    },
+    "/safety_reports/{reportId}": {
+      "schema": "ResidentSafetyReport",
+      "description": "Community safety check-ins and emergency rescue requests."
     }
   }
 }

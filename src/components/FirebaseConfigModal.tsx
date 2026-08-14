@@ -100,7 +100,14 @@ export const FirebaseConfigModal: React.FC<FirebaseConfigModalProps> = ({
 
           <div className="p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.04] border border-black/5 dark:border-white/5 flex justify-between">
             <span className="text-[#5F6368] dark:text-[#9AA0A6]">Collections:</span>
-            <span className="font-bold text-[#1A73E8] dark:text-[#8AB4F8]">/users, /flood_alerts</span>
+            <span className="font-bold text-[#1A73E8] dark:text-[#8AB4F8]">/users, /flood_alerts, /safety_reports</span>
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.04] border border-black/5 dark:border-white/5 flex justify-between items-center">
+            <span className="text-[#5F6368] dark:text-[#9AA0A6]">FCM VAPID Key:</span>
+            <span className="font-bold font-mono text-[11px] text-emerald-600 dark:text-emerald-400 truncate max-w-[200px]" title={(firebaseConfigJson as any).vapidKey}>
+              {(firebaseConfigJson as any).vapidKey ? 'Active & Configured' : 'Not Set'}
+            </span>
           </div>
         </div>
 

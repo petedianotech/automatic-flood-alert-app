@@ -53,7 +53,7 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
   const [filterType, setFilterType] = useState<'all' | 'active' | 'dismissed'>('all');
   const [canInstallPwa, setCanInstallPwa] = useState<boolean>(() => NotificationService.canInstallPwa());
   const [testSent, setTestSent] = useState<boolean>(false);
-  const [showHistory, setShowHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(true);
 
   useEffect(() => {
     const unsub = NotificationService.subscribeInstallPrompt((canInstall) => {

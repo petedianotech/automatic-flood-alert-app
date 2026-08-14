@@ -6,6 +6,7 @@
   "firestoreDatabaseId": "ai-studio-automaticfloodal-78b68bcf-4195-42fb-b8c9-9f30466756de",
   "storageBucket": "automatic-flood-alert.firebasestorage.app",
   "messagingSenderId": "158763014091",
+  "vapidKey": "BO3GBoftBPynx-UIn-wqYpMwm_8xazmQ-hYdddRcFWZ1lf1C5DMMf2HK2fcBcyKE7lF2cn6VlqWC3_0PBg2C8as",
   "measurementId": "",
   "oAuthClientId": "158763014091-74pp71vgs0q81v8u19m9u9f7rk4ha160.apps.googleusercontent.com",
   "recaptchaSiteKey": ""
