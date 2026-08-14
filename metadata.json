@@ -1,6 +1,6 @@
 {
   "name": "Automatic Flood Alert System",
   "description": "Mobile flood alert application with Offline PWA Service Worker, Background Push Notifications, Firebase Auth, Village Community Networks, Screen Wake Lock, Device Motion API, and emergency sirens.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["geolocation"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

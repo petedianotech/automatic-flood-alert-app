@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   AlertOctagon,
+  AlertTriangle,
   Volume2,
   VolumeX,
   ShieldCheck,
-  Flame,
-  PhoneCall,
-  Share2,
-  Copy,
   Check,
+  Copy,
+  ArrowRight,
+  Sparkles,
+  MapPin,
+  Compass,
+  ExternalLink,
 } from 'lucide-react';
 import { FloodAlert } from '../types';
 import { sirenService } from '../services/audioSiren';
@@ -31,18 +34,26 @@ export const CriticalAlarmModal: React.FC<CriticalAlarmModalProps> = ({
   const holdTimerRef = useRef<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
 
-  const HOLD_DURATION_MS = 2000; // 2 seconds safety hold to dismiss
+  const isYellow = activeAlert?.severity === 'yellow';
+  const HOLD_DURATION_MS = isYellow ? 1000 : 2000;
 
-  // Play / Stop siren
+  // Sound triggers based on alert level
   useEffect(() => {
-    if (activeAlert && !isMuted) {
-      sirenService.startEmergencySiren();
-    } else {
+    if (!activeAlert || isMuted) {
+      sirenService.stopAllAlarms();
+      return;
+    }
+
+    if (activeAlert.severity === 'yellow') {
       sirenService.stopEmergencySiren();
+      sirenService.startWarningChime();
+    } else {
+      sirenService.stopWarningChime();
+      sirenService.startEmergencySiren();
     }
 
     return () => {
-      sirenService.stopEmergencySiren();
+      sirenService.stopAllAlarms();
     };
   }, [activeAlert, isMuted]);
 
@@ -57,9 +68,8 @@ export const CriticalAlarmModal: React.FC<CriticalAlarmModalProps> = ({
       const progress = Math.min(1, elapsed / HOLD_DURATION_MS);
       setHoldProgress(progress);
 
-      // Play escalating feedback click/beep
       if (progress < 1) {
-        sirenService.playBeep(600 + progress * 800, 40);
+        sirenService.playBeep(isYellow ? 580 + progress * 400 : 600 + progress * 800, 40);
       }
 
       if (progress >= 1) {
@@ -83,7 +93,7 @@ export const CriticalAlarmModal: React.FC<CriticalAlarmModalProps> = ({
       clearInterval(holdTimerRef.current);
       holdTimerRef.current = null;
     }
-    sirenService.stopEmergencySiren();
+    sirenService.stopAllAlarms();
     if (activeAlert) {
       onDismiss(activeAlert.id);
     }
@@ -91,9 +101,15 @@ export const CriticalAlarmModal: React.FC<CriticalAlarmModalProps> = ({
     setIsHolding(false);
   };
 
+  const locationFullString =
+    activeAlert?.location?.fullAddress ||
+    activeAlert?.locationLabel ||
+    `${activeAlert?.riverName || 'Ruo River'}, ${activeAlert?.village || 'Dzenje Village'}, ${activeAlert?.traditionalAuthority || 'T/A Mabuka'}, ${activeAlert?.district || 'Mulanje District'}, ${activeAlert?.region || 'Southern Region, Malawi'}`;
+
   const handleCopyAlertText = () => {
     if (!activeAlert) return;
-    const text = `🚨 CRITICAL FLOOD ALERT DETECTED!\nLocation: ${activeAlert.nodeName}\nTime: ${activeAlert.formattedTime}\nPeak Force: ${activeAlert.peakDelta.toFixed(2)} m/s²\nSustained Vibration: ${activeAlert.durationSeconds.toFixed(1)}s\nPlease check water sensor immediately!`;
+    const levelLabel = isYellow ? '⚠️ FLOOD WARNING (YELLOW LEVEL)' : '🚨 CRITICAL FLOOD ALARM (RED LEVEL)';
+    const text = `${levelLabel}\nRiver & Station: ${activeAlert.riverName || 'Ruo River'} - ${activeAlert.nodeName}\nLocation: ${locationFullString}\nTime: ${activeAlert.formattedTime}\nPeak Force: ${activeAlert.peakDelta.toFixed(2)} m/s²\nCoordinates: ${activeAlert.latitude || -16.0315}°, ${activeAlert.longitude || 35.5000}°\nAction: ${isYellow ? 'Prepare belongings and stand by for evacuation' : 'EVACUATE TO HIGH GROUND IMMEDIATELY!'}`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
@@ -104,127 +120,199 @@ export const CriticalAlarmModal: React.FC<CriticalAlarmModalProps> = ({
   return (
     <div
       id="critical-flood-modal-overlay"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in"
     >
-      {/* Animated Emergency Modal Container with Material System Red Palette */}
       <div
-        className="w-full max-w-xl rounded-3xl bg-[#D93025] text-white p-6 sm:p-8 shadow-2xl border-4 border-white/20 animate-pulse relative overflow-hidden"
+        className={`w-full max-w-lg rounded-[28px] sm:rounded-3xl text-white p-5 sm:p-7 shadow-2xl border-3 sm:border-4 relative overflow-hidden transition-all ${
+          isYellow
+            ? 'bg-[#B06000] border-amber-300/40 animate-pulse'
+            : 'bg-[#D93025] border-white/20 animate-pulse'
+        }`}
         style={{
-          boxShadow: '0 0 60px rgba(217, 48, 37, 0.8), 0 0 100px rgba(217, 48, 37, 0.4)',
+          boxShadow: isYellow
+            ? '0 0 50px rgba(235, 140, 0, 0.7), 0 0 90px rgba(235, 140, 0, 0.35)'
+            : '0 0 60px rgba(217, 48, 37, 0.8), 0 0 100px rgba(217, 48, 37, 0.4)',
         }}
       >
-        {/* Background pulsating effect */}
-        <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-white/10 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-black/20 blur-3xl pointer-events-none" />
+        {/* Glow ambient blurs */}
+        <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-20 -left-20 w-60 h-60 rounded-full bg-black/25 blur-3xl pointer-events-none" />
 
-        {/* Top Header & Mute Button */}
-        <div className="flex items-center justify-between gap-4 mb-6 relative z-10">
+        {/* Top Bar Header */}
+        <div className="flex items-center justify-between gap-3 mb-3 relative z-10">
           <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest bg-white text-[#D93025] shadow-xs">
-              System Emergency
+            <span
+              className={`px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider shadow-xs ${
+                isYellow ? 'bg-amber-100 text-[#8C4A00]' : 'bg-white text-[#D93025]'
+              }`}
+            >
+              {isYellow ? '⚠️ Level 1: Yellow Warning' : '🚨 Level 2: Critical Emergency'}
             </span>
           </div>
 
           <button
             id="btn-mute-siren-alarm"
             onClick={() => setIsMuted(!isMuted)}
-            className="p-2.5 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 transition-all text-white border border-white/20"
-            title={isMuted ? 'Unmute Siren' : 'Mute Local Siren'}
+            className="p-2 rounded-full bg-white/20 hover:bg-white/30 active:scale-95 transition-all text-white border border-white/25"
+            title={isMuted ? 'Unmute Alarm' : 'Mute Sound'}
           >
-            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5 animate-pulse" />}
+            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4 animate-pulse" />}
           </button>
         </div>
 
-        {/* Big Alert Icon & Main Text */}
-        <div className="text-center relative z-10 space-y-3 mb-6">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-white text-[#D93025] mx-auto flex items-center justify-center shadow-lg transform rotate-3 hover:rotate-0 transition-transform">
-            <AlertOctagon className="w-12 h-12 sm:w-14 sm:h-14 animate-bounce" />
+        {/* Center Icon & Heading */}
+        <div className="text-center relative z-10 space-y-1.5 mb-3">
+          <div
+            className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl mx-auto flex items-center justify-center shadow-lg transform transition-transform ${
+              isYellow
+                ? 'bg-amber-100 text-[#B06000] rotate-2'
+                : 'bg-white text-[#D93025] rotate-3'
+            }`}
+          >
+            {isYellow ? (
+              <AlertTriangle className="w-8 h-8 sm:w-10 sm:h-10 animate-bounce" />
+            ) : (
+              <AlertOctagon className="w-8 h-8 sm:w-10 sm:h-10 animate-bounce" />
+            )}
           </div>
 
           <h1
             id="critical-alert-title"
-            className="text-2xl sm:text-3xl lg:text-4xl font-black font-sans tracking-tight text-white uppercase leading-tight drop-shadow-sm"
+            className="text-lg sm:text-xl font-black font-sans tracking-tight text-white uppercase leading-tight drop-shadow-xs"
           >
-            🚨 CRITICAL FLOOD ALERT DETECTED!
+            {isYellow ? '⚠️ FLOOD WARNING (YELLOW LEVEL)' : '🚨 CRITICAL FLOOD ALARM (RED LEVEL)'}
           </h1>
 
-          <p className="text-white/90 text-sm sm:text-base font-medium max-w-md mx-auto leading-snug">
-            Water sensor continuous vibration trip reached. High-amplitude water movement detected at{' '}
-            <strong className="underline font-bold text-white">{activeAlert.nodeName}</strong>.
-          </p>
+          {/* Prominent Flood River Location Box */}
+          <div className="rounded-2xl bg-black/35 p-2.5 sm:p-3 border border-white/20 text-left space-y-1">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-xs font-black uppercase text-amber-200">
+                <MapPin className="w-3.5 h-3.5 text-red-300 shrink-0" />
+                <span>Flood Location: {activeAlert.riverName || 'Ruo River'}</span>
+              </div>
+              {(activeAlert.mapsUrl || (activeAlert.latitude && activeAlert.longitude)) && (
+                <a
+                  href={
+                    activeAlert.mapsUrl ||
+                    `https://www.google.com/maps?q=${activeAlert.latitude || -16.0315},${activeAlert.longitude || 35.5000}`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] font-bold text-white bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded-lg inline-flex items-center gap-1 transition-colors"
+                >
+                  <span>Google Maps</span>
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </a>
+              )}
+            </div>
+
+            <p className="text-white text-xs font-semibold leading-tight">
+              {locationFullString}
+            </p>
+
+            <div className="flex items-center gap-2 text-[10px] font-mono text-white/80">
+              <Compass className="w-3 h-3 text-blue-200" />
+              <span>
+                Coordinates: {activeAlert.latitude ? activeAlert.latitude.toFixed(4) : '-16.0315'}° S,{' '}
+                {activeAlert.longitude ? activeAlert.longitude.toFixed(4) : '35.5000'}° E
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Telemetry Breakdown Box */}
-        <div className="relative z-10 rounded-2xl bg-black/20 p-4 border border-white/15 backdrop-blur-xs mb-8 grid grid-cols-3 gap-2 text-center">
+        {/* Live Metrics Pill Box */}
+        <div className="relative z-10 rounded-2xl bg-black/25 p-2.5 sm:p-3 border border-white/15 backdrop-blur-xs mb-3 grid grid-cols-3 gap-1.5 text-center">
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-white/70 block">
-              Peak Delta ($\Delta$)
+            <span className="text-[9px] font-bold uppercase tracking-wider text-white/70 block">
+              Vibration Delta (Δ)
             </span>
-            <span className="text-xl sm:text-2xl font-black font-mono text-white">
+            <span className="text-sm sm:text-lg font-black font-mono text-white">
               {activeAlert.peakDelta.toFixed(2)} m/s²
             </span>
           </div>
 
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-white/70 block">
-              Sustained
+            <span className="text-[9px] font-bold uppercase tracking-wider text-white/70 block">
+              Alert Severity
             </span>
-            <span className="text-xl sm:text-2xl font-black font-mono text-white">
-              {activeAlert.durationSeconds.toFixed(1)}s
+            <span
+              className={`text-[11px] sm:text-xs font-black uppercase font-mono px-2 py-0.5 rounded-full inline-block mt-0.5 ${
+                isYellow ? 'bg-amber-400 text-black' : 'bg-red-600 text-white'
+              }`}
+            >
+              {isYellow ? 'YELLOW' : 'CRITICAL RED'}
             </span>
           </div>
 
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-white/70 block">
-              Trigger Time
+            <span className="text-[9px] font-bold uppercase tracking-wider text-white/70 block">
+              Time
             </span>
-            <span className="text-sm sm:text-base font-bold font-mono text-white">
+            <span className="text-[11px] sm:text-xs font-bold font-mono text-white">
               {activeAlert.formattedTime}
             </span>
           </div>
         </div>
 
-        {/* Safety "HOLD TO DISMISS" Button */}
-        <div className="relative z-10 flex flex-col items-center justify-center space-y-3">
-          <div className="w-full relative">
-            <button
-              id="btn-hold-to-dismiss"
-              onMouseDown={handleHoldStart}
-              onMouseUp={handleHoldEnd}
-              onMouseLeave={handleHoldEnd}
-              onTouchStart={handleHoldStart}
-              onTouchEnd={handleHoldEnd}
-              className="w-full py-5 rounded-2xl bg-white text-[#D93025] hover:bg-gray-100 active:scale-98 font-black text-base sm:text-lg tracking-wider uppercase shadow-xl transition-all relative overflow-hidden flex items-center justify-center gap-3 select-none"
-            >
-              {/* Hold Progress Fill Bar */}
-              <div
-                className="absolute left-0 top-0 bottom-0 bg-[#B3261E] opacity-25 transition-all duration-75"
-                style={{ width: `${holdProgress * 100}%` }}
-              />
-
-              <ShieldCheck className="w-6 h-6 shrink-0 relative z-10" />
-              <span className="relative z-10">
-                {isHolding
-                  ? `HOLDING... ${Math.round(holdProgress * 100)}%`
-                  : 'HOLD 2 SECONDS TO DISMISS SIREN'}
-              </span>
-            </button>
+        {/* Action Directives Card */}
+        <div className="relative z-10 rounded-xl bg-white/10 p-2 sm:p-2.5 border border-white/15 mb-3 text-xs font-semibold space-y-1">
+          <div className="flex items-center gap-1.5 font-bold uppercase tracking-wide text-white/95">
+            <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+            <span>{isYellow ? 'Recommended Village Action:' : 'Immediate Evacuation Protocol:'}</span>
           </div>
-
-          <p className="text-xs text-white/75 font-medium text-center">
-            *Requires intentional press-and-hold to prevent accidental dismissal during an emergency.
+          <p className="text-white/85 text-[11px] leading-relaxed">
+            {isYellow
+              ? 'Gather essential documents, charge phones, keep battery lights ready, and monitor further announcements.'
+              : 'Move children, elders, and livestock to designated high ground evacuation shelters now.'}
           </p>
         </div>
 
-        {/* Action Bar (Copy summary / Quick Share) */}
-        <div className="relative z-10 mt-6 pt-4 border-t border-white/15 flex items-center justify-center gap-4">
+        {/* Action Button: Hold To Acknowledge / Dismiss */}
+        <div className="relative z-10 flex flex-col items-center justify-center space-y-1.5">
+          <button
+            id="btn-hold-to-dismiss"
+            onMouseDown={handleHoldStart}
+            onMouseUp={handleHoldEnd}
+            onMouseLeave={handleHoldEnd}
+            onTouchStart={handleHoldStart}
+            onTouchEnd={handleHoldEnd}
+            className={`w-full py-3.5 rounded-2xl active:scale-98 font-black text-xs sm:text-sm tracking-wider uppercase shadow-xl transition-all relative overflow-hidden flex items-center justify-center gap-2 select-none ${
+              isYellow
+                ? 'bg-white text-[#8C4A00] hover:bg-amber-50'
+                : 'bg-white text-[#D93025] hover:bg-gray-100'
+            }`}
+          >
+            <div
+              className={`absolute left-0 top-0 bottom-0 opacity-30 transition-all duration-75 ${
+                isYellow ? 'bg-amber-600' : 'bg-[#B3261E]'
+              }`}
+              style={{ width: `${holdProgress * 100}%` }}
+            />
+
+            <ShieldCheck className="w-4 h-4 shrink-0 relative z-10" />
+            <span className="relative z-10">
+              {isHolding
+                ? `HOLDING... ${Math.round(holdProgress * 100)}%`
+                : isYellow
+                ? 'HOLD 1 SEC TO ACKNOWLEDGE'
+                : 'HOLD 2 SEC TO DISMISS SIREN'}
+            </span>
+          </button>
+
+          <p className="text-[10px] text-white/75 font-medium text-center">
+            *Press &amp; hold button to silence alarm and acknowledge alert
+          </p>
+        </div>
+
+        {/* Copy Details Bar */}
+        <div className="relative z-10 mt-2.5 pt-2.5 border-t border-white/15 flex items-center justify-center gap-3">
           <button
             id="btn-copy-alert-summary"
             onClick={handleCopyAlertText}
-            className="text-xs font-bold text-white hover:text-white/80 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 border border-white/15 transition-colors"
+            className="text-[11px] font-bold text-white hover:text-white/80 flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/15 border border-white/20 transition-colors"
           >
-            {copied ? <Check className="w-4 h-4 text-green-300" /> : <Copy className="w-4 h-4" />}
-            <span>{copied ? 'Copied Alert Summary!' : 'Copy Alert Details'}</span>
+            {copied ? <Check className="w-3.5 h-3.5 text-green-300" /> : <Copy className="w-3.5 h-3.5 text-white" />}
+            <span>{copied ? 'Details Copied!' : 'Copy Alert Info & Location'}</span>
           </button>
         </div>
       </div>

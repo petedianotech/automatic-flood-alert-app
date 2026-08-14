@@ -29,6 +29,7 @@ import { FirebaseConfigModal } from './components/FirebaseConfigModal';
 import {
   MotionData,
   FloodAlert,
+  FloodSeverity,
   SensorConfig,
   WakeLockState,
   MotionSensorState,
@@ -46,8 +47,10 @@ import { NotificationService } from './services/notificationService';
 import { useBattery } from './services/batteryService';
 
 const DEFAULT_CONFIG: SensorConfig = {
-  thresholdDelta: 1.5, // 1.5 m/s^2
-  continuousDurationSec: 3.0, // 3 seconds
+  thresholdDelta: 1.5,
+  thresholdYellow: 1.5,
+  thresholdRed: 2.5,
+  continuousDurationSec: 0.1,
   sensorName: 'Basement Water Vibrator Node',
   nodeId: 'node-vibrator-' + Math.random().toString(36).substring(2, 6),
   sirenVolume: 0.85,
@@ -142,11 +145,24 @@ export default function App() {
   useEffect(() => {
     const unsubAuth = firebaseFloodService.subscribeAuth((state) => {
       setAuthState(state);
+      // If user is admin upon login and currently on receiver, allow switching to sensor mode
+      if (isAppAdmin(state.user)) {
+        setCurrentMode('sensor');
+      } else {
+        setCurrentMode((prev) => (prev === 'sensor' || prev === 'diagnostics' ? 'receiver' : prev));
+      }
     });
     return () => {
       unsubAuth();
     };
   }, []);
+
+  // Mode access security: non-admins can only access receiver & village
+  useEffect(() => {
+    if (!isAdmin && (currentMode === 'sensor' || currentMode === 'diagnostics')) {
+      setCurrentMode('receiver');
+    }
+  }, [isAdmin, currentMode]);
 
   // Sync config changes to storage & services
   useEffect(() => {
@@ -155,7 +171,11 @@ export default function App() {
     } catch {
       // ignore
     }
-    motionSensorService.setConfig(config.thresholdDelta, config.continuousDurationSec, config.baselineGravity);
+    motionSensorService.setConfig(
+      config.thresholdYellow ?? config.thresholdDelta,
+      config.thresholdRed ?? 2.5,
+      config.baselineGravity
+    );
     sirenService.setVolume(config.sirenVolume);
   }, [config]);
 
@@ -206,8 +226,14 @@ export default function App() {
 
   // 3. Motion Sensor Subscription & Alert Trigger Callback
   const handleFloodTrigger = useCallback(
-    async (peakDelta: number, durationSec: number, source: 'hardware_sensor' | 'manual_test' | 'simulated') => {
+    async (
+      peakDelta: number,
+      severity: FloodSeverity = 'red',
+      durationSec: number = 0.1,
+      source: 'hardware_sensor' | 'manual_test' | 'simulated' = 'hardware_sensor'
+    ) => {
       const userVillage = authState.user?.village || 'Riverbank East';
+      const isYellow = severity === 'yellow';
       const newAlert = await firebaseFloodService.recordFloodAlert({
         timestamp: Date.now(),
         formattedTime: new Date().toLocaleTimeString(),
@@ -218,23 +244,41 @@ export default function App() {
         village: userVillage,
         status: 'active',
         source,
-        notes: `Continuous vibration exceeded ${config.thresholdDelta.toFixed(2)} m/s² for ${durationSec.toFixed(1)}s`,
+        severity,
+        title: isYellow
+          ? '⚠️ Yellow Warning: Water Vibration Detected'
+          : '🚨 CRITICAL FLOOD ALARM: Immediate Evacuation',
+        message: isYellow
+          ? `Water vibration reached ${peakDelta.toFixed(2)} m/s². Standby and prepare emergency supplies.`
+          : `Dangerous water vibration of ${peakDelta.toFixed(2)} m/s² detected! Move to high ground now.`,
+        notes: `Immediate trigger upon reaching ${severity.toUpperCase()} threshold (${peakDelta.toFixed(2)} m/s²)`,
       });
 
       setActiveAlert(newAlert);
 
       // Send Offline-ready Background Push Notification (works even in background or offline)
+      const locationSummary = newAlert.riverName && newAlert.village
+        ? `${newAlert.riverName}, ${newAlert.village}`
+        : userVillage;
+
       NotificationService.sendFloodPushNotification(
-        `🚨 FLOOD WARNING: ${userVillage}`,
-        `High continuous vibration detected at ${config.sensorName} (Peak: ${peakDelta.toFixed(2)} m/s²). Check water sensor immediately!`,
+        isYellow ? `⚠️ FLOOD WARNING: ${locationSummary}` : `🚨 CRITICAL FLOOD: ${locationSummary}`,
+        isYellow
+          ? `Water vibration warning at ${newAlert.riverName || 'River Station'} (Δ ${peakDelta.toFixed(2)} m/s²). Prepare emergency kits!`
+          : `CRITICAL FLOOD ALARM at ${newAlert.riverName || 'River Station'} (${newAlert.locationLabel || userVillage}). Evacuate immediately!`,
         {
-          village: userVillage,
+          village: newAlert.village || userVillage,
+          riverName: newAlert.riverName,
+          locationLabel: newAlert.locationLabel,
+          mapsUrl: newAlert.mapsUrl,
+          latitude: newAlert.latitude,
+          longitude: newAlert.longitude,
           peakDelta,
           isTest: source === 'simulated' || source === 'manual_test',
         }
       );
     },
-    [config.nodeId, config.sensorName, config.thresholdDelta, authState.user?.village]
+    [config.nodeId, config.sensorName, authState.user?.village]
   );
 
   useEffect(() => {
@@ -311,13 +355,14 @@ export default function App() {
   };
 
   // Simulate Flood Test
-  const handleSimulateTest = (durationSec = 3.5, peakForce = 3.2) => {
-    motionSensorService.simulateFloodTest(durationSec, peakForce);
+  const handleSimulateTest = (severity: FloodSeverity = 'red') => {
+    motionSensorService.simulateFloodTest(severity);
   };
 
   // Manual Trigger Alert
-  const handleManualTriggerAlert = () => {
-    handleFloodTrigger(3.45, 3.0, 'manual_test');
+  const handleManualTriggerAlert = (severity: FloodSeverity = 'red') => {
+    const peak = severity === 'yellow' ? (config.thresholdYellow ?? 1.5) : (config.thresholdRed ?? 2.5);
+    handleFloodTrigger(peak, severity, 0.2, 'manual_test');
   };
 
   // Dismiss Active Alert from modal or log
@@ -391,7 +436,7 @@ export default function App() {
           id="mobile-main-scroll-area"
           className="flex-1 w-full px-3.5 sm:px-4 py-4 overflow-y-auto space-y-4"
         >
-          {currentMode === 'sensor' && (
+          {currentMode === 'sensor' && isAdmin && (
             <SensorNodeView
               motion={motion}
               sensorState={sensorState}
@@ -440,7 +485,7 @@ export default function App() {
             />
           )}
 
-          {currentMode === 'diagnostics' && (
+          {currentMode === 'diagnostics' && isAdmin && (
             <DiagnosticsView
               config={config}
               onUpdateConfig={setConfig}

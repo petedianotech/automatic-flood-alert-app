@@ -2,9 +2,6 @@ import React, { useState } from 'react';
 import {
   User,
   MapPin,
-  Lock,
-  Eye,
-  EyeOff,
   LogIn,
   LogOut,
   Sparkles,
@@ -25,13 +22,15 @@ interface MobileAuthModalProps {
   isDarkMode: boolean;
 }
 
+const EXAMPLE_NAMES = ['Peter Damiano', 'Christina matipwiri', 'Mr Banda'];
+
 const VILLAGE_PRESETS = [
-  'Riverbank East',
-  'Valley Basin Ward',
-  'Highland Riverside',
-  'Cascade Village',
-  'Delta Meadows',
-  'North Creek Sector',
+  'Dzenje Village',
+  'Mathambi',
+  'Chinyama',
+  'Nkhulambe',
+  'Likabula',
+  'Chitakale',
 ];
 
 export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
@@ -42,12 +41,19 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
 }) => {
   const [authMethod, setAuthMethod] = useState<'village' | 'google'>('village');
   const [name, setName] = useState(currentUser?.name || '');
-  const [village, setVillage] = useState(currentUser?.village || 'Riverbank East');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [village, setVillage] = useState(currentUser?.village || 'Dzenje Village');
+  const [exampleNameIndex, setExampleNameIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Periodically cycle through example names (Peter Damiano, Christina matipwiri, Mr Banda)
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setExampleNameIndex((prev) => (prev + 1) % EXAMPLE_NAMES.length);
+    }, 2800);
+    return () => clearInterval(interval);
+  }, []);
 
   const isAdmin = isAppAdmin(currentUser);
 
@@ -67,7 +73,7 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
     setError(null);
     setLoading(true);
     try {
-      await firebaseFloodService.signInWithNameAndVillage(name, village, password);
+      await firebaseFloodService.signInWithNameAndVillage(name, village);
       setSuccessMsg(`Welcome, ${name}! Signed in to ${village}.`);
       setTimeout(() => {
         onClose();
@@ -201,12 +207,12 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                     {currentUser.name}
                   </h4>
                   {isAdmin ? (
-                    <span className="text-[10px] font-bold tracking-tight px-2 py-0.5 rounded-full bg-amber-500 text-white shadow-xs flex items-center gap-1">
-                      👑 App Owner (Manager)
+                    <span className="text-[10px] font-bold tracking-tight px-2 py-0.5 rounded-full bg-amber-500 text-white shadow-xs">
+                      Admin
                     </span>
                   ) : (
                     <span className="text-[10px] font-bold tracking-tight px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                      Receiver / Resident
+                      Community Member
                     </span>
                   )}
                 </div>
@@ -220,23 +226,6 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                   )}
                 </div>
               </div>
-            </div>
-
-            {/* Role Access Capability Card */}
-            <div className="p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 text-xs space-y-1">
-              <div className="font-bold text-[#1F1F1F] dark:text-[#E3E3E3] flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-[#1A73E8]" />
-                <span>Access Permissions:</span>
-              </div>
-              {isAdmin ? (
-                <p className="text-[11px] text-emerald-700 dark:text-emerald-400">
-                  ✅ Full Unrestricted Access: Physical Sensor Node Hardware Calibration, River Basin Alarms &amp; Village Community Network.
-                </p>
-              ) : (
-                <p className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6]">
-                  📡 Live Receiver Node: Real-time emergency sirens, OS notifications, offline radar, and village river alerts. (Sensor Node hardware control is managed by {ADMIN_EMAIL}).
-                </p>
-              )}
             </div>
 
             {/* Quick Village Switcher */}
@@ -365,9 +354,14 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
               <form onSubmit={handleVillageSignIn} className="space-y-3.5">
                 {/* Full Name */}
                 <div>
-                  <label className="block text-xs font-bold text-[#5F6368] dark:text-[#9AA0A6] mb-1">
-                    Your Full Name *
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-[#5F6368] dark:text-[#9AA0A6]">
+                      Your Full Name *
+                    </label>
+                    <span className="text-[10px] font-mono text-[#1A73E8] dark:text-[#8AB4F8] transition-opacity">
+                      e.g. {EXAMPLE_NAMES[exampleNameIndex]}
+                    </span>
+                  </div>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#5F6368] dark:text-[#9AA0A6]">
                       <User className="w-4 h-4" />
@@ -378,7 +372,7 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                       required
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Sarah Jenkins"
+                      placeholder={`e.g. ${EXAMPLE_NAMES[exampleNameIndex]}`}
                       className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-black/15 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.03] text-sm focus:outline-none focus:ring-2 focus:ring-[#1A73E8]"
                     />
                   </div>
@@ -386,9 +380,14 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
 
                 {/* Village / Sector */}
                 <div>
-                  <label className="block text-xs font-bold text-[#5F6368] dark:text-[#9AA0A6] mb-1">
-                    Village / Community Name *
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-[#5F6368] dark:text-[#9AA0A6]">
+                      Village / Community Name *
+                    </label>
+                    <span className="text-[10px] font-mono text-[#137333] dark:text-[#81C995]">
+                      e.g. Dzenje
+                    </span>
+                  </div>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#5F6368] dark:text-[#9AA0A6]">
                       <MapPin className="w-4 h-4 text-[#D93025]" />
@@ -399,14 +398,14 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                       required
                       value={village}
                       onChange={(e) => setVillage(e.target.value)}
-                      placeholder="e.g. Riverbank East"
+                      placeholder="e.g. Dzenje"
                       className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-black/15 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.03] text-sm focus:outline-none focus:ring-2 focus:ring-[#1A73E8]"
                     />
                   </div>
 
                   {/* Preset Pills */}
                   <div className="flex flex-wrap gap-1.5 mt-2">
-                    {VILLAGE_PRESETS.slice(0, 4).map((p) => (
+                    {VILLAGE_PRESETS.map((p) => (
                       <button
                         key={p}
                         type="button"
@@ -420,35 +419,6 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                         {p}
                       </button>
                     ))}
-                  </div>
-                </div>
-
-                {/* Optional Password */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-bold text-[#5F6368] dark:text-[#9AA0A6]">
-                      Device PIN / Password <span className="text-[10px] font-normal text-[#5F6368]">(Optional)</span>
-                    </label>
-                  </div>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#5F6368] dark:text-[#9AA0A6]">
-                      <Lock className="w-4 h-4" />
-                    </div>
-                    <input
-                      id="input-auth-password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Leave blank or set lock password"
-                      className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-black/15 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.03] text-sm focus:outline-none focus:ring-2 focus:ring-[#1A73E8]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#5F6368] dark:text-[#9AA0A6]"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
                   </div>
                 </div>
 
@@ -472,16 +442,9 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
             ) : (
               /* Option 2: Google Sign In Option */
               <div className="space-y-4 py-2">
-                <div className="p-3.5 rounded-2xl bg-[#E8F0FE] dark:bg-[#1A73E8]/15 border border-[#D2E3FC] dark:border-[#1A73E8]/30 space-y-1.5">
-                  <div className="flex items-center gap-1.5 font-bold text-xs text-[#1967D2] dark:text-[#8AB4F8]">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                    <span>App Owner &amp; Resident Sign-In</span>
-                  </div>
-                  <p className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6] leading-relaxed">
-                    • <strong className="text-[#1F1F1F] dark:text-[#E3E3E3]">App Owner ({ADMIN_EMAIL})</strong>: Unlocks full Sensor Node hardware controls, calibration, and river surge sensors.<br />
-                    • <strong className="text-[#1F1F1F] dark:text-[#E3E3E3]">Residents &amp; Wardens</strong>: Connects to live Receiver radar, emergency sirens, and village community alarms.
-                  </p>
-                </div>
+                <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] leading-relaxed">
+                  Sign in with Google to synchronize real-time river radar alerts, neighborhood updates, and siren notifications across all your devices.
+                </p>
 
                 {/* Village Selection for Google Account */}
                 <div>

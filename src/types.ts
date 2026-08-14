@@ -35,6 +35,29 @@ export interface MotionData {
   timestamp: number;
 }
 
+export type FloodSeverity = 'yellow' | 'red';
+
+export interface GeoLocationCoordinates {
+  latitude: number;
+  longitude: number;
+  accuracy: number; // in meters
+  altitude?: number | null;
+  timestamp: number;
+}
+
+export interface SensorLocation {
+  riverName: string; // e.g. "Ruo River"
+  village: string; // e.g. "Dzenje Village"
+  traditionalAuthority: string; // e.g. "T/A Mabuka"
+  district: string; // e.g. "Mulanje"
+  region: string; // e.g. "Southern Region, Malawi"
+  fullAddress: string; // e.g. "Ruo River, Dzenje Village, T/A Mabuka, Mulanje District, Southern Region, Malawi"
+  coordinates?: GeoLocationCoordinates | null;
+  isGpsLive?: boolean;
+  gpsAccuracy?: number;
+  mapsUrl?: string;
+}
+
 export interface FloodAlert {
   id: string;
   timestamp: number;
@@ -44,8 +67,20 @@ export interface FloodAlert {
   nodeId: string;
   nodeName: string;
   village?: string;
+  location?: SensorLocation;
+  locationLabel?: string;
+  riverName?: string;
+  traditionalAuthority?: string;
+  district?: string;
+  region?: string;
+  latitude?: number;
+  longitude?: number;
+  mapsUrl?: string;
   userId?: string;
   status: 'active' | 'resolved' | 'dismissed';
+  severity?: FloodSeverity; // 'yellow' = Warning/Advisory, 'red' = Critical/Evacuate
+  title?: string;
+  message?: string;
   dismissedBy?: string;
   dismissedAt?: number;
   source: 'hardware_sensor' | 'manual_test' | 'simulated';
@@ -53,10 +88,13 @@ export interface FloodAlert {
 }
 
 export interface SensorConfig {
-  thresholdDelta: number; // Default: 1.5 m/s^2
-  continuousDurationSec: number; // Default: 3 seconds
+  thresholdYellow: number; // Default: 0.8 m/s^2 (Advisory Warning)
+  thresholdRed: number; // Default: 1.6 m/s^2 (Critical Evacuation)
+  thresholdDelta: number; // Default: 1.6 m/s^2 (Reference)
+  continuousDurationSec: number; // Reference duration
   sensorName: string;
   nodeId: string;
+  location?: SensorLocation;
   sirenVolume: number; // 0.0 - 1.0
   autoWakeLock: boolean;
   pushEnabled: boolean;

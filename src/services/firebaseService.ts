@@ -512,9 +512,21 @@ class FirebaseFloodService {
               durationSeconds: data.durationSeconds || 0,
               nodeId: data.nodeId || 'node-unknown',
               nodeName: data.nodeName || 'Sensor Node',
-              village: data.village,
+              village: data.village || data.location?.village || 'Dzenje',
+              location: data.location,
+              locationLabel: data.locationLabel || (data.location ? `${data.location.riverName}, ${data.location.village}` : undefined),
+              riverName: data.riverName || data.location?.riverName,
+              traditionalAuthority: data.traditionalAuthority || data.location?.traditionalAuthority,
+              district: data.district || data.location?.district,
+              region: data.region || data.location?.region,
+              latitude: data.latitude ?? data.location?.coordinates?.latitude,
+              longitude: data.longitude ?? data.location?.coordinates?.longitude,
+              mapsUrl: data.mapsUrl || data.location?.mapsUrl,
               userId: data.userId,
               status: data.status || 'active',
+              severity: data.severity || (data.peakDelta >= 1.5 ? 'red' : 'yellow'),
+              title: data.title,
+              message: data.message,
               dismissedBy: data.dismissedBy,
               dismissedAt: data.dismissedAt,
               source: data.source || 'hardware_sensor',
@@ -536,9 +548,17 @@ class FirebaseFloodService {
 
   public async recordFloodAlert(alert: Omit<FloodAlert, 'id'>): Promise<FloodAlert> {
     const user = this.currentAuthState.user;
-    const alertWithUser = {
+    const alertWithUser: Omit<FloodAlert, 'id'> = {
       ...alert,
-      village: alert.village || user?.village || 'General Sector',
+      village: alert.village || alert.location?.village || user?.village || 'Dzenje',
+      riverName: alert.riverName || alert.location?.riverName || 'Ruo River',
+      traditionalAuthority: alert.traditionalAuthority || alert.location?.traditionalAuthority || 'T/A Mabuka',
+      district: alert.district || alert.location?.district || 'Mulanje',
+      region: alert.region || alert.location?.region || 'Southern Region, Malawi',
+      locationLabel: alert.locationLabel || (alert.location ? `${alert.location.riverName}, ${alert.location.village}, ${alert.location.traditionalAuthority}` : `${alert.village || 'Dzenje'}`),
+      latitude: alert.latitude ?? alert.location?.coordinates?.latitude,
+      longitude: alert.longitude ?? alert.location?.coordinates?.longitude,
+      mapsUrl: alert.mapsUrl || alert.location?.mapsUrl || (alert.latitude && alert.longitude ? `https://www.google.com/maps?q=${alert.latitude},${alert.longitude}` : undefined),
       userId: user?.uid || this.currentAuthState.firebaseUid || 'anonymous',
     };
 

@@ -10,6 +10,8 @@ import {
   PhoneCall,
   BellRing,
   Sparkles,
+  ExternalLink,
+  Compass,
 } from 'lucide-react';
 import { UserProfile, FloodAlert } from '../types';
 
@@ -28,9 +30,9 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
   onOpenAuthModal,
   onTestSiren,
 }) => {
-  const currentVillage = currentUser?.village || 'Riverbank East';
+  const currentVillage = currentUser?.village || 'Dzenje';
   const villageAlerts = alerts.filter(
-    (a) => !a.village || a.village.toLowerCase() === currentVillage.toLowerCase()
+    (a) => !a.village || a.village.toLowerCase().includes(currentVillage.toLowerCase()) || currentVillage.toLowerCase().includes(a.village.toLowerCase())
   );
   const activeVillageAlerts = villageAlerts.filter((a) => a.status === 'active');
 
@@ -52,11 +54,11 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#1A73E8]/10 text-[#1A73E8] dark:text-[#8AB4F8]">
-                  Community Hub
+                  Community River Network
                 </span>
                 {activeVillageAlerts.length > 0 ? (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300 animate-pulse">
-                    ⚠️ Flood Warning
+                    ⚠️ Active Flood Alert
                   </span>
                 ) : (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
@@ -65,10 +67,11 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
                 )}
               </div>
               <h2 className="text-xl font-bold font-sans tracking-tight mt-0.5">
-                {currentVillage}
+                {currentVillage} Village
               </h2>
-              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] mt-0.5">
-                Connected with Firebase Community Cloud &bull; Realtime sensor telemetry
+              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] mt-0.5 flex items-center gap-1.5 flex-wrap">
+                <MapPin className="w-3 h-3 text-[#D93025] inline shrink-0" />
+                <span>Ruo River &bull; T/A Mabuka &bull; Mulanje District, Southern Region</span>
               </p>
             </div>
           </div>
@@ -95,13 +98,13 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
         >
           <div className="flex items-center gap-2 text-xs font-bold text-[#5F6368] dark:text-[#9AA0A6] mb-1">
             <Droplets className="w-4 h-4 text-[#1A73E8]" />
-            <span>River Sensor Nodes</span>
+            <span>Monitored River Stations</span>
           </div>
           <div className="text-2xl font-black font-mono text-[#1967D2] dark:text-[#8AB4F8]">
-            3 Active
+            3 Stations
           </div>
           <span className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6]">
-            Basement, Spillway, North Bridge
+            Ruo River, Likhubula, Thuchila
           </span>
         </div>
 
@@ -124,7 +127,7 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
             {activeVillageAlerts.length}
           </div>
           <span className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6]">
-            {activeVillageAlerts.length > 0 ? 'Action required' : 'All sectors clear'}
+            {activeVillageAlerts.length > 0 ? 'Action required' : 'All riverbanks safe'}
           </span>
         </div>
 
@@ -137,13 +140,13 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
         >
           <div className="flex items-center gap-2 text-xs font-bold text-[#5F6368] dark:text-[#9AA0A6] mb-1">
             <Users className="w-4 h-4 text-emerald-600" />
-            <span>Member Role</span>
+            <span>Active Resident</span>
           </div>
-          <div className="text-lg font-bold truncate">
-            {currentUser?.name || 'Guest Resident'}
+          <div className="text-base sm:text-lg font-bold truncate">
+            {currentUser?.name || 'Peter Damiano'}
           </div>
           <span className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6]">
-            {currentUser ? `Via ${currentUser.authProvider}` : 'Sign in to sync alerts'}
+            {currentUser?.village ? `${currentUser.village} Resident` : 'Dzenje Community'}
           </span>
         </div>
       </div>
@@ -157,7 +160,7 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
         }`}
       >
         <h3 className="font-bold text-sm uppercase tracking-wider text-[#5F6368] dark:text-[#9AA0A6] mb-3">
-          Village Emergency Protocol
+          Village Emergency Protocol &bull; Mulanje
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -171,11 +174,11 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
           </button>
 
           <a
-            href="tel:911"
+            href="tel:999"
             className="p-3.5 rounded-2xl font-bold text-xs bg-[#E8F0FE] text-[#1967D2] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8] border border-[#D2E3FC] dark:border-[#1A73E8]/30 hover:bg-[#D2E3FC] flex items-center justify-center gap-2 transition-all active:scale-98"
           >
             <PhoneCall className="w-4 h-4" />
-            <span>Call Flood Rescue Dispatch</span>
+            <span>Call Malawi Emergency Rescue (999)</span>
           </a>
         </div>
       </div>

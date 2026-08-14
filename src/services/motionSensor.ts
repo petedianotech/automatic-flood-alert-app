@@ -8,13 +8,20 @@
 import { MotionData, MotionSensorState } from '../types';
 
 export type MotionCallback = (data: MotionData, sustainedDurationSec: number, triggerProgress: number) => void;
-export type FloodTriggerCallback = (peakDelta: number, durationSec: number, source: 'hardware_sensor' | 'manual_test' | 'simulated') => void;
+export type FloodTriggerCallback = (
+  peakDelta: number,
+  severity: 'yellow' | 'red',
+  durationSec: number,
+  source: 'hardware_sensor' | 'manual_test' | 'simulated'
+) => void;
 
 class MotionSensorService {
   private isListening: boolean = false;
   private isPaused: boolean = false;
-  private thresholdDelta: number = 1.5; // m/s^2
-  private continuousDurationSec: number = 3.0; // 3 seconds
+  private thresholdYellow: number = 0.8; // m/s^2 (Advisory Warning Level)
+  private thresholdRed: number = 1.6; // m/s^2 (Critical Evacuation Level)
+  private thresholdDelta: number = 1.6; // Reference backwards compat
+  private continuousDurationSec: number = 1.0;
   private baselineGravity: number = 9.81; // Standard Earth gravity
 
   private motionCallbacks: Set<MotionCallback> = new Set();
@@ -23,7 +30,8 @@ class MotionSensorService {
 
   private vibrationStartTime: number | null = null;
   private currentPeakDelta: number = 0;
-  private alertTriggeredThisEvent: boolean = false;
+  private lastYellowTriggerTime: number = 0;
+  private lastRedTriggerTime: number = 0;
 
   private latestMotion: MotionData = {
     x: 0,
@@ -73,9 +81,10 @@ class MotionSensorService {
     return 'granted';
   }
 
-  public setConfig(threshold: number, duration: number, baseline?: number) {
-    this.thresholdDelta = threshold;
-    this.continuousDurationSec = duration;
+  public setConfig(thresholdRed: number, thresholdYellow?: number, baseline?: number) {
+    this.thresholdRed = thresholdRed || 1.6;
+    this.thresholdDelta = this.thresholdRed;
+    this.thresholdYellow = thresholdYellow !== undefined ? thresholdYellow : Math.max(0.4, this.thresholdRed * 0.5);
     if (baseline !== undefined) {
       this.baselineGravity = baseline;
     }
@@ -107,7 +116,6 @@ class MotionSensorService {
       this.isListening = true;
       this.isPaused = false;
       this.vibrationStartTime = null;
-      this.alertTriggeredThisEvent = false;
       this.currentPeakDelta = 0;
 
       this.notifyStateChange({
@@ -133,7 +141,6 @@ class MotionSensorService {
     this.isListening = false;
     this.isPaused = false;
     this.vibrationStartTime = null;
-    this.alertTriggeredThisEvent = false;
     this.stopSimulation();
 
     this.notifyStateChange({
@@ -149,7 +156,6 @@ class MotionSensorService {
   public pause() {
     this.isPaused = true;
     this.vibrationStartTime = null;
-    this.alertTriggeredThisEvent = false;
     this.currentPeakDelta = 0;
     this.stopSimulation();
 
@@ -174,7 +180,6 @@ class MotionSensorService {
   public resume() {
     this.isPaused = false;
     this.vibrationStartTime = null;
-    this.alertTriggeredThisEvent = false;
     this.currentPeakDelta = 0;
 
     if (!this.isListening) {
@@ -222,7 +227,12 @@ class MotionSensorService {
     this.processRawAcceleration(x, y, z, 'hardware_sensor');
   }
 
-  public processRawAcceleration(x: number, y: number, z: number, source: 'hardware_sensor' | 'manual_test' | 'simulated' = 'hardware_sensor') {
+  public processRawAcceleration(
+    x: number,
+    y: number,
+    z: number,
+    source: 'hardware_sensor' | 'manual_test' | 'simulated' = 'hardware_sensor'
+  ) {
     if (this.isPaused && source !== 'manual_test') {
       return;
     }
@@ -249,37 +259,45 @@ class MotionSensorService {
       return;
     }
 
-    // Continuous Vibration Tracking
     let sustainedSec = 0;
     let progress = 0;
 
-    if (delta >= this.thresholdDelta) {
+    if (delta >= this.thresholdYellow) {
       if (this.vibrationStartTime === null) {
         this.vibrationStartTime = now;
         this.currentPeakDelta = delta;
       } else {
         this.currentPeakDelta = Math.max(this.currentPeakDelta, delta);
       }
-
       sustainedSec = (now - this.vibrationStartTime) / 1000;
-      progress = Math.min(1, sustainedSec / this.continuousDurationSec);
-
-      // Check if continuous condition is met (e.g., Delta > 1.5 m/s^2 for 3s)
-      if (sustainedSec >= this.continuousDurationSec && !this.alertTriggeredThisEvent) {
-        this.alertTriggeredThisEvent = true;
-        this.notifyFloodTrigger(this.currentPeakDelta, sustainedSec, source);
-      }
+      progress = Math.min(1, delta / this.thresholdRed);
     } else {
-      // Delta fell below threshold -> reset continuous counter (allows 300ms debounce buffer)
       if (this.vibrationStartTime !== null) {
         const timeSinceHigh = (now - this.vibrationStartTime) / 1000;
-        if (timeSinceHigh < 0.2) {
-          // brief transient
-        } else {
+        if (timeSinceHigh >= 0.2) {
           this.vibrationStartTime = null;
-          this.alertTriggeredThisEvent = false;
           this.currentPeakDelta = 0;
         }
+      }
+    }
+
+    // === IMMEDIATE THRESHOLD TRIGGER LOGIC (NO DELAY) ===
+    // 1. RED CRITICAL LEVEL: Delta reaches or exceeds Red threshold -> Trigger CRITICAL ALARM immediately!
+    if (delta >= this.thresholdRed) {
+      const timeSinceLastRed = now - this.lastRedTriggerTime;
+      if (timeSinceLastRed > 8000) { // 8-second debounce per surge event
+        this.lastRedTriggerTime = now;
+        this.lastYellowTriggerTime = now; // Suppress duplicate yellow if already at red
+        this.notifyFloodTrigger(delta, 'red', Math.max(0.1, sustainedSec), source);
+      }
+    }
+    // 2. YELLOW WARNING LEVEL: Delta reaches Yellow threshold (but not Red) -> Trigger WARNING immediately!
+    else if (delta >= this.thresholdYellow) {
+      const timeSinceLastYellow = now - this.lastYellowTriggerTime;
+      const timeSinceLastRed = now - this.lastRedTriggerTime;
+      if (timeSinceLastYellow > 10000 && timeSinceLastRed > 5000) { // 10-second debounce for warning
+        this.lastYellowTriggerTime = now;
+        this.notifyFloodTrigger(delta, 'yellow', Math.max(0.1, sustainedSec), source);
       }
     }
 
@@ -311,9 +329,48 @@ class MotionSensorService {
   }
 
   /**
+   * Simulate a Yellow Warning (Advisory level)
+   */
+  public simulateYellowWarning() {
+    const targetDelta = this.thresholdYellow + 0.35;
+    const simX = targetDelta * 0.7;
+    const simY = targetDelta * 0.5;
+    const simZ = this.baselineGravity + targetDelta * 0.5;
+    this.processRawAcceleration(simX, simY, simZ, 'simulated');
+    setTimeout(() => {
+      this.processRawAcceleration(0, 0, this.baselineGravity, 'simulated');
+    }, 400);
+  }
+
+  /**
+   * Simulate a Red Critical Alarm (Evacuation level)
+   */
+  public simulateRedAlarm() {
+    const targetDelta = this.thresholdRed + 1.8;
+    const simX = targetDelta * 0.8;
+    const simY = targetDelta * 0.6;
+    const simZ = this.baselineGravity + targetDelta * 0.7;
+    this.processRawAcceleration(simX, simY, simZ, 'simulated');
+    setTimeout(() => {
+      this.processRawAcceleration(0, 0, this.baselineGravity, 'simulated');
+    }, 500);
+  }
+
+  /**
    * Simulate a realistic high vibration flood event (for preview/desktop testing)
    */
-  public simulateFloodTest(durationSec = 3.5, peakForce = 3.8) {
+  public simulateFloodTest(severityOrDuration: 'yellow' | 'red' | number = 'red', peakForce = 3.8) {
+    if (severityOrDuration === 'yellow') {
+      this.simulateYellowWarning();
+      return;
+    }
+    if (severityOrDuration === 'red') {
+      this.simulateRedAlarm();
+      return;
+    }
+
+    const durationSec = typeof severityOrDuration === 'number' ? severityOrDuration : 2.5;
+
     if (this.simIntervalId !== null) {
       clearInterval(this.simIntervalId);
     }
@@ -361,8 +418,13 @@ class MotionSensorService {
     return () => this.stateChangeCallbacks.delete(cb);
   }
 
-  private notifyFloodTrigger(peakDelta: number, durationSec: number, source: 'hardware_sensor' | 'manual_test' | 'simulated') {
-    this.triggerCallbacks.forEach((cb) => cb(peakDelta, durationSec, source));
+  private notifyFloodTrigger(
+    peakDelta: number,
+    severity: 'yellow' | 'red',
+    durationSec: number,
+    source: 'hardware_sensor' | 'manual_test' | 'simulated'
+  ) {
+    this.triggerCallbacks.forEach((cb) => cb(peakDelta, severity, durationSec, source));
   }
 
   private notifyStateChange(partialState?: Partial<MotionSensorState>) {
@@ -383,6 +445,14 @@ class MotionSensorService {
 
   public getBaseline(): number {
     return this.baselineGravity;
+  }
+
+  public getThresholdYellow(): number {
+    return this.thresholdYellow;
+  }
+
+  public getThresholdRed(): number {
+    return this.thresholdRed;
   }
 }
 

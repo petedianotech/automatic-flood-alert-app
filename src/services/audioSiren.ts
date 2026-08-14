@@ -127,6 +127,67 @@ class SirenAudioService {
     }
   }
 
+  private isPlayingWarning: boolean = false;
+  private warningIntervalId: number | null = null;
+
+  public playWarningAlertSound() {
+    try {
+      this.initContext();
+      if (!this.audioCtx) return;
+
+      const now = this.audioCtx.currentTime;
+
+      // Tone 1 (Amber Advisory Chime)
+      const osc1 = this.audioCtx.createOscillator();
+      const gain1 = this.audioCtx.createGain();
+      osc1.type = 'triangle';
+      osc1.frequency.setValueAtTime(587.33, now); // D5
+      gain1.gain.setValueAtTime(this.volume * 0.7, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc1.connect(gain1);
+      gain1.connect(this.audioCtx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.35);
+
+      // Tone 2 (Higher tone 160ms later)
+      const osc2 = this.audioCtx.createOscillator();
+      const gain2 = this.audioCtx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(880, now + 0.16); // A5
+      gain2.gain.setValueAtTime(0, now);
+      gain2.gain.setValueAtTime(this.volume * 0.85, now + 0.16);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+      osc2.connect(gain2);
+      gain2.connect(this.audioCtx.destination);
+      osc2.start(now + 0.16);
+      osc2.stop(now + 0.55);
+    } catch {
+      // ignore
+    }
+  }
+
+  public startWarningChime() {
+    if (this.isPlayingWarning) return;
+    this.isPlayingWarning = true;
+    this.playWarningAlertSound();
+    this.warningIntervalId = window.setInterval(() => {
+      this.playWarningAlertSound();
+    }, 2200);
+  }
+
+  public stopWarningChime() {
+    this.isPlayingWarning = false;
+    if (this.warningIntervalId !== null) {
+      clearInterval(this.warningIntervalId);
+      this.warningIntervalId = null;
+    }
+  }
+
+  public stopAllAlarms() {
+    this.stopEmergencySiren();
+    this.stopWarningChime();
+  }
+
   public playBeep(freq = 880, durationMs = 120) {
     try {
       this.initContext();

@@ -125,10 +125,10 @@ export const TopBar: React.FC<TopBarProps> = ({
               ) : currentUser ? (
                 <div
                   className={`w-5 h-5 rounded-full text-white text-[10px] flex items-center justify-center font-bold ${
-                    isAppAdmin(currentUser) ? 'bg-amber-600' : 'bg-[#1A73E8]'
+                    isAppAdmin(currentUser) ? 'bg-[#1A73E8]' : 'bg-[#1A73E8]'
                   }`}
                 >
-                  {isAppAdmin(currentUser) ? '👑' : currentUser.name.charAt(0).toUpperCase()}
+                  {currentUser.name.charAt(0).toUpperCase()}
                 </div>
               ) : (
                 <User className="w-4 h-4 text-[#5F6368] dark:text-[#9AA0A6]" />
@@ -136,7 +136,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               <span className="hidden sm:inline max-w-[90px] truncate">
                 {currentUser
                   ? isAppAdmin(currentUser)
-                    ? '👑 Owner'
+                    ? 'Admin'
                     : currentUser.name.split(' ')[0]
                   : 'Sign In'}
               </span>

@@ -21,37 +21,49 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   isDarkMode,
   isAdmin = false,
 }) => {
-  const tabs = [
-    {
-      id: 'sensor' as NodeMode,
-      label: isAdmin ? 'Sensor' : 'Sensor (Owner)',
-      icon: Activity,
-      statusDot: isAdmin
-        ? isArmed
-          ? isPaused
-            ? 'bg-amber-500'
-            : 'bg-emerald-500 animate-pulse'
-          : null
-        : null,
-      isLocked: !isAdmin,
-    },
-    {
-      id: 'receiver' as NodeMode,
-      label: 'Alerts',
-      icon: BellRing,
-      badge: activeAlertCount > 0 ? activeAlertCount : null,
-    },
-    {
-      id: 'village' as NodeMode,
-      label: 'Village',
-      icon: MapPin,
-    },
-    {
-      id: 'diagnostics' as NodeMode,
-      label: 'Tools',
-      icon: Sliders,
-    },
-  ];
+  // If admin, show all 4 tabs (Sensor, Alerts, Village, Tools). If villager, only show Alerts & Village.
+  const tabs = isAdmin
+    ? [
+        {
+          id: 'sensor' as NodeMode,
+          label: 'Sensor',
+          icon: Activity,
+          statusDot: isArmed
+            ? isPaused
+              ? 'bg-amber-500'
+              : 'bg-emerald-500 animate-pulse'
+            : null,
+        },
+        {
+          id: 'receiver' as NodeMode,
+          label: 'Alerts',
+          icon: BellRing,
+          badge: activeAlertCount > 0 ? activeAlertCount : null,
+        },
+        {
+          id: 'village' as NodeMode,
+          label: 'Village',
+          icon: MapPin,
+        },
+        {
+          id: 'diagnostics' as NodeMode,
+          label: 'Tools',
+          icon: Sliders,
+        },
+      ]
+    : [
+        {
+          id: 'receiver' as NodeMode,
+          label: 'Alerts',
+          icon: BellRing,
+          badge: activeAlertCount > 0 ? activeAlertCount : null,
+        },
+        {
+          id: 'village' as NodeMode,
+          label: 'Village',
+          icon: MapPin,
+        },
+      ];
 
   return (
     <nav
@@ -93,13 +105,6 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                   <span
                     className={`absolute top-1 right-2.5 w-2 h-2 rounded-full ${tab.statusDot}`}
                   />
-                )}
-
-                {/* Lock icon for non-admin */}
-                {tab.isLocked && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-xs">
-                    <Lock className="w-2.5 h-2.5" />
-                  </span>
                 )}
 
                 {/* Badge Number */}

@@ -17,6 +17,12 @@ import {
   WifiOff,
   Sparkles,
   Zap,
+  MapPin,
+  ExternalLink,
+  Compass,
+  Navigation,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { FloodAlert } from '../types';
 import { NotificationService } from '../services/notificationService';
@@ -49,6 +55,7 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
   const [filterType, setFilterType] = useState<'all' | 'active' | 'dismissed'>('all');
   const [canInstallPwa, setCanInstallPwa] = useState<boolean>(() => NotificationService.canInstallPwa());
   const [testSent, setTestSent] = useState<boolean>(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     const unsub = NotificationService.subscribeInstallPrompt((canInstall) => {
@@ -66,12 +73,17 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
 
   const handleTestBackgroundPush = async () => {
     setTestSent(true);
-    // Send offline-compatible background notification
+    // Send offline-compatible background notification with Malawi river & village location
     await NotificationService.sendFloodPushNotification(
-      '🚨 [TEST] CRITICAL FLOOD ALARM',
-      'This is a simulated background flood alert test. Haptics and siren verified.',
+      '🚨 [TEST] CRITICAL FLOOD ALARM - RUO RIVER',
+      'High water turbulence detected at Ruo River, Dzenje Village, T/A Mabuka, Mulanje.',
       {
-        village: 'Riverbank East',
+        village: 'Dzenje Village',
+        riverName: 'Ruo River',
+        locationLabel: 'Ruo River, Dzenje Village, T/A Mabuka, Mulanje District, Southern Region',
+        mapsUrl: 'https://www.google.com/maps?q=-16.0315,35.5000',
+        latitude: -16.0315,
+        longitude: 35.5000,
         peakDelta: 3.42,
         isTest: true,
       }
@@ -188,43 +200,10 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
             )}
           </div>
         </div>
-
-        {/* How Offline Notifications Work Breakdown */}
-        <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-          <div className="p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5">
-            <div className="font-bold flex items-center gap-1.5 text-[#1A73E8] dark:text-[#8AB4F8] mb-0.5">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Service Worker Cache</span>
-            </div>
-            <p className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6]">
-              Web App Shell is cached offline for instant startup without an internet connection.
-            </p>
-          </div>
-
-          <div className="p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5">
-            <div className="font-bold flex items-center gap-1.5 text-[#D93025] mb-0.5">
-              <Zap className="w-3.5 h-3.5" />
-              <span>Hardware Haptics &amp; Audio</span>
-            </div>
-            <p className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6]">
-              Synthesizes 900Hz emergency sirens and multi-pulse phone vibrations natively on-device.
-            </p>
-          </div>
-
-          <div className="p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5">
-            <div className="font-bold flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 mb-0.5">
-              <CheckCircle className="w-3.5 h-3.5" />
-              <span>Auto Cloud Sync</span>
-            </div>
-            <p className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6]">
-              Incidents recorded while offline sync to Firebase community database upon reconnection.
-            </p>
-          </div>
-        </div>
       </div>
 
       {/* 2. Overview Stats & Connection Banner */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div
           className={`rounded-2xl border p-4 transition-all shadow-xs ${
             isDarkMode
@@ -269,54 +248,42 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
             <Clock className="w-6 h-6 text-[#5F6368] dark:text-[#9AA0A6]" />
           </div>
         </div>
-
-        <div
-          className={`rounded-2xl border p-4 transition-all shadow-xs ${
-            isDarkMode
-              ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
-              : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
-          }`}
-        >
-          <div className="text-xs font-semibold text-[#5F6368] dark:text-[#9AA0A6] mb-1">
-            Network Sync Mode
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-xs sm:text-sm font-bold text-[#1F1F1F] dark:text-[#E3E3E3] block">
-                {isOnline ? 'Firestore Cloud Synced' : 'Offline Mode (Local SW)'}
-              </span>
-              <span className="text-[10px] sm:text-[11px] text-[#5F6368] dark:text-[#9AA0A6]">
-                {isOnline ? 'Community cloud live' : 'Alarm siren active without internet'}
-              </span>
-            </div>
-            <button
-              onClick={onOpenFirebaseModal}
-              className="p-2 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 transition-colors"
-            >
-              <Database className="w-5 h-5 text-[#EA4335]" />
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* 3. Recent Alerts Log (Material 3 Card List) */}
       <div
-        className={`rounded-3xl border p-5 sm:p-6 transition-all shadow-xs ${
+        className={`rounded-3xl border transition-all shadow-xs overflow-hidden ${
           isDarkMode
             ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
             : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
         }`}
       >
-        {/* Log Toolbar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-black/5 dark:border-white/5 mb-4">
-          <div>
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="w-full flex items-center justify-between p-5 sm:p-6 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors"
+        >
+          <div className="text-left">
             <h3 className="text-sm sm:text-base font-bold font-sans">Recent Flood Alerts Log</h3>
             <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6]">
               Real-time Firestore stream &amp; local offline incident log
             </p>
           </div>
+          {showHistory ? (
+            <ChevronUp className="w-5 h-5 text-[#5F6368]" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-[#5F6368]" />
+          )}
+        </button>
 
-          <div className="flex flex-wrap items-center gap-2">
+        {showHistory && (
+          <div className="px-5 pb-5 sm:px-6 sm:pb-6">
+            {/* Log Toolbar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-black/5 dark:border-white/5 mb-4">
+              <div className="hidden sm:block">
+                {/* Empty spacer to push filters to right, or can keep it flexible */}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
             {/* Filter Chips */}
             <div className="flex items-center gap-1 p-1 rounded-xl bg-black/5 dark:bg-white/5">
               <button
@@ -390,21 +357,27 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
           <div className="space-y-2.5">
             {filteredAlerts.map((alert) => {
               const isActive = alert.status === 'active';
+              const isYellow = alert.severity === 'yellow';
+
               return (
                 <div
                   key={alert.id}
                   id={`alert-card-${alert.id}`}
-                  className={`rounded-2xl p-4 border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                  className={`rounded-2xl p-3.5 border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
                     isActive
-                      ? 'bg-[#FCE8E6]/70 dark:bg-red-950/30 border-[#FAD2CF] dark:border-red-900/60 shadow-xs'
+                      ? isYellow
+                        ? 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700/60 shadow-xs'
+                        : 'bg-[#FCE8E6]/70 dark:bg-red-950/30 border-[#FAD2CF] dark:border-red-900/60 shadow-xs'
                       : 'bg-black/[0.02] dark:bg-white/[0.02] border-black/5 dark:border-white/5'
                   }`}
                 >
                   <div className="flex items-start gap-3">
                     <div
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                      className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
                         isActive
-                          ? 'bg-[#D93025] text-white animate-pulse'
+                          ? isYellow
+                            ? 'bg-amber-500 text-white animate-pulse'
+                            : 'bg-[#D93025] text-white animate-pulse'
                           : 'bg-[#E6F4EA] text-[#137333]'
                       }`}
                     >
@@ -420,14 +393,13 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
                         <span className="font-bold text-xs sm:text-sm text-[#1F1F1F] dark:text-[#E3E3E3]">
                           {alert.nodeName || 'Flood Sensor Node'}
                         </span>
-                        {alert.village && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1A73E8]/10 text-[#1A73E8] dark:text-[#8AB4F8]">
-                            {alert.village}
-                          </span>
-                        )}
                         {isActive ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#D93025] text-white">
-                            ACTIVE
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                              isYellow ? 'bg-amber-400 text-black' : 'bg-[#D93025] text-white'
+                            }`}
+                          >
+                            {isYellow ? '💛 Yellow Warning' : '🚨 Red Critical'}
                           </span>
                         ) : (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E6F4EA] text-[#137333]">
@@ -436,14 +408,56 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
                         )}
                       </div>
 
+                      {/* Location Badge & River Basin */}
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-xs font-semibold text-[#1F1F1F] dark:text-[#E3E3E3]">
+                          <MapPin className="w-3 h-3 text-[#D93025] shrink-0" />
+                          <span>
+                            {alert.location?.fullAddress ||
+                              alert.locationLabel ||
+                              `${alert.riverName || 'Ruo River'}, ${alert.village || 'Dzenje Village'}, ${alert.traditionalAuthority || 'T/A Mabuka'}, ${alert.district || 'Mulanje'}`}
+                          </span>
+                        </div>
+
+                        {alert.latitude && alert.longitude && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-[10px] font-mono font-medium text-blue-700 dark:text-blue-300">
+                            <Compass className="w-2.5 h-2.5" />
+                            {alert.latitude.toFixed(4)}°, {alert.longitude.toFixed(4)}°
+                          </span>
+                        )}
+
+                        {(alert.mapsUrl || (alert.latitude && alert.longitude)) && (
+                          <a
+                            href={
+                              alert.mapsUrl ||
+                              `https://www.google.com/maps?q=${alert.latitude},${alert.longitude}`
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[10px] font-bold text-[#1A73E8] dark:text-[#8AB4F8] hover:underline"
+                          >
+                            <span>Map</span>
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        )}
+                      </div>
+
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-[#5F6368] dark:text-[#9AA0A6] mt-1 font-mono">
                         <span>🕒 {alert.formattedTime}</span>
-                        <span>⚡ Peak: {alert.peakDelta.toFixed(2)} m/s²</span>
-                        <span>⏱️ {alert.durationSeconds.toFixed(1)}s</span>
+                        <span>⚡ Δ {alert.peakDelta.toFixed(2)} m/s²</span>
+                        {isYellow ? (
+                          <span className="text-amber-700 dark:text-amber-400 font-sans font-semibold">
+                            ⚠️ Advisory: Prepare kits &amp; standby
+                          </span>
+                        ) : (
+                          <span className="text-red-600 dark:text-red-400 font-sans font-black">
+                            🚨 EVACUATE TO HIGH GROUND IMMEDIATELY
+                          </span>
+                        )}
                       </div>
 
                       {alert.dismissedAt && (
-                        <div className="text-[10px] text-[#137333] dark:text-[#81C995] mt-1 font-medium">
+                        <div className="text-[10px] text-[#137333] dark:text-[#81C995] mt-0.5 font-medium">
                           Dismissed by {alert.dismissedBy} at{' '}
                           {new Date(alert.dismissedAt).toLocaleTimeString()}
                         </div>
@@ -455,14 +469,20 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
                     <button
                       id={`btn-dismiss-alert-${alert.id}`}
                       onClick={() => onDismissAlert(alert.id)}
-                      className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-[#2D2E30] hover:bg-gray-100 text-xs font-bold text-[#D93025] border border-[#FAD2CF] dark:border-red-900 shrink-0 self-start sm:self-center transition-colors shadow-xs"
+                      className={`px-3 py-1.5 rounded-xl bg-white dark:bg-[#2D2E30] hover:bg-gray-100 text-xs font-bold shrink-0 self-start sm:self-center transition-colors shadow-xs ${
+                        isYellow
+                          ? 'text-amber-800 dark:text-amber-300 border border-amber-300'
+                          : 'text-[#D93025] border border-[#FAD2CF] dark:border-red-900'
+                      }`}
                     >
-                      Dismiss
+                      Acknowledge
                     </button>
                   )}
                 </div>
               );
             })}
+          </div>
+        )}
           </div>
         )}
       </div>

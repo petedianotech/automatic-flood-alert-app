@@ -14,6 +14,11 @@ export interface OfflineAlertPayload {
   title?: string;
   body?: string;
   village?: string;
+  riverName?: string;
+  locationLabel?: string;
+  mapsUrl?: string;
+  latitude?: number;
+  longitude?: number;
   peakDelta?: number;
   isTest?: boolean;
 }
@@ -133,8 +138,10 @@ export class NotificationService {
       renotify: true,
       requireInteraction: true,
       data: {
-        url: '/',
-        village: payload?.village || 'Community Sector',
+        url: payload?.mapsUrl || '/',
+        village: payload?.village || 'Dzenje',
+        riverName: payload?.riverName || 'Ruo River',
+        locationLabel: payload?.locationLabel || 'Ruo River, Dzenje Village, T/A Mabuka, Mulanje',
         peakDelta: payload?.peakDelta || 0,
         timestamp: Date.now(),
       },
@@ -153,6 +160,9 @@ export class NotificationService {
           title,
           body,
           village: payload?.village,
+          riverName: payload?.riverName,
+          locationLabel: payload?.locationLabel,
+          mapsUrl: payload?.mapsUrl,
           peakDelta: payload?.peakDelta,
           isTest: payload?.isTest,
         });
