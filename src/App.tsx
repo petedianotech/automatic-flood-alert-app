@@ -64,15 +64,13 @@ const DEFAULT_CONFIG: SensorConfig = {
 const STORAGE_KEY_SETTINGS = 'flood_alert_settings_v1';
 
 export default function App() {
-  // Theme state
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    }
-    return false;
-  });
+  // Theme state: Forced Dark Mode for emergency professional UI
+  const isDarkMode = true;
 
-  // App mode: 'sensor' | 'receiver' | 'village' | 'diagnostics'
+  // Dark mode class toggle
+  useEffect(() => {
+    document.documentElement.classList.add('dark');
+  }, []);
   // Default to 'receiver' screen for residents / general users, and 'sensor' screen for admin
   const [currentMode, setCurrentMode] = useState<NodeMode>(() =>
     isAppAdmin(firebaseFloodService.getAuthState().user) ? 'sensor' : 'receiver'
@@ -178,15 +176,6 @@ export default function App() {
     );
     sirenService.setVolume(config.sirenVolume);
   }, [config]);
-
-  // Dark mode class toggle
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDarkMode]);
 
   // 1. Screen Wake Lock Lifecycle (Auto-request on page load to keep plugged-in screen awake)
   useEffect(() => {
@@ -398,18 +387,12 @@ export default function App() {
   return (
     <div
       id="app-root-container"
-      className={`min-h-screen flex justify-center transition-colors duration-200 font-sans ${
-        isDarkMode ? 'bg-[#0B0C0E] text-[#E3E3E3]' : 'bg-[#EDF0F5] text-[#1F1F1F]'
-      }`}
+      className="h-[100dvh] overflow-hidden flex justify-center transition-colors duration-200 font-sans bg-[#09090B] text-[#EDEDED]"
     >
       {/* Mobile Device Frame Container */}
       <div
         id="mobile-phone-frame"
-        className={`w-full max-w-md min-h-screen sm:min-h-[96vh] sm:my-3 sm:rounded-[36px] sm:shadow-2xl sm:border flex flex-col relative overflow-hidden transition-all ${
-          isDarkMode
-            ? 'bg-[#141517] sm:border-[#2C2D30] text-[#E3E3E3]'
-            : 'bg-[#F8F9FA] sm:border-[#DDE1E6] text-[#1F1F1F]'
-        }`}
+        className="w-full max-w-md h-full sm:h-[96vh] sm:my-auto sm:rounded-[36px] sm:shadow-2xl sm:border flex flex-col relative overflow-hidden transition-all bg-[#0F0F11] sm:border-[#27272A] text-[#EDEDED]"
       >
         {/* 1. Native Mobile Status Bar with Live Online/Offline & Battery */}
         <MobileStatusBar batteryState={batteryState} isDarkMode={isDarkMode} isOnline={isOnline} />
@@ -419,7 +402,6 @@ export default function App() {
           currentMode={currentMode}
           onSelectMode={setCurrentMode}
           isDarkMode={isDarkMode}
-          onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
           isArmed={isArmed}
           isPaused={isPaused}
           sensorState={sensorState}
@@ -431,10 +413,10 @@ export default function App() {
           activeAlertCount={activeAlertCount}
         />
 
-        {/* 3. Scrollable Mobile Content Screen */}
+        {/* 3. Fixed Mobile Content Screen */}
         <main
           id="mobile-main-scroll-area"
-          className="flex-1 w-full px-3.5 sm:px-4 py-4 overflow-y-auto space-y-4"
+          className="flex-1 w-full overflow-hidden flex flex-col px-3.5 sm:px-4 py-4"
         >
           {currentMode === 'sensor' && isAdmin && (
             <SensorNodeView
@@ -467,7 +449,6 @@ export default function App() {
               onRequestNotificationPermission={handleRequestNotificationPermission}
               onDismissAlert={handleDismissAlert}
               onClearAlerts={handleClearAlerts}
-              onTestSiren={handleTestSiren}
               isFirebaseConnected={firebaseFloodService.getIsFirebaseConnected()}
               onOpenFirebaseModal={() => setIsFirebaseModalOpen(true)}
               isDarkMode={isDarkMode}
@@ -481,7 +462,6 @@ export default function App() {
               alerts={alerts}
               isDarkMode={isDarkMode}
               onOpenAuthModal={() => setIsAuthModalOpen(true)}
-              onTestSiren={handleTestSiren}
             />
           )}
 

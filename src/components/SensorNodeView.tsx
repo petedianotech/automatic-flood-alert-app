@@ -635,7 +635,7 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#5F6368] dark:text-[#9AA0A6]">
-              Immediate Test Triggers
+              Sensor Calibration
             </span>
             {calibrationSuccess !== null && (
               <span className="text-[11px] text-[#137333] dark:text-[#81C995] font-bold flex items-center gap-1">
@@ -651,7 +651,7 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
               id="btn-calibrate-baseline"
               onClick={handleCalibrateClick}
               disabled={isCalibrating || !isArmed || isPaused}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 border transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border transition-all ${
                 isCalibrating
                   ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-800 border-amber-300 animate-pulse'
                   : !isArmed || isPaused
@@ -659,28 +659,8 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
                   : 'bg-[#F1F3F4] hover:bg-[#E8EAED] dark:bg-[#2D2E30] dark:hover:bg-[#3C4043] text-[#1F1F1F] dark:text-[#E3E3E3] border-transparent'
               }`}
             >
-              <Crosshair className={`w-3 h-3 ${isCalibrating ? 'animate-spin' : ''}`} />
-              <span>Zero</span>
-            </button>
-
-            {/* Simulate Yellow Warning */}
-            <button
-              id="btn-simulate-yellow-warning"
-              onClick={() => (onSimulateYellow ? onSimulateYellow() : onSimulateTest(1.0, 1.0))}
-              disabled={!isArmed || isPaused}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/50 hover:bg-amber-200 border border-amber-300 dark:border-amber-700/50 transition-colors flex items-center gap-1 active:scale-95"
-            >
-              <span>💛 Test Yellow</span>
-            </button>
-
-            {/* Simulate Red Critical Alarm */}
-            <button
-              id="btn-simulate-red-alarm"
-              onClick={() => (onSimulateRed ? onSimulateRed() : onSimulateTest(1.0, 2.5))}
-              disabled={!isArmed || isPaused}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-white bg-[#D93025] hover:bg-[#B3261E] transition-colors flex items-center gap-1 active:scale-95 shadow-xs"
-            >
-              <span>🚨 Test Red</span>
+              <Crosshair className={`w-3.5 h-3.5 ${isCalibrating ? 'animate-spin' : ''}`} />
+              <span>Zero Baseline Acceleration</span>
             </button>
           </div>
         </div>

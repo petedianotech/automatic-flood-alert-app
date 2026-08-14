@@ -19,7 +19,6 @@ interface TopBarProps {
   currentMode: NodeMode;
   onSelectMode: (mode: NodeMode) => void;
   isDarkMode: boolean;
-  onToggleDarkMode: () => void;
   isArmed: boolean;
   isPaused?: boolean;
   sensorState: MotionSensorState;
@@ -35,7 +34,6 @@ export const TopBar: React.FC<TopBarProps> = ({
   currentMode,
   onSelectMode,
   isDarkMode,
-  onToggleDarkMode,
   isArmed,
   isPaused = false,
   sensorState,
@@ -140,16 +138,6 @@ export const TopBar: React.FC<TopBarProps> = ({
                     : currentUser.name.split(' ')[0]
                   : 'Sign In'}
               </span>
-            </button>
-
-            {/* Dark Mode Toggle */}
-            <button
-              id="btn-toggle-dark-mode"
-              onClick={onToggleDarkMode}
-              className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-[#5F6368] dark:text-[#9AA0A6]"
-              title="Toggle Theme"
-            >
-              {isDarkMode ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-slate-600" />}
             </button>
           </div>
         </div>

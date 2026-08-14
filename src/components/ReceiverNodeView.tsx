@@ -33,7 +33,6 @@ interface ReceiverNodeViewProps {
   onRequestNotificationPermission: () => void;
   onDismissAlert: (id: string) => void;
   onClearAlerts: () => void;
-  onTestSiren: () => void;
   isFirebaseConnected: boolean;
   onOpenFirebaseModal: () => void;
   isDarkMode: boolean;
@@ -46,7 +45,6 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
   onRequestNotificationPermission,
   onDismissAlert,
   onClearAlerts,
-  onTestSiren,
   isFirebaseConnected,
   onOpenFirebaseModal,
   isDarkMode,
@@ -71,28 +69,6 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
     }
   };
 
-  const handleTestBackgroundPush = async () => {
-    setTestSent(true);
-    // Send offline-compatible background notification with Malawi river & village location
-    await NotificationService.sendFloodPushNotification(
-      '🚨 [TEST] CRITICAL FLOOD ALARM - RUO RIVER',
-      'High water turbulence detected at Ruo River, Dzenje Village, T/A Mabuka, Mulanje.',
-      {
-        village: 'Dzenje Village',
-        riverName: 'Ruo River',
-        locationLabel: 'Ruo River, Dzenje Village, T/A Mabuka, Mulanje District, Southern Region',
-        mapsUrl: 'https://www.google.com/maps?q=-16.0315,35.5000',
-        latitude: -16.0315,
-        longitude: 35.5000,
-        peakDelta: 3.42,
-        isTest: true,
-      }
-    );
-    // Trigger siren sound too
-    onTestSiren();
-    setTimeout(() => setTestSent(false), 3000);
-  };
-
   const filteredAlerts = alerts.filter((item) => {
     if (filterType === 'active') return item.status === 'active';
     if (filterType === 'dismissed') return item.status === 'dismissed';
@@ -112,10 +88,10 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
   const activeCount = alerts.filter((a) => a.status === 'active').length;
 
   return (
-    <div id="receiver-node-view" className="space-y-5">
+    <div id="receiver-node-view" className="flex flex-col h-full space-y-4 overflow-hidden">
       {/* 1. Offline & Background Push Notification Center */}
       <div
-        className={`rounded-3xl border p-5 sm:p-6 transition-all shadow-xs ${
+        className={`shrink-0 rounded-3xl border p-5 sm:p-6 transition-all shadow-xs ${
           isDarkMode
             ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
             : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
@@ -168,7 +144,7 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-            {notificationPermission !== 'granted' ? (
+            {notificationPermission !== 'granted' && (
               <button
                 id="btn-enable-push-alerts"
                 onClick={onRequestNotificationPermission}
@@ -176,15 +152,6 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
               >
                 <BellRing className="w-4 h-4" />
                 <span>Allow Flood Notifications</span>
-              </button>
-            ) : (
-              <button
-                id="btn-test-background-notification"
-                onClick={handleTestBackgroundPush}
-                className="px-4 py-2.5 rounded-2xl bg-[#E8F0FE] hover:bg-[#D2E3FC] text-[#1967D2] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8] text-xs font-bold flex items-center gap-2 transition-all active:scale-98 border border-[#D2E3FC] dark:border-[#1A73E8]/30"
-              >
-                <Zap className="w-4 h-4" />
-                <span>{testSent ? 'Notification Triggered!' : 'Test Background Alert'}</span>
               </button>
             )}
 
@@ -203,7 +170,7 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
       </div>
 
       {/* 2. Overview Stats & Connection Banner */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="shrink-0 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div
           className={`rounded-2xl border p-4 transition-all shadow-xs ${
             isDarkMode
@@ -252,7 +219,7 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
 
       {/* 3. Recent Alerts Log (Material 3 Card List) */}
       <div
-        className={`rounded-3xl border transition-all shadow-xs overflow-hidden ${
+        className={`flex-1 flex flex-col rounded-3xl border transition-all shadow-xs overflow-hidden ${
           isDarkMode
             ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
             : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
@@ -276,9 +243,9 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
         </button>
 
         {showHistory && (
-          <div className="px-5 pb-5 sm:px-6 sm:pb-6">
+          <div className="flex-1 flex flex-col overflow-hidden px-5 pb-5 sm:px-6 sm:pb-6">
             {/* Log Toolbar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-black/5 dark:border-white/5 mb-4">
+            <div className="shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-black/5 dark:border-white/5 mb-4">
               <div className="hidden sm:block">
                 {/* Empty spacer to push filters to right, or can keep it flexible */}
               </div>
@@ -342,20 +309,21 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
         </div>
 
         {/* Card List */}
-        {filteredAlerts.length === 0 ? (
-          <div className="text-center py-10 px-4 rounded-2xl bg-black/[0.01] dark:bg-white/[0.01] border border-dashed border-black/10 dark:border-white/10">
-            <CheckCircle className="w-9 h-9 text-[#1E8E3E] mx-auto mb-2 opacity-80" />
-            <h4 className="font-bold text-sm text-[#1F1F1F] dark:text-[#E3E3E3]">
-              No Flood Incidents in Log
-            </h4>
-            <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] mt-1 max-w-sm mx-auto">
-              Standing guard. When water sensor vibrations trip the threshold,
-              incidents will appear here and notify all subscribers.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2.5">
-            {filteredAlerts.map((alert) => {
+        <div className="flex-1 overflow-y-auto min-h-0 pr-1">
+          {filteredAlerts.length === 0 ? (
+            <div className="text-center py-10 px-4 rounded-2xl bg-black/[0.01] dark:bg-white/[0.01] border border-dashed border-black/10 dark:border-white/10">
+              <CheckCircle className="w-9 h-9 text-[#1E8E3E] mx-auto mb-2 opacity-80" />
+              <h4 className="font-bold text-sm text-[#1F1F1F] dark:text-[#E3E3E3]">
+                No Flood Incidents in Log
+              </h4>
+              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] mt-1 max-w-sm mx-auto">
+                Standing guard. When water sensor vibrations trip the threshold,
+                incidents will appear here and notify all subscribers.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {filteredAlerts.map((alert) => {
               const isActive = alert.status === 'active';
               const isYellow = alert.severity === 'yellow';
 
@@ -483,9 +451,10 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
             })}
           </div>
         )}
-          </div>
-        )}
+        </div>
       </div>
+    )}
     </div>
-  );
+  </div>
+);
 };

@@ -20,7 +20,6 @@ interface VillageCommunityViewProps {
   alerts: FloodAlert[];
   isDarkMode: boolean;
   onOpenAuthModal: () => void;
-  onTestSiren: () => void;
 }
 
 export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
@@ -28,7 +27,6 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
   alerts,
   isDarkMode,
   onOpenAuthModal,
-  onTestSiren,
 }) => {
   const currentVillage = currentUser?.village || 'Dzenje';
   const villageAlerts = alerts.filter(
@@ -163,19 +161,10 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
           Village Emergency Protocol &bull; Mulanje
         </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button
-            id="btn-village-siren-test"
-            onClick={onTestSiren}
-            className="p-3.5 rounded-2xl font-bold text-xs bg-[#FCE8E6] text-[#C5221F] dark:bg-red-950/40 dark:text-red-300 border border-red-200 dark:border-red-900/50 hover:bg-red-100 flex items-center justify-center gap-2 transition-all active:scale-98"
-          >
-            <BellRing className="w-4 h-4" />
-            <span>Test Community Siren Klaxon</span>
-          </button>
-
+        <div className="flex flex-col">
           <a
             href="tel:999"
-            className="p-3.5 rounded-2xl font-bold text-xs bg-[#E8F0FE] text-[#1967D2] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8] border border-[#D2E3FC] dark:border-[#1A73E8]/30 hover:bg-[#D2E3FC] flex items-center justify-center gap-2 transition-all active:scale-98"
+            className="p-3.5 rounded-2xl font-bold text-xs bg-[#E8F0FE] text-[#1967D2] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8] border border-[#D2E3FC] dark:border-[#1A73E8]/30 hover:bg-[#1A73E8]/30 flex items-center justify-center gap-2 transition-all active:scale-98"
           >
             <PhoneCall className="w-4 h-4" />
             <span>Call Malawi Emergency Rescue (999)</span>
