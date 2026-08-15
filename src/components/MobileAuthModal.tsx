@@ -22,7 +22,7 @@ interface MobileAuthModalProps {
   isDarkMode: boolean;
 }
 
-const EXAMPLE_NAMES = ['Peter Damiano', 'Christina matipwiri', 'Mr Banda'];
+const EXAMPLE_NAMES = ['Peter Damiano', 'Mr Banda'];
 
 const VILLAGE_PRESETS = [
   'Dzenje Village',
@@ -47,7 +47,7 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Periodically cycle through example names (Peter Damiano, Christina matipwiri, Mr Banda)
+  // Periodically cycle through example names (Peter Damiano, Mr Banda)
   React.useEffect(() => {
     const interval = setInterval(() => {
       setExampleNameIndex((prev) => (prev + 1) % EXAMPLE_NAMES.length);
