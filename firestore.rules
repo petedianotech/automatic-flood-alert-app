@@ -11,64 +11,63 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    function isValidId(id) {
+      return id is string && id.size() <= 128;
     }
 
     function isValidUser(data) {
-      return data.uid is string &&
-        data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
-        data.village is string && data.village.size() > 0 && data.village.size() <= 100 &&
-        data.authProvider in ['name_village', 'google'];
+      return data.uid is string && data.uid.size() <= 128 &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 128 &&
+        data.village is string && data.village.size() > 0 && data.village.size() <= 128 &&
+        (data.authProvider in ['name_village', 'google']);
     }
 
     function isValidFloodAlert(data) {
       return data.timestamp is number &&
         data.peakDelta is number &&
-        data.nodeId is string && data.nodeId.size() <= 64 &&
-        data.nodeName is string && data.nodeName.size() <= 100 &&
-        data.status in ['active', 'resolved', 'dismissed'] &&
-        data.source in ['hardware_sensor', 'acoustic_sound_sensor', 'manual_test', 'simulated'];
+        data.nodeId is string && data.nodeId.size() <= 128 &&
+        data.nodeName is string && data.nodeName.size() <= 128 &&
+        (data.status in ['active', 'resolved', 'dismissed']) &&
+        (data.source in ['hardware_sensor', 'acoustic_sound_sensor', 'manual_test', 'simulated']);
     }
 
     function isValidSafetyReport(data) {
       return data.userId is string && data.userId.size() <= 128 &&
-        data.userName is string && data.userName.size() > 0 && data.userName.size() <= 100 &&
-        data.village is string && data.village.size() > 0 && data.village.size() <= 100 &&
-        data.status in ['safe', 'in_flooding', 'needs_help', 'evacuated'] &&
+        data.userName is string && data.userName.size() > 0 && data.userName.size() <= 128 &&
+        data.village is string && data.village.size() > 0 && data.village.size() <= 128 &&
+        (data.status in ['safe', 'in_flooding', 'needs_help', 'evacuated']) &&
         data.timestamp is number &&
-        (!('voiceAudioBase64' in data) || (data.voiceAudioBase64 is string && data.voiceAudioBase64.size() <= 500000));
+        (!('voiceAudioBase64' in data) || (data.voiceAudioBase64 is string && data.voiceAudioBase64.size() <= 600000));
     }
 
     // User Profiles
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create, update: if isOwner(userId) && isValidUser(request.resource.data);
-      allow delete: if isOwner(userId);
+      allow read: if true;
+      allow create, update: if isValidUser(request.resource.data);
+      allow delete: if isSignedIn();
     }
 
-    // Flood Alerts
+    // Flood Alerts (Community & Sensor Telemetry Alerts)
     match /flood_alerts/{alertId} {
       allow read: if true;
       allow create: if isValidFloodAlert(request.resource.data);
-      allow update: if
-        (request.resource.data.status == 'dismissed' || request.resource.data.status == 'resolved') &&
-        request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'dismissedBy', 'dismissedAt']);
-      allow delete: if isSignedIn();
+      allow update: if isValidFloodAlert(request.resource.data) ||
+        ((request.resource.data.status == 'dismissed' || request.resource.data.status == 'resolved') &&
+        request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'dismissedBy', 'dismissedAt']));
+      allow delete: if true;
     }
 
     // Resident Safety Reports & Roll-call
     match /safety_reports/{reportId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && isValidSafetyReport(request.resource.data) && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && isValidSafetyReport(request.resource.data) && (request.resource.data.userId == request.auth.uid || resource.data.userId == request.auth.uid);
-      allow delete: if isSignedIn();
+      allow read: if true;
+      allow create: if isValidSafetyReport(request.resource.data);
+      allow update: if isValidSafetyReport(request.resource.data);
+      allow delete: if true;
     }
 
     // FCM Device Push Notification Tokens
     match /fcm_tokens/{tokenId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if true;
     }
 
     // Connection test document

@@ -18,6 +18,7 @@ import {
   doc,
   setDoc,
   getDoc,
+  getDocs,
   updateDoc,
   deleteDoc,
   getDocFromServer,
@@ -42,6 +43,24 @@ const STORAGE_KEY_USER_PROFILE = 'flood_alert_user_profile';
 const STORAGE_KEY_ALERTS = 'flood_alert_history_local';
 const STORAGE_KEY_SAFETY_REPORTS = 'flood_alert_safety_reports_local';
 const BROADCAST_CHANNEL_NAME = 'flood_alert_system_sync';
+
+/**
+ * Utility to strip undefined keys recursively so Firestore addDoc/setDoc never throws
+ * "Unsupported field value: undefined" errors.
+ */
+function cleanFirestorePayload<T extends Record<string, any>>(obj: T): Record<string, any> {
+  const result: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+        result[key] = cleanFirestorePayload(value);
+      } else {
+        result[key] = value;
+      }
+    }
+  }
+  return result;
+}
 
 export enum OperationType {
   CREATE = 'create',
@@ -373,7 +392,8 @@ class FirebaseFloodService {
       // Save to Firestore if available
       if (this.db) {
         try {
-          await setDoc(doc(this.db, 'users', uid), profile, { merge: true });
+          const cleanedProfile = cleanFirestorePayload(profile);
+          await setDoc(doc(this.db, 'users', uid), cleanedProfile, { merge: true });
         } catch (err) {
           console.warn('Could not write profile to Firestore (cached locally):', err);
         }
@@ -497,10 +517,14 @@ class FirebaseFloodService {
 
     if (this.db && this.currentAuthState.firebaseUid) {
       try {
-        await updateDoc(doc(this.db, 'users', this.currentAuthState.firebaseUid), {
+        const cleaned = cleanFirestorePayload({
           ...updates,
+          name: newName,
+          village: newVillage,
+          role: isAdminUser ? 'admin' : (updates.role || current.role || 'resident'),
           updatedAt: new Date().toISOString(),
         });
+        await setDoc(doc(this.db, 'users', this.currentAuthState.firebaseUid), cleaned, { merge: true });
       } catch (err) {
         console.warn('Failed to update profile on Firestore:', err);
       }
@@ -621,11 +645,13 @@ class FirebaseFloodService {
     // 1. Write to Firestore if connected
     if (this.db) {
       try {
-        const docRef = await addDoc(collection(this.db, 'flood_alerts'), {
+        const cleaned = cleanFirestorePayload({
           ...alertWithUser,
           createdAt: new Date().toISOString(),
         });
+        const docRef = await addDoc(collection(this.db, 'flood_alerts'), cleaned);
         newAlert.id = docRef.id;
+        console.log('[Firestore] Incident saved in database:', docRef.id);
       } catch (err) {
         console.warn('Could not write alert to Firestore, stored locally:', err);
       }
@@ -633,7 +659,7 @@ class FirebaseFloodService {
 
     // 2. Write to local storage & broadcast to other tabs/receivers
     const existing = this.getLocalAlerts();
-    const updated = [newAlert, ...existing].slice(0, 100);
+    const updated = [newAlert, ...existing.filter((a) => a.id !== newAlert.id)].slice(0, 100);
     this.saveLocalAlerts(updated);
     this.notifyAlerts(updated);
 
@@ -693,6 +719,7 @@ class FirebaseFloodService {
       try {
         const docRef = doc(this.db, 'flood_alerts', alertId);
         await deleteDoc(docRef);
+        console.log('[Firestore] Deleted flood_alert document:', alertId);
       } catch (err) {
         console.warn('Firestore delete flood_alert failed:', err);
       }
@@ -706,6 +733,17 @@ class FirebaseFloodService {
   }
 
   public async clearAlerts(): Promise<void> {
+    if (this.db) {
+      try {
+        const snap = await getDocs(collection(this.db, 'flood_alerts'));
+        const deletePromises = snap.docs.map((d) => deleteDoc(doc(this.db!, 'flood_alerts', d.id)));
+        await Promise.all(deletePromises);
+        console.log('[Firestore] Cleared all flood alerts from Firestore');
+      } catch (err) {
+        console.warn('Firestore clearAlerts error:', err);
+      }
+    }
+
     this.saveLocalAlerts([]);
     this.notifyAlerts([]);
     if (this.broadcastChannel) {
@@ -893,11 +931,13 @@ class FirebaseFloodService {
     // 1. Write to Firestore if connected
     if (this.db) {
       try {
-        const docRef = await addDoc(collection(this.db, 'safety_reports'), {
+        const cleaned = cleanFirestorePayload({
           ...newReport,
           createdAt: new Date().toISOString(),
         });
+        const docRef = await addDoc(collection(this.db, 'safety_reports'), cleaned);
         newReport.id = docRef.id;
+        console.log('[Firestore] Safety report saved in database:', docRef.id);
       } catch (err) {
         console.warn('Could not write safety report to Firestore, stored locally:', err);
       }
@@ -989,6 +1029,17 @@ class FirebaseFloodService {
   }
 
   public async clearSafetyReports(): Promise<void> {
+    if (this.db) {
+      try {
+        const snap = await getDocs(collection(this.db, 'safety_reports'));
+        const deletePromises = snap.docs.map((d) => deleteDoc(doc(this.db!, 'safety_reports', d.id)));
+        await Promise.all(deletePromises);
+        console.log('[Firestore] Cleared all safety reports from Firestore');
+      } catch (err) {
+        console.warn('Firestore clearSafetyReports error:', err);
+      }
+    }
+
     this.saveLocalSafetyReports([]);
     this.notifySafetyReports([]);
     if (this.broadcastChannel) {
@@ -1026,19 +1077,16 @@ class FirebaseFloodService {
       if (this.db) {
         const tokenDocId = token.slice(0, 32).replace(/[^a-zA-Z0-9_-]/g, '_');
         const tokenRef = doc(this.db, 'fcm_tokens', tokenDocId);
-        await setDoc(
-          tokenRef,
-          {
-            token,
-            userId: this.currentAuthState.user?.uid || 'anonymous_subscriber',
-            userName: this.currentAuthState.user?.name || 'Resident',
-            village: this.currentAuthState.user?.village || 'Dzenje Village',
-            userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown',
-            updatedAt: new Date().toISOString(),
-            timestamp: Date.now(),
-          },
-          { merge: true }
-        );
+        const fcmPayload = cleanFirestorePayload({
+          token,
+          userId: this.currentAuthState.user?.uid || 'anonymous_subscriber',
+          userName: this.currentAuthState.user?.name || 'Resident',
+          village: this.currentAuthState.user?.village || 'Dzenje Village',
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown',
+          updatedAt: new Date().toISOString(),
+          timestamp: Date.now(),
+        });
+        await setDoc(tokenRef, fcmPayload, { merge: true });
         console.log('[FCM] Device push token registered in Firestore:', tokenDocId);
       }
     } catch (err) {
