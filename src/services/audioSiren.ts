@@ -19,7 +19,9 @@ class SirenAudioService {
       this.audioCtx = new AudioContextClass();
     }
     if (this.audioCtx.state === 'suspended') {
-      this.audioCtx.resume();
+      this.audioCtx.resume().catch((err) => {
+        console.warn('AudioContext resume deferred until user interaction:', err);
+      });
     }
   }
 

@@ -13,6 +13,7 @@
 import firebaseConfigJson from '../../firebase-applet-config.json';
 import { getMessaging, getToken, onMessage, isSupported as isMessagingSupported, Messaging } from 'firebase/messaging';
 import { getApp } from 'firebase/app';
+import { firebaseFloodService } from './firebaseService';
 
 export interface OfflineAlertPayload {
   title?: string;
@@ -146,6 +147,7 @@ export class NotificationService {
       if (token) {
         this.fcmToken = token;
         console.log('[FCM] Push Notification Token generated with VAPID Key:', token);
+        firebaseFloodService.registerFcmToken(token).catch(() => {});
         return token;
       }
     } catch (err) {

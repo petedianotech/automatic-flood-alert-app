@@ -6,6 +6,7 @@ import {
   CheckCircle,
   AlertTriangle,
   Clock,
+  Calendar,
   Trash2,
   Download,
   Filter,
@@ -23,6 +24,8 @@ import {
   Navigation,
   ChevronDown,
   ChevronUp,
+  Mic,
+  LifeBuoy,
 } from 'lucide-react';
 import { FloodAlert } from '../types';
 import { NotificationService } from '../services/notificationService';
@@ -37,6 +40,7 @@ interface ReceiverNodeViewProps {
   onOpenFirebaseModal: () => void;
   isDarkMode: boolean;
   isOnline?: boolean;
+  onOpenVoiceSOS?: () => void;
 }
 
 export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
@@ -49,6 +53,7 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
   onOpenFirebaseModal,
   isDarkMode,
   isOnline = true,
+  onOpenVoiceSOS,
 }) => {
   const [filterType, setFilterType] = useState<'all' | 'active' | 'dismissed'>('all');
   const [canInstallPwa, setCanInstallPwa] = useState<boolean>(() => NotificationService.canInstallPwa());
@@ -87,71 +92,80 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
 
   const activeCount = alerts.filter((a) => a.status === 'active').length;
 
+  const handleSendTestPush = async () => {
+    setTestSent(true);
+    await NotificationService.sendFloodPushNotification(
+      '🚨 FLOOD WARNING TEST',
+      'Alert system is ready. Your phone will ring and vibrate when a flood warning happens.',
+      { isTest: true, village: 'Dzenje Village', peakDelta: 4.8 }
+    );
+    setTimeout(() => setTestSent(false), 3000);
+  };
+
   return (
-    <div id="receiver-node-view" className="flex flex-col h-full space-y-4 overflow-hidden">
-      {/* 1. Offline & Background Push Notification Center */}
+    <div id="receiver-node-view" className="space-y-4 pb-24">
+      {/* 1. App Welcome & Notification Status Card */}
       <div
-        className={`shrink-0 rounded-3xl border p-5 sm:p-6 transition-all shadow-xs ${
+        className={`rounded-3xl border p-4 sm:p-5 transition-all shadow-xs ${
           isDarkMode
             ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
             : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
         }`}
       >
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-          <div className="flex items-start gap-4">
-            <div
-              className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
-                notificationPermission === 'granted'
-                  ? 'bg-[#E6F4EA] text-[#137333] dark:bg-[#1E8E3E]/20 dark:text-[#81C995]'
-                  : 'bg-[#E8F0FE] text-[#1A73E8] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8]'
-              }`}
-            >
-              {notificationPermission === 'granted' ? (
-                <BellRing className="w-6 h-6 animate-pulse" />
-              ) : notificationPermission === 'denied' ? (
-                <BellOff className="w-6 h-6 text-red-500" />
-              ) : (
-                <Bell className="w-6 h-6" />
-              )}
-            </div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <img
+              src="/icon.svg"
+              alt="Flood Alert App Icon"
+              className="w-12 h-12 rounded-2xl shrink-0 shadow-xs border border-black/5"
+              referrerPolicy="no-referrer"
+            />
 
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-base sm:text-lg font-bold font-sans tracking-tight">
-                  Offline &amp; Background Notification Engine
+                <h2 className="text-base font-bold font-sans tracking-tight">
+                  Flood Alert Receiver
                 </h2>
                 {notificationPermission === 'granted' ? (
                   <span
                     id="badge-push-granted"
-                    className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#E6F4EA] text-[#137333] border border-[#CEEAD6] flex items-center gap-1"
+                    className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/20 dark:text-[#81C995] flex items-center gap-1"
                   >
                     <CheckCircle className="w-3 h-3" />
-                    OS Alerts Active
+                    Alerts Active
                   </span>
                 ) : (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FEF7E0] text-[#B06000] border border-[#FEEFC3]">
-                    Action Required
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FEF7E0] text-[#B06000] dark:bg-amber-950/40 dark:text-amber-300">
+                    Turn On Alerts
                   </span>
                 )}
               </div>
 
-              <p className="text-xs sm:text-sm text-[#5F6368] dark:text-[#9AA0A6] mt-1 max-w-2xl leading-relaxed">
-                Powered by modern Service Worker background architecture. Sends loud audible sirens,
-                continuous device vibration, and high-priority push notifications even when the screen is locked,
-                the browser is in the background, or when internet connectivity is completely offline.
+              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] mt-1 leading-relaxed">
+                You will hear loud warning sirens as soon as flood sensors detect water danger.
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-            {notificationPermission !== 'granted' && (
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {notificationPermission !== 'granted' ? (
               <button
                 id="btn-enable-push-alerts"
                 onClick={onRequestNotificationPermission}
-                className="px-5 py-3 rounded-2xl bg-[#1A73E8] hover:bg-[#1557B0] text-white font-bold text-xs sm:text-sm shadow-md active:scale-98 transition-all flex items-center gap-2"
+                className="px-4 py-2 rounded-full bg-[#1A73E8] hover:bg-[#1557B0] text-white font-semibold text-xs transition-all flex items-center gap-1.5 active:scale-95"
               >
-                <BellRing className="w-4 h-4" />
-                <span>Allow Flood Notifications</span>
+                <BellRing className="w-3.5 h-3.5" />
+                <span>Turn On Loud Alerts</span>
+              </button>
+            ) : (
+              <button
+                id="btn-test-fcm-alert"
+                onClick={handleSendTestPush}
+                disabled={testSent}
+                className="px-3.5 py-2 rounded-full bg-[#F1F3F4] hover:bg-[#E8EAED] dark:bg-[#28292C] dark:hover:bg-[#3C4043] text-xs font-semibold text-[#1F1F1F] dark:text-[#E3E3E3] transition-all active:scale-95"
+              >
+                <Zap className="w-3.5 h-3.5 text-[#B06000] inline mr-1" />
+                <span>{testSent ? 'Alarm Tested!' : 'Test Siren Sound'}</span>
               </button>
             )}
 
@@ -159,15 +173,58 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
               <button
                 id="btn-install-pwa"
                 onClick={handleInstallApp}
-                className="px-4 py-2.5 rounded-2xl bg-[#1F1F1F] hover:bg-[#303134] text-white dark:bg-white dark:text-[#1F1F1F] text-xs font-bold flex items-center gap-2 transition-all shadow-xs active:scale-98"
+                className="px-3.5 py-2 rounded-full bg-[#1F1F1F] text-white dark:bg-white dark:text-[#1F1F1F] text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95"
               >
-                <Smartphone className="w-4 h-4" />
-                <span>Install Mobile App</span>
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>Install App</span>
               </button>
             )}
           </div>
         </div>
       </div>
+
+      {/* Emergency Voice SOS Card */}
+      {onOpenVoiceSOS && (
+        <div
+          id="fast-voice-sos-card"
+          className={`shrink-0 rounded-[24px] border p-4 transition-all shadow-xs ${
+            isDarkMode
+              ? 'bg-[#1E1F20] border-red-900/40 text-[#E3E3E3]'
+              : 'bg-[#FCE8E6] border-red-200 text-[#1F1F1F]'
+          }`}
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-[#D93025] text-white flex items-center justify-center shrink-0">
+                <Mic className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-sm text-[#D93025] dark:text-red-400">
+                    Emergency Voice Report
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 dark:bg-red-950/40 text-[#D93025] dark:text-red-300">
+                    SOS
+                  </span>
+                </div>
+                <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] mt-0.5">
+                  Record a quick voice status or message for village rescue teams.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              id="btn-fast-voice-receiver"
+              onClick={onOpenVoiceSOS}
+              className="px-4 py-2 rounded-full bg-[#D93025] hover:bg-[#B3261E] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all self-stretch sm:self-center shrink-0"
+            >
+              <Mic className="w-3.5 h-3.5" />
+              <span>Record Voice Status</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 2. Overview Stats & Connection Banner */}
       <div className="shrink-0 grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -219,7 +276,7 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
 
       {/* 3. Recent Alerts Log (Material 3 Card List) */}
       <div
-        className={`flex-1 flex flex-col rounded-3xl border transition-all shadow-xs overflow-hidden ${
+        className={`rounded-3xl border transition-all shadow-xs ${
           isDarkMode
             ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
             : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
@@ -230,9 +287,9 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
           className="w-full flex items-center justify-between p-5 sm:p-6 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors"
         >
           <div className="text-left">
-            <h3 className="text-sm sm:text-base font-bold font-sans">Recent Flood Alerts Log</h3>
+            <h3 className="text-sm sm:text-base font-bold font-sans">Recent Flood Alerts</h3>
             <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6]">
-              Real-time Firestore stream &amp; local offline incident log
+              Live flood warning list and history
             </p>
           </div>
           {showHistory ? (
@@ -243,218 +300,191 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
         </button>
 
         {showHistory && (
-          <div className="flex-1 flex flex-col overflow-hidden px-5 pb-5 sm:px-6 sm:pb-6">
+          <div className="px-5 pb-5 sm:px-6 sm:pb-6 space-y-4">
             {/* Log Toolbar */}
-            <div className="shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-black/5 dark:border-white/5 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-black/5 dark:border-white/5">
               <div className="hidden sm:block">
-                {/* Empty spacer to push filters to right, or can keep it flexible */}
+                {/* Empty spacer */}
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-            {/* Filter Chips */}
-            <div className="flex items-center gap-1 p-1 rounded-xl bg-black/5 dark:bg-white/5">
-              <button
-                onClick={() => setFilterType('all')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-                  filterType === 'all'
-                    ? 'bg-white dark:bg-[#303134] text-[#1F1F1F] dark:text-white shadow-xs'
-                    : 'text-[#5F6368] dark:text-[#9AA0A6]'
-                }`}
-              >
-                All ({alerts.length})
-              </button>
-              <button
-                onClick={() => setFilterType('active')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-                  filterType === 'active'
-                    ? 'bg-white dark:bg-[#303134] text-[#D93025] shadow-xs'
-                    : 'text-[#5F6368] dark:text-[#9AA0A6]'
-                }`}
-              >
-                Active ({activeCount})
-              </button>
-              <button
-                onClick={() => setFilterType('dismissed')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-                  filterType === 'dismissed'
-                    ? 'bg-white dark:bg-[#303134] text-[#137333] shadow-xs'
-                    : 'text-[#5F6368] dark:text-[#9AA0A6]'
-                }`}
-              >
-                Dismissed
-              </button>
-            </div>
+                {/* Filter Chips */}
+                <div className="flex items-center gap-1 p-1 rounded-xl bg-black/5 dark:bg-white/5">
+                  <button
+                    onClick={() => setFilterType('all')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      filterType === 'all'
+                        ? 'bg-white dark:bg-[#303134] text-[#1F1F1F] dark:text-white shadow-xs'
+                        : 'text-[#5F6368] dark:text-[#9AA0A6]'
+                    }`}
+                  >
+                    All ({alerts.length})
+                  </button>
+                  <button
+                    onClick={() => setFilterType('active')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      filterType === 'active'
+                        ? 'bg-white dark:bg-[#303134] text-[#D93025] shadow-xs'
+                        : 'text-[#5F6368] dark:text-[#9AA0A6]'
+                    }`}
+                  >
+                    Active ({activeCount})
+                  </button>
+                  <button
+                    onClick={() => setFilterType('dismissed')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      filterType === 'dismissed'
+                        ? 'bg-white dark:bg-[#303134] text-[#137333] shadow-xs'
+                        : 'text-[#5F6368] dark:text-[#9AA0A6]'
+                    }`}
+                  >
+                    Dismissed
+                  </button>
+                </div>
 
-            {alerts.length > 0 && (
-              <>
-                <button
-                  id="btn-export-alerts"
-                  onClick={exportAlertsJson}
-                  className="p-2 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 text-xs font-semibold transition-colors"
-                  title="Export JSON Log"
-                >
-                  <Download className="w-4 h-4" />
-                </button>
-                <button
-                  id="btn-clear-alerts-log"
-                  onClick={onClearAlerts}
-                  className="p-2 rounded-xl border border-red-200 dark:border-red-950/80 text-[#D93025] hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                  title="Clear Alert History"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Card List */}
-        <div className="flex-1 overflow-y-auto min-h-0 pr-1">
-          {filteredAlerts.length === 0 ? (
-            <div className="text-center py-10 px-4 rounded-2xl bg-black/[0.01] dark:bg-white/[0.01] border border-dashed border-black/10 dark:border-white/10">
-              <CheckCircle className="w-9 h-9 text-[#1E8E3E] mx-auto mb-2 opacity-80" />
-              <h4 className="font-bold text-sm text-[#1F1F1F] dark:text-[#E3E3E3]">
-                No Flood Incidents in Log
-              </h4>
-              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] mt-1 max-w-sm mx-auto">
-                Standing guard. When water sensor vibrations trip the threshold,
-                incidents will appear here and notify all subscribers.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2.5">
-              {filteredAlerts.map((alert) => {
-              const isActive = alert.status === 'active';
-              const isYellow = alert.severity === 'yellow';
-
-              return (
-                <div
-                  key={alert.id}
-                  id={`alert-card-${alert.id}`}
-                  className={`rounded-2xl p-3.5 border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                    isActive
-                      ? isYellow
-                        ? 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700/60 shadow-xs'
-                        : 'bg-[#FCE8E6]/70 dark:bg-red-950/30 border-[#FAD2CF] dark:border-red-900/60 shadow-xs'
-                      : 'bg-black/[0.02] dark:bg-white/[0.02] border-black/5 dark:border-white/5'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
-                        isActive
-                          ? isYellow
-                            ? 'bg-amber-500 text-white animate-pulse'
-                            : 'bg-[#D93025] text-white animate-pulse'
-                          : 'bg-[#E6F4EA] text-[#137333]'
-                      }`}
+                {alerts.length > 0 && (
+                  <>
+                    <button
+                      id="btn-export-alerts"
+                      onClick={exportAlertsJson}
+                      className="p-2 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 text-xs font-semibold transition-colors"
+                      title="Export JSON Log"
                     >
-                      {isActive ? (
-                        <AlertTriangle className="w-4 h-4" />
-                      ) : (
-                        <CheckCircle className="w-4 h-4" />
-                      )}
-                    </div>
+                      <Download className="w-4 h-4" />
+                    </button>
+                    <button
+                      id="btn-clear-alerts-log"
+                      onClick={onClearAlerts}
+                      className="p-2 rounded-xl border border-red-200 dark:border-red-950/80 text-[#D93025] hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                      title="Clear Alert History"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
 
-                    <div>
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="font-bold text-xs sm:text-sm text-[#1F1F1F] dark:text-[#E3E3E3]">
-                          {alert.nodeName || 'Flood Sensor Node'}
-                        </span>
-                        {isActive ? (
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                              isYellow ? 'bg-amber-400 text-black' : 'bg-[#D93025] text-white'
+            {/* Card List */}
+            <div>
+              {filteredAlerts.length === 0 ? (
+                <div className="text-center py-10 px-4 rounded-2xl bg-black/[0.01] dark:bg-white/[0.01] border border-dashed border-black/10 dark:border-white/10">
+                  <CheckCircle className="w-9 h-9 text-[#1E8E3E] mx-auto mb-2 opacity-80" />
+                  <h4 className="font-bold text-sm text-[#1F1F1F] dark:text-[#E3E3E3]">
+                    No Flood Incidents in Log
+                  </h4>
+                  <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] mt-1 max-w-sm mx-auto">
+                    Standing guard. When water sensor vibrations trip the threshold,
+                    incidents will appear here and notify all subscribers.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {filteredAlerts.map((alert) => {
+                    const isActive = alert.status === 'active';
+                    const isYellow = alert.severity === 'yellow';
+
+                    const alertDateObj = new Date(alert.timestamp || Date.now());
+                    const formattedDateAndYear = alertDateObj.toLocaleDateString('en-GB', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    });
+                    const formattedTimeStr = alertDateObj.toLocaleTimeString('en-US', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    });
+
+                    const locationStr =
+                      alert.location?.fullAddress ||
+                      alert.locationLabel ||
+                      `${alert.riverName || 'Ruo River'}, ${alert.village || 'Dzenje Village'}, ${
+                        alert.traditionalAuthority || 'T/A Mabuka'
+                      }, ${alert.district || 'Mulanje'}`;
+
+                    return (
+                      <div
+                        key={alert.id}
+                        id={`alert-card-${alert.id}`}
+                        className={`rounded-2xl p-4 border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                          isActive
+                            ? isYellow
+                              ? 'bg-[#FEF7E0] dark:bg-amber-950/30 border-[#FEEFC3] dark:border-amber-700/60 shadow-xs'
+                              : 'bg-[#FCE8E6] dark:bg-red-950/30 border-[#FAD2CF] dark:border-red-900/60 shadow-xs'
+                            : 'bg-[#F8F9FA] dark:bg-[#28292C] border-[#E1E3E1] dark:border-[#303134]'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                              isActive
+                                ? isYellow
+                                  ? 'bg-[#B06000] text-white animate-pulse'
+                                  : 'bg-[#D93025] text-white animate-pulse'
+                                : 'bg-[#E6F4EA] text-[#0D652D]'
                             }`}
                           >
-                            {isYellow ? '💛 Yellow Warning' : '🚨 Red Critical'}
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E6F4EA] text-[#137333]">
-                            RESOLVED
-                          </span>
-                        )}
-                      </div>
+                            {isActive ? (
+                              <AlertTriangle className="w-5 h-5" />
+                            ) : (
+                              <CheckCircle className="w-5 h-5" />
+                            )}
+                          </div>
 
-                      {/* Location Badge & River Basin */}
-                      <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-xs font-semibold text-[#1F1F1F] dark:text-[#E3E3E3]">
-                          <MapPin className="w-3 h-3 text-[#D93025] shrink-0" />
-                          <span>
-                            {alert.location?.fullAddress ||
-                              alert.locationLabel ||
-                              `${alert.riverName || 'Ruo River'}, ${alert.village || 'Dzenje Village'}, ${alert.traditionalAuthority || 'T/A Mabuka'}, ${alert.district || 'Mulanje'}`}
-                          </span>
+                          <div className="space-y-1">
+                            {/* Location */}
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-[#1F1F1F] dark:text-white">
+                              <MapPin className="w-4 h-4 text-[#D93025] shrink-0" />
+                              <span>{locationStr}</span>
+                            </div>
+
+                            {/* Date, Year & Time */}
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#5F6368] dark:text-[#9AA0A6] font-medium">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="w-3.5 h-3.5 text-[#1A73E8]" />
+                                <span>Date: {formattedDateAndYear}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5 text-[#1A73E8]" />
+                                <span>Time: {formattedTimeStr}</span>
+                              </div>
+                              {isActive ? (
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                    isYellow
+                                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300'
+                                      : 'bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300'
+                                  }`}
+                                >
+                                  {isYellow ? '⚠️ Warning' : '🚨 Active Alert'}
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
+                                  ✓ Safe / Clear
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
 
-                        {alert.latitude && alert.longitude && (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-[10px] font-mono font-medium text-blue-700 dark:text-blue-300">
-                            <Compass className="w-2.5 h-2.5" />
-                            {alert.latitude.toFixed(4)}°, {alert.longitude.toFixed(4)}°
-                          </span>
-                        )}
-
-                        {(alert.mapsUrl || (alert.latitude && alert.longitude)) && (
-                          <a
-                            href={
-                              alert.mapsUrl ||
-                              `https://www.google.com/maps?q=${alert.latitude},${alert.longitude}`
-                            }
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[10px] font-bold text-[#1A73E8] dark:text-[#8AB4F8] hover:underline"
+                        {isActive && (
+                          <button
+                            id={`btn-dismiss-alert-${alert.id}`}
+                            onClick={() => onDismissAlert(alert.id)}
+                            className="px-3.5 py-2 rounded-xl bg-white dark:bg-[#2D2E30] hover:bg-gray-100 dark:hover:bg-[#3C4043] text-xs font-bold text-[#1F1F1F] dark:text-white border border-[#E1E3E1] dark:border-[#303134] transition-colors shrink-0 self-start sm:self-center"
                           >
-                            <span>Map</span>
-                            <ExternalLink className="w-2.5 h-2.5" />
-                          </a>
+                            Clear Alert
+                          </button>
                         )}
                       </div>
-
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-[#5F6368] dark:text-[#9AA0A6] mt-1 font-mono">
-                        <span>🕒 {alert.formattedTime}</span>
-                        <span>⚡ Δ {alert.peakDelta.toFixed(2)} m/s²</span>
-                        {isYellow ? (
-                          <span className="text-amber-700 dark:text-amber-400 font-sans font-semibold">
-                            ⚠️ Advisory: Prepare kits &amp; standby
-                          </span>
-                        ) : (
-                          <span className="text-red-600 dark:text-red-400 font-sans font-black">
-                            🚨 EVACUATE TO HIGH GROUND IMMEDIATELY
-                          </span>
-                        )}
-                      </div>
-
-                      {alert.dismissedAt && (
-                        <div className="text-[10px] text-[#137333] dark:text-[#81C995] mt-0.5 font-medium">
-                          Dismissed by {alert.dismissedBy} at{' '}
-                          {new Date(alert.dismissedAt).toLocaleTimeString()}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {isActive && (
-                    <button
-                      id={`btn-dismiss-alert-${alert.id}`}
-                      onClick={() => onDismissAlert(alert.id)}
-                      className={`px-3 py-1.5 rounded-xl bg-white dark:bg-[#2D2E30] hover:bg-gray-100 text-xs font-bold shrink-0 self-start sm:self-center transition-colors shadow-xs ${
-                        isYellow
-                          ? 'text-amber-800 dark:text-amber-300 border border-amber-300'
-                          : 'text-[#D93025] border border-[#FAD2CF] dark:border-red-900'
-                      }`}
-                    >
-                      Acknowledge
-                    </button>
-                  )}
+                    );
+                  })}
                 </div>
-              );
-            })}
+              )}
+            </div>
           </div>
         )}
-        </div>
       </div>
-    )}
     </div>
-  </div>
-);
+  );
 };

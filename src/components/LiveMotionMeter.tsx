@@ -184,10 +184,10 @@ export const LiveMotionMeter: React.FC<LiveMotionMeterProps> = ({
           </div>
           <div>
             <h3 className="font-bold text-sm font-sans tracking-tight">
-              Live Sensor Telemetry
+              Vibration Sensor
             </h3>
             <p className="text-[10px] text-[#5F6368] dark:text-[#9AA0A6]">
-              💛 Yellow: {yellowLimit.toFixed(1)} m/s² &bull; 🚨 Red: {redLimit.toFixed(1)} m/s²
+              💛 Warning: {yellowLimit.toFixed(1)} m/s² &bull; 🚨 Danger: {redLimit.toFixed(1)} m/s²
             </p>
           </div>
         </div>
@@ -224,7 +224,7 @@ export const LiveMotionMeter: React.FC<LiveMotionMeterProps> = ({
         <div className="flex items-center justify-between p-3 rounded-2xl bg-[#F8F9FA] dark:bg-[#28292A] border border-black/5 dark:border-white/5 gap-3">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#5F6368] dark:text-[#9AA0A6] block">
-              Vibration Delta (Δ)
+              Motor Vibration Level
             </span>
             <div className="flex items-baseline gap-1">
               <span
@@ -239,29 +239,29 @@ export const LiveMotionMeter: React.FC<LiveMotionMeterProps> = ({
             </div>
           </div>
 
-          {/* Quick Real-Time Level Gauge Indicator */}
+          {/* Quick Real-Time Level Indicator */}
           <div className="flex flex-col items-end gap-1 text-right">
-            <span className="text-[10px] font-semibold text-[#5F6368] dark:text-[#9AA0A6]">
-              Base Gravity: {baselineGravity.toFixed(2)} m/s²
+            <span className="text-[10px] font-medium text-[#5F6368] dark:text-[#9AA0A6]">
+              Rest Level: {baselineGravity.toFixed(2)} m/s²
             </span>
             <div className="flex items-center gap-1.5">
               <div
-                className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase ${
+                className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${
                   isYellow || isRed
                     ? 'bg-amber-400 text-black'
                     : 'bg-black/10 dark:bg-white/10 text-[#5F6368] dark:text-[#9AA0A6]'
                 }`}
               >
-                Yellow: {yellowLimit.toFixed(1)}
+                Warning: {yellowLimit.toFixed(1)}
               </div>
               <div
-                className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase ${
+                className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${
                   isRed
                     ? 'bg-red-600 text-white'
                     : 'bg-black/10 dark:bg-white/10 text-[#5F6368] dark:text-[#9AA0A6]'
                 }`}
               >
-                Red: {redLimit.toFixed(1)}
+                Danger: {redLimit.toFixed(1)}
               </div>
             </div>
           </div>
@@ -269,10 +269,10 @@ export const LiveMotionMeter: React.FC<LiveMotionMeterProps> = ({
 
         {/* Horizontal Severity Bar */}
         <div className="w-full px-1">
-          <div className="flex justify-between text-[10px] font-bold text-[#5F6368] dark:text-[#9AA0A6] mb-1">
-            <span>0.0</span>
-            <span className="text-amber-600 dark:text-amber-400">💛 Warning: {yellowLimit.toFixed(1)}</span>
-            <span className="text-[#D93025]">🚨 Critical: {redLimit.toFixed(1)}</span>
+          <div className="flex justify-between text-[10px] font-medium text-[#5F6368] dark:text-[#9AA0A6] mb-1">
+            <span>0.0 (Still)</span>
+            <span className="text-amber-600 dark:text-amber-400 font-bold">Warning: {yellowLimit.toFixed(1)}</span>
+            <span className="text-[#D93025] font-bold">Danger: {redLimit.toFixed(1)}</span>
           </div>
           <div className="w-full h-2.5 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden relative">
             {/* Yellow marker line */}

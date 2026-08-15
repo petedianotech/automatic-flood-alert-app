@@ -258,12 +258,12 @@ export const CriticalAlarmModal: React.FC<CriticalAlarmModalProps> = ({
         <div className="relative z-10 rounded-xl bg-white/10 p-2 sm:p-2.5 border border-white/15 mb-3 text-xs font-semibold space-y-1">
           <div className="flex items-center gap-1.5 font-bold uppercase tracking-wide text-white/95">
             <ArrowRight className="w-3.5 h-3.5 shrink-0" />
-            <span>{isYellow ? 'Recommended Village Action:' : 'Immediate Evacuation Protocol:'}</span>
+            <span>{isYellow ? 'What to do now:' : 'What to do right now:'}</span>
           </div>
           <p className="text-white/85 text-[11px] leading-relaxed">
             {isYellow
-              ? 'Gather essential documents, charge phones, keep battery lights ready, and monitor further announcements.'
-              : 'Move children, elders, and livestock to designated high ground evacuation shelters now.'}
+              ? 'Pack your essential items, charge your phone, keep torches ready, and stay tuned for updates.'
+              : 'Move children, elderly family members, and animals to high ground or safe shelters immediately.'}
           </p>
         </div>
 
@@ -294,13 +294,13 @@ export const CriticalAlarmModal: React.FC<CriticalAlarmModalProps> = ({
               {isHolding
                 ? `HOLDING... ${Math.round(holdProgress * 100)}%`
                 : isYellow
-                ? 'HOLD 1 SEC TO ACKNOWLEDGE'
-                : 'HOLD 2 SEC TO DISMISS SIREN'}
+                ? 'PRESS & HOLD TO ACKNOWLEDGE'
+                : 'PRESS & HOLD TO STOP ALARM'}
             </span>
           </button>
 
           <p className="text-[10px] text-white/75 font-medium text-center">
-            *Press &amp; hold button to silence alarm and acknowledge alert
+            *Press and hold the button to silence the alarm and acknowledge the warning
           </p>
         </div>
 

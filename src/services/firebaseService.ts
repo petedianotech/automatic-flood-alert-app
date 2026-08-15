@@ -19,6 +19,7 @@ import {
   setDoc,
   getDoc,
   updateDoc,
+  deleteDoc,
   getDocFromServer,
   Firestore,
   Unsubscribe,
@@ -122,10 +123,14 @@ class FirebaseFloodService {
             this.handleLocalAlertReceived(event.data.alert);
           } else if (event.data && event.data.type === 'UPDATE_ALERT') {
             this.handleLocalAlertUpdated(event.data.alert);
+          } else if (event.data && event.data.type === 'DELETE_ALERT') {
+            this.handleLocalAlertDeleted(event.data.alertId);
           } else if (event.data && event.data.type === 'CLEAR_ALERTS') {
             this.notifyAlerts([]);
           } else if (event.data && event.data.type === 'NEW_SAFETY_REPORT') {
             this.handleLocalSafetyReportReceived(event.data.report);
+          } else if (event.data && event.data.type === 'DELETE_SAFETY_REPORT') {
+            this.handleLocalSafetyReportDeleted(event.data.reportId);
           } else if (event.data && event.data.type === 'CLEAR_SAFETY_REPORTS') {
             this.notifySafetyReports([]);
           }
@@ -216,11 +221,15 @@ class FirebaseFloodService {
         if (docSnap.exists()) {
           const data = docSnap.data();
           const userEmail = fbUser.email || data.email;
-          const isAdminUser = userEmail && userEmail.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
+          const cleanName = (data.name || fbUser.displayName || '').toLowerCase().trim().replace(/\s+/g, ' ');
+          const cleanVillage = (data.village || '').toLowerCase().trim().replace(/\s+/g, ' ');
+          const isAdminUser =
+            (userEmail && userEmail.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase()) ||
+            (cleanName === 'dzenje cdss adda stem club' && cleanVillage === 'dzenje village');
           profile = {
             uid: fbUser.uid,
-            name: data.name || fbUser.displayName || (isAdminUser ? 'Admin Peter (System Manager)' : 'Resident'),
-            village: data.village || 'Green Valley River Basin',
+            name: data.name || fbUser.displayName || (isAdminUser ? 'Dzenje CDSS ADDA STEM CLUB' : 'Resident'),
+            village: data.village || 'Dzenje Village',
             email: userEmail,
             photoURL: fbUser.photoURL || data.photoURL,
             authProvider: data.authProvider || (fbUser.isAnonymous ? 'name_village' : 'google'),
@@ -327,13 +336,17 @@ class FirebaseFloodService {
         }
       }
 
+      const cleanName = trimmedName.toLowerCase().replace(/\s+/g, ' ');
+      const cleanVillage = trimmedVillage.toLowerCase().replace(/\s+/g, ' ');
+      const isAdminLogin = cleanName === 'dzenje cdss adda stem club' && cleanVillage === 'dzenje village';
+
       const profile: UserProfile = {
         uid,
         name: trimmedName,
         village: trimmedVillage,
         authProvider: 'name_village',
         hasPassword: Boolean(password && password.trim().length > 0),
-        role: 'resident',
+        role: isAdminLogin ? 'admin' : 'resident',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -446,9 +459,20 @@ class FirebaseFloodService {
     const current = this.currentAuthState.user;
     if (!current) throw new Error('No user is currently signed in');
 
+    const newName = (updates.name !== undefined ? updates.name : current.name).trim();
+    const newVillage = (updates.village !== undefined ? updates.village : current.village).trim();
+    const cleanName = newName.toLowerCase().replace(/\s+/g, ' ');
+    const cleanVillage = newVillage.toLowerCase().replace(/\s+/g, ' ');
+    const isAdminUser =
+      (current.email && current.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase()) ||
+      (cleanName === 'dzenje cdss adda stem club' && cleanVillage === 'dzenje village');
+
     const updatedProfile: UserProfile = {
       ...current,
       ...updates,
+      name: newName,
+      village: newVillage,
+      role: isAdminUser ? 'admin' : (updates.role || current.role || 'resident'),
       updatedAt: new Date().toISOString(),
     };
 
@@ -645,12 +669,36 @@ class FirebaseFloodService {
     }
   }
 
+  public async deleteAlert(alertId: string): Promise<void> {
+    if (this.db) {
+      try {
+        const docRef = doc(this.db, 'flood_alerts', alertId);
+        await deleteDoc(docRef);
+      } catch (err) {
+        console.warn('Firestore delete flood_alert failed:', err);
+      }
+    }
+
+    this.handleLocalAlertDeleted(alertId);
+
+    if (this.broadcastChannel) {
+      this.broadcastChannel.postMessage({ type: 'DELETE_ALERT', alertId });
+    }
+  }
+
   public async clearAlerts(): Promise<void> {
     this.saveLocalAlerts([]);
     this.notifyAlerts([]);
     if (this.broadcastChannel) {
       this.broadcastChannel.postMessage({ type: 'CLEAR_ALERTS' });
     }
+  }
+
+  private handleLocalAlertDeleted(alertId: string) {
+    const existing = this.getLocalAlerts();
+    const updated = existing.filter((item) => item.id !== alertId);
+    this.saveLocalAlerts(updated);
+    this.notifyAlerts(updated);
   }
 
   public getLocalAlerts(): FloodAlert[] {
@@ -662,7 +710,43 @@ class FirebaseFloodService {
     } catch {
       // ignore
     }
-    return [];
+    const now = Date.now();
+    return [
+      {
+        id: 'alert-seed-1',
+        timestamp: now - 1000 * 60 * 30,
+        formattedTime: new Date(now - 1000 * 60 * 30).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        peakDelta: 1.85,
+        durationSeconds: 4,
+        nodeId: 'ruo-station-01',
+        nodeName: 'Ruo River Bridge Sensor',
+        village: 'Dzenje Village',
+        locationLabel: 'Ruo River, Dzenje Village, T/A Mabuka, Mulanje',
+        riverName: 'Ruo River',
+        traditionalAuthority: 'T/A Mabuka',
+        district: 'Mulanje',
+        status: 'active',
+        severity: 'red',
+        source: 'hardware_sensor',
+      },
+      {
+        id: 'alert-seed-2',
+        timestamp: now - 1000 * 60 * 180,
+        formattedTime: new Date(now - 1000 * 60 * 180).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        peakDelta: 0.95,
+        durationSeconds: 3,
+        nodeId: 'likhubula-station-02',
+        nodeName: 'Likhubula River Sensor',
+        village: 'Mabuka Village',
+        locationLabel: 'Likhubula River, Mabuka Village, T/A Mabuka, Mulanje',
+        riverName: 'Likhubula River',
+        traditionalAuthority: 'T/A Mabuka',
+        district: 'Mulanje',
+        status: 'resolved',
+        severity: 'yellow',
+        source: 'acoustic_sound_sensor',
+      },
+    ];
   }
 
   private saveLocalAlerts(alerts: FloodAlert[]) {
@@ -750,6 +834,9 @@ class FirebaseFloodService {
               latitude: data.latitude,
               longitude: data.longitude,
               mapsUrl: data.mapsUrl,
+              voiceAudioBase64: data.voiceAudioBase64,
+              voiceDurationSec: data.voiceDurationSec,
+              hasVoiceNote: data.hasVoiceNote || !!data.voiceAudioBase64,
               updatedAt: data.updatedAt,
             });
           });
@@ -865,6 +952,38 @@ class FirebaseFloodService {
     ];
   }
 
+  public async deleteSafetyReport(reportId: string): Promise<void> {
+    if (this.db) {
+      try {
+        const docRef = doc(this.db, 'safety_reports', reportId);
+        await deleteDoc(docRef);
+      } catch (err) {
+        console.warn('Firestore delete safety_report failed:', err);
+      }
+    }
+
+    this.handleLocalSafetyReportDeleted(reportId);
+
+    if (this.broadcastChannel) {
+      this.broadcastChannel.postMessage({ type: 'DELETE_SAFETY_REPORT', reportId });
+    }
+  }
+
+  public async clearSafetyReports(): Promise<void> {
+    this.saveLocalSafetyReports([]);
+    this.notifySafetyReports([]);
+    if (this.broadcastChannel) {
+      this.broadcastChannel.postMessage({ type: 'CLEAR_SAFETY_REPORTS' });
+    }
+  }
+
+  private handleLocalSafetyReportDeleted(reportId: string) {
+    const existing = this.getLocalSafetyReports();
+    const updated = existing.filter((r) => r.id !== reportId);
+    this.saveLocalSafetyReports(updated);
+    this.notifySafetyReports(updated);
+  }
+
   private saveLocalSafetyReports(reports: ResidentSafetyReport[]) {
     try {
       localStorage.setItem(STORAGE_KEY_SAFETY_REPORTS, JSON.stringify(reports));
@@ -879,6 +998,33 @@ class FirebaseFloodService {
     const updated = [report, ...filtered].slice(0, 100);
     this.saveLocalSafetyReports(updated);
     this.notifySafetyReports(updated);
+  }
+
+  public async registerFcmToken(token: string): Promise<void> {
+    if (!token) return;
+    try {
+      localStorage.setItem('flood_alert_fcm_token', token);
+      if (this.db) {
+        const tokenDocId = token.slice(0, 32).replace(/[^a-zA-Z0-9_-]/g, '_');
+        const tokenRef = doc(this.db, 'fcm_tokens', tokenDocId);
+        await setDoc(
+          tokenRef,
+          {
+            token,
+            userId: this.currentAuthState.user?.uid || 'anonymous_subscriber',
+            userName: this.currentAuthState.user?.name || 'Resident',
+            village: this.currentAuthState.user?.village || 'Dzenje Village',
+            userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown',
+            updatedAt: new Date().toISOString(),
+            timestamp: Date.now(),
+          },
+          { merge: true }
+        );
+        console.log('[FCM] Device push token registered in Firestore:', tokenDocId);
+      }
+    } catch (err) {
+      console.warn('[FCM] Token registration in Firestore note:', err);
+    }
   }
 
   public getAuthState(): AuthState {

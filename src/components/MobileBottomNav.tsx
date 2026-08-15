@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, BellRing, MapPin, Sliders, LayoutDashboard, ShieldCheck } from 'lucide-react';
+import { Activity, BellRing, MapPin, LayoutDashboard } from 'lucide-react';
 import { NodeMode } from '../types';
 
 interface MobileBottomNavProps {
@@ -21,7 +21,6 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   isDarkMode,
   isAdmin = false,
 }) => {
-  // If admin, show all 5 tabs (Dashboard, Sensor, Alerts, Village, Tools). If villager, only show Alerts & Village.
   const tabs = isAdmin
     ? [
         {
@@ -35,8 +34,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           icon: Activity,
           statusDot: isArmed
             ? isPaused
-              ? 'bg-amber-500'
-              : 'bg-emerald-500 animate-pulse'
+              ? 'bg-[#B06000]'
+              : 'bg-[#137333] dark:bg-[#81C995]'
             : null,
         },
         {
@@ -49,11 +48,6 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           id: 'village' as NodeMode,
           label: 'Village',
           icon: MapPin,
-        },
-        {
-          id: 'diagnostics' as NodeMode,
-          label: 'Tools',
-          icon: Sliders,
         },
       ]
     : [
@@ -75,11 +69,11 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
       id="mobile-bottom-navigation-bar"
       className={`shrink-0 z-40 w-full border-t transition-colors select-none ${
         isDarkMode
-          ? 'bg-[#121316] border-[#27272A] text-[#EDEDED]'
-          : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
-      } backdrop-blur-md pb-safe shadow-lg`}
+          ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
+          : 'bg-[#F0F4F9] border-[#E1E3E1] text-[#1F1F1F]'
+      } backdrop-blur-md pb-safe shadow-md`}
     >
-      <div className="max-w-md mx-auto px-3 py-2 flex items-center justify-around">
+      <div className="max-w-md mx-auto px-2 py-1.5 flex items-center justify-around">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = currentMode === tab.id;
@@ -89,38 +83,44 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
               key={tab.id}
               id={`tab-nav-${tab.id}`}
               onClick={() => onSelectMode(tab.id)}
-              className={`flex-1 py-1 px-2 rounded-2xl flex flex-col items-center justify-center relative transition-all active:scale-95 ${
-                isActive
-                  ? 'text-[#38BDF8] dark:text-[#38BDF8] font-bold'
-                  : 'text-[#71717A] dark:text-[#A1A1AA] hover:text-[#1F1F1F] dark:hover:text-[#EDEDED]'
-              }`}
+              className="flex-1 py-1 flex flex-col items-center justify-center relative transition-all active:scale-95"
             >
-              {/* Active Indicator Pill */}
+              {/* Active Pill Container */}
               <div
-                className={`w-12 h-7 rounded-full flex items-center justify-center mb-0.5 transition-colors relative ${
+                className={`w-14 h-8 rounded-full flex items-center justify-center mb-1 transition-all relative ${
                   isActive
-                    ? 'bg-[#0284C7]/20 text-[#38BDF8]'
-                    : 'bg-transparent hover:bg-black/5 dark:hover:bg-white/5'
+                    ? isDarkMode
+                      ? 'bg-[#004A77] text-[#C2E7FF]'
+                      : 'bg-[#D3E3FD] text-[#041E49]'
+                    : 'bg-transparent text-[#5F6368] dark:text-[#9AA0A6] hover:bg-black/5 dark:hover:bg-white/5'
                 }`}
               >
-                <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
+                <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.2]' : 'stroke-[1.8]'}`} />
 
                 {/* Status Dot */}
                 {tab.statusDot && (
                   <span
-                    className={`absolute top-1 right-2.5 w-2 h-2 rounded-full ${tab.statusDot}`}
+                    className={`absolute top-1.5 right-3 w-2 h-2 rounded-full ${tab.statusDot}`}
                   />
                 )}
 
                 {/* Badge Number */}
                 {tab.badge && (
-                  <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-[#EF4444] text-white font-mono text-[10px] font-black flex items-center justify-center animate-bounce shadow-xs">
+                  <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-[#D93025] text-white font-mono text-[10px] font-bold flex items-center justify-center shadow-xs">
                     {tab.badge}
                   </span>
                 )}
               </div>
 
-              <span className="text-[11px] font-semibold tracking-tight truncate max-w-[80px]">
+              <span
+                className={`text-xs font-medium tracking-tight truncate max-w-[80px] ${
+                  isActive
+                    ? isDarkMode
+                      ? 'text-[#E3E3E3] font-semibold'
+                      : 'text-[#041E49] font-bold'
+                    : 'text-[#5F6368] dark:text-[#9AA0A6]'
+                }`}
+              >
                 {tab.label}
               </span>
             </button>
@@ -130,3 +130,4 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     </nav>
   );
 };
+

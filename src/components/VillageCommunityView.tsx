@@ -6,7 +6,6 @@ import {
   AlertTriangle,
   Radio,
   Building2,
-  Droplets,
   PhoneCall,
   BellRing,
   Sparkles,
@@ -16,6 +15,7 @@ import {
   Home,
   CheckCircle2,
   PlusCircle,
+  Mic,
 } from 'lucide-react';
 import { UserProfile, FloodAlert, ResidentSafetyReport, SafetyStatusType } from '../types';
 import { SafetyCheckInModal } from './SafetyCheckInModal';
@@ -37,6 +37,7 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
 }) => {
   const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
   const [selectedInitialStatus, setSelectedInitialStatus] = useState<SafetyStatusType>('safe');
+  const [autoStartVoice, setAutoStartVoice] = useState(false);
 
   const currentVillage = currentUser?.village || 'Dzenje Village';
   const villageAlerts = alerts.filter(
@@ -52,8 +53,9 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
   const inFloodingCount = villageReports.filter((r) => r.status === 'in_flooding').length;
   const needsHelpCount = villageReports.filter((r) => r.status === 'needs_help').length;
 
-  const handleOpenCheckIn = (status: SafetyStatusType) => {
+  const handleOpenCheckIn = (status: SafetyStatusType, startVoice = false) => {
     setSelectedInitialStatus(status);
+    setAutoStartVoice(startVoice);
     setIsCheckInModalOpen(true);
   };
 
@@ -69,21 +71,24 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-start gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-[#E8F0FE] text-[#1A73E8] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8] flex items-center justify-center shrink-0">
-              <Building2 className="w-6 h-6" />
-            </div>
+            <img
+              src="/icon.svg"
+              alt="App Icon"
+              className="w-12 h-12 rounded-2xl shrink-0 shadow-xs border border-black/5"
+              referrerPolicy="no-referrer"
+            />
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#1A73E8]/10 text-[#1A73E8] dark:text-[#8AB4F8]">
-                  Community River Network
+                  Community Safety Area
                 </span>
                 {activeVillageAlerts.length > 0 ? (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300 animate-pulse">
-                    ⚠️ Active Flood Alert
+                    ⚠️ Active Flood Warning
                   </span>
                 ) : (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
-                    🟢 Normal River Flow
+                    🟢 Normal River Level
                   </span>
                 )}
               </div>
@@ -92,7 +97,7 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
               </h2>
               <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] mt-0.5 flex items-center gap-1.5 flex-wrap">
                 <MapPin className="w-3 h-3 text-[#D93025] inline shrink-0" />
-                <span>Ruo River &bull; T/A Mabuka &bull; Mulanje District, Southern Region</span>
+                <span>Ruo River &bull; T/A Mabuka &bull; Mulanje District</span>
               </p>
             </div>
           </div>
@@ -108,94 +113,118 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
         </div>
       </div>
 
-      {/* 2. Resident Safety & Roll-Call Status Card (NEW) */}
+      {/* 2. Resident Safety Roll-Call Status Card */}
       <div
         id="safety-status-action-card"
-        className={`rounded-3xl border p-5 transition-all shadow-sm ${
+        className={`rounded-[24px] border p-5 transition-all shadow-xs ${
           isDarkMode
-            ? 'bg-gradient-to-br from-zinc-900 to-zinc-950 border-zinc-800 text-zinc-100'
-            : 'bg-gradient-to-br from-white to-zinc-50 border-zinc-200 text-zinc-900'
+            ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
+            : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
         }`}
       >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-emerald-500" />
+            <ShieldCheck className="w-5 h-5 text-[#137333] dark:text-[#81C995]" />
             <div>
-              <h3 className="font-bold text-sm leading-tight">Your Safety & Roll-Call Status</h3>
-              <p className="text-xs text-zinc-400">Mark yourself safe or report if in flooding</p>
+              <h3 className="font-bold text-sm leading-tight">Village Safety Roll-Call</h3>
+              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6]">Mark your safety status or request assistance</p>
             </div>
           </div>
           <button
             onClick={() => handleOpenCheckIn('safe')}
-            className="text-xs font-bold text-emerald-500 hover:text-emerald-400 flex items-center gap-1"
+            className="text-xs font-semibold text-[#1A73E8] dark:text-[#8AB4F8] hover:underline flex items-center gap-1"
           >
             <PlusCircle className="w-3.5 h-3.5" />
             <span>Update Status</span>
           </button>
         </div>
 
-        {/* 4 Fast Action Buttons */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+        {/* Action Buttons */}
+        <div className="space-y-2 mb-4">
           <button
-            id="quick-btn-mark-safe"
-            onClick={() => handleOpenCheckIn('safe')}
-            className="p-3 rounded-2xl border bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20 text-emerald-400 flex flex-col items-center text-center gap-1 transition-all active:scale-98"
+            id="quick-voice-sos-village-btn"
+            onClick={() => handleOpenCheckIn('needs_help', true)}
+            className="w-full p-3 rounded-2xl bg-[#D93025] hover:bg-[#B3261E] text-white flex items-center justify-between shadow-xs transition-all"
           >
-            <ShieldCheck className="w-5 h-5 text-emerald-400" />
-            <span className="text-xs font-bold leading-tight">Mark Myself Safe</span>
-            <span className="text-[10px] text-zinc-400">Floods ended / clear</span>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
+                <Mic className="w-4 h-4 text-white" />
+              </div>
+              <div className="text-left">
+                <div className="text-xs font-bold tracking-wide flex items-center gap-1.5">
+                  <span>Fast Voice SOS / Check-In</span>
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-white/25 uppercase">Quick</span>
+                </div>
+                <div className="text-[11px] text-white/90 font-normal">
+                  Tap to speak your safety status hands-free
+                </div>
+              </div>
+            </div>
+            <span className="text-xs font-semibold bg-black/20 px-2.5 py-1 rounded-full">Speak Now &rarr;</span>
           </button>
 
-          <button
-            id="quick-btn-evacuated"
-            onClick={() => handleOpenCheckIn('evacuated')}
-            className="p-3 rounded-2xl border bg-blue-500/10 border-blue-500/30 hover:bg-blue-500/20 text-blue-400 flex flex-col items-center text-center gap-1 transition-all active:scale-98"
-          >
-            <Home className="w-5 h-5 text-blue-400" />
-            <span className="text-xs font-bold leading-tight">Evacuated</span>
-            <span className="text-[10px] text-zinc-400">At shelter / school</span>
-          </button>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <button
+              id="quick-btn-mark-safe"
+              onClick={() => handleOpenCheckIn('safe', false)}
+              className="p-3 rounded-2xl border bg-[#E6F4EA] border-[#CEEAD6] dark:bg-[#137333]/30 dark:border-[#137333]/60 text-[#0D652D] dark:text-[#81C995] flex flex-col items-center text-center gap-1 transition-all shadow-2xs hover:scale-[1.02] active:scale-95"
+            >
+              <ShieldCheck className="w-5 h-5 text-[#0D652D] dark:text-[#81C995]" />
+              <span className="text-xs font-bold leading-tight">Mark Myself Safe</span>
+              <span className="text-[10px] text-[#0D652D] dark:text-[#81C995] font-semibold">Clear water</span>
+            </button>
 
-          <button
-            id="quick-btn-in-flooding"
-            onClick={() => handleOpenCheckIn('in_flooding')}
-            className="p-3 rounded-2xl border bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20 text-amber-400 flex flex-col items-center text-center gap-1 transition-all active:scale-98"
-          >
-            <AlertTriangle className="w-5 h-5 text-amber-400" />
-            <span className="text-xs font-bold leading-tight">In Flooding</span>
-            <span className="text-[10px] text-zinc-400">Water rising in yard</span>
-          </button>
+            <button
+              id="quick-btn-evacuated"
+              onClick={() => handleOpenCheckIn('evacuated', false)}
+              className="p-3 rounded-2xl border bg-[#E8F0FE] border-[#D2E3FC] dark:bg-[#1A73E8]/30 dark:border-[#1A73E8]/60 text-[#1557B0] dark:text-[#8AB4F8] flex flex-col items-center text-center gap-1 transition-all shadow-2xs hover:scale-[1.02] active:scale-95"
+            >
+              <Home className="w-5 h-5 text-[#1557B0] dark:text-[#8AB4F8]" />
+              <span className="text-xs font-bold leading-tight">Evacuated</span>
+              <span className="text-[10px] text-[#1967D2] dark:text-[#8AB4F8] font-semibold">At shelter / school</span>
+            </button>
 
-          <button
-            id="quick-btn-needs-help"
-            onClick={() => handleOpenCheckIn('needs_help')}
-            className="p-3 rounded-2xl border bg-red-500/15 border-red-500/40 hover:bg-red-500/25 text-red-400 flex flex-col items-center text-center gap-1 transition-all active:scale-98 animate-pulse"
-          >
-            <LifeBuoy className="w-5 h-5 text-red-400" />
-            <span className="text-xs font-bold leading-tight">Need Rescue SOS</span>
-            <span className="text-[10px] text-zinc-400">Emergency help</span>
-          </button>
+            <button
+              id="quick-btn-in-flooding"
+              onClick={() => handleOpenCheckIn('in_flooding', false)}
+              className="p-3 rounded-2xl border bg-[#FEF7E0] border-[#FEEFC3] dark:bg-[#B06000]/30 dark:border-[#B06000]/60 text-[#B06000] dark:text-[#FDE293] flex flex-col items-center text-center gap-1 transition-all shadow-2xs hover:scale-[1.02] active:scale-95"
+            >
+              <AlertTriangle className="w-5 h-5 text-[#B06000] dark:text-[#FDE293]" />
+              <span className="text-xs font-bold leading-tight">In Flooding</span>
+              <span className="text-[10px] text-[#B06000] dark:text-[#FDE293] font-semibold">Water rising</span>
+            </button>
+
+            <button
+              id="quick-btn-needs-help"
+              onClick={() => handleOpenCheckIn('needs_help', false)}
+              className="p-3 rounded-2xl border bg-[#FCE8E6] border-[#FAD2CF] dark:bg-[#D93025]/30 dark:border-[#D93025]/60 text-[#C5221F] dark:text-[#F28B82] flex flex-col items-center text-center gap-1 transition-all shadow-2xs hover:scale-[1.02] active:scale-95"
+            >
+              <LifeBuoy className="w-5 h-5 text-[#C5221F] dark:text-[#F28B82]" />
+              <span className="text-xs font-bold leading-tight">Need Rescue</span>
+              <span className="text-[10px] text-[#C5221F] dark:text-[#F28B82] font-semibold">Emergency</span>
+            </button>
+          </div>
         </div>
 
-        {/* Village Roll-call summary pills */}
+        {/* Roll-call summary pills */}
         <div
           className={`p-3 rounded-2xl border flex items-center justify-around text-center ${
-            isDarkMode ? 'bg-zinc-900/60 border-zinc-800' : 'bg-zinc-100/60 border-zinc-200'
+            isDarkMode ? 'bg-[#28292C] border-[#303134]' : 'bg-[#F1F3F4] border-[#E1E3E1]'
           }`}
         >
           <div>
-            <div className="text-xs text-zinc-400 font-medium">Safe / Clear</div>
-            <div className="text-base font-black text-emerald-400">{safeCount}</div>
+            <div className="text-xs text-[#5F6368] dark:text-[#9AA0A6] font-semibold">Safe / Clear</div>
+            <div className="text-base font-bold text-[#137333] dark:text-[#81C995]">{safeCount}</div>
           </div>
-          <div className="h-6 w-[1px] bg-zinc-700/50" />
+          <div className="h-6 w-[1px] bg-[#E1E3E1] dark:bg-[#303134]" />
           <div>
-            <div className="text-xs text-zinc-400 font-medium">In Flooding</div>
-            <div className="text-base font-black text-amber-400">{inFloodingCount}</div>
+            <div className="text-xs text-[#5F6368] dark:text-[#9AA0A6] font-semibold">In Flooding</div>
+            <div className="text-base font-bold text-[#B06000] dark:text-amber-300">{inFloodingCount}</div>
           </div>
-          <div className="h-6 w-[1px] bg-zinc-700/50" />
+          <div className="h-6 w-[1px] bg-[#E1E3E1] dark:bg-[#303134]" />
           <div>
-            <div className="text-xs text-zinc-400 font-medium">Rescue SOS</div>
-            <div className="text-base font-black text-red-400">{needsHelpCount}</div>
+            <div className="text-xs text-[#5F6368] dark:text-[#9AA0A6] font-semibold">Rescue SOS</div>
+            <div className="text-base font-bold text-[#D93025] dark:text-red-400">{needsHelpCount}</div>
           </div>
         </div>
       </div>
@@ -210,27 +239,27 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
           }`}
         >
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-xs uppercase tracking-wider text-zinc-400">
+            <h3 className="font-bold text-xs uppercase tracking-wider text-[#5F6368] dark:text-[#9AA0A6]">
               Recent Roll-Call Check-Ins in {currentVillage}
             </h3>
-            <span className="text-[11px] text-zinc-400">{villageReports.length} recorded</span>
+            <span className="text-xs font-semibold text-[#5F6368] dark:text-[#9AA0A6]">{villageReports.length} recorded</span>
           </div>
 
-          <div className="divide-y divide-zinc-800/40">
+          <div className="divide-y divide-[#E1E3E1] dark:divide-[#303134]">
             {villageReports.slice(0, 5).map((report) => (
               <div key={report.id} className="py-2.5 flex items-center justify-between gap-3">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-xs">{report.userName}</span>
+                    <span className="font-bold text-xs text-[#1F1F1F] dark:text-[#E3E3E3]">{report.userName}</span>
                     <span
-                      className={`text-[10px] px-2 py-0.2 rounded-full font-bold flex items-center gap-1 ${
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 ${
                         report.status === 'safe'
-                          ? 'bg-emerald-500/15 text-emerald-400'
+                          ? 'bg-[#E6F4EA] text-[#0D652D]'
                           : report.status === 'evacuated'
-                          ? 'bg-blue-500/15 text-blue-400'
+                          ? 'bg-[#E8F0FE] text-[#1557B0]'
                           : report.status === 'in_flooding'
-                          ? 'bg-amber-500/15 text-amber-400'
-                          : 'bg-red-500/20 text-red-400 animate-pulse'
+                          ? 'bg-[#FEF7E0] text-[#B06000]'
+                          : 'bg-[#FCE8E6] text-[#C5221F] animate-pulse'
                       }`}
                     >
                       {report.status === 'safe' && <ShieldCheck className="w-3 h-3" />}
@@ -247,108 +276,21 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
                           : 'Need Rescue'}
                       </span>
                     </span>
-                    <span className="text-[10px] text-zinc-400">
+                    <span className="text-[10px] text-[#5F6368] dark:text-[#9AA0A6] font-medium">
                       ({report.peopleCount || 1} {report.peopleCount === 1 ? 'person' : 'people'})
                     </span>
                   </div>
                   {report.message && (
-                    <p className="text-[11px] text-zinc-400 truncate max-w-xs">{report.message}</p>
+                    <p className="text-xs text-[#3C4043] dark:text-[#9AA0A6] truncate max-w-xs">{report.message}</p>
                   )}
                 </div>
 
-                <span className="text-[10px] text-zinc-500 shrink-0">{report.formattedTime}</span>
+                <span className="text-xs font-mono text-[#5F6368] dark:text-[#9AA0A6] shrink-0">{report.formattedTime}</span>
               </div>
             ))}
           </div>
         </div>
       )}
-
-      {/* 4. Community Key Vitals */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <div
-          className={`p-4 rounded-2xl border ${
-            isDarkMode
-              ? 'bg-[#1E1F20] border-[#303134]'
-              : 'bg-white border-[#E1E3E1]'
-          }`}
-        >
-          <div className="flex items-center gap-2 text-xs font-bold text-[#5F6368] dark:text-[#9AA0A6] mb-1">
-            <Droplets className="w-4 h-4 text-[#1A73E8]" />
-            <span>River Stations</span>
-          </div>
-          <div className="text-2xl font-black font-mono text-[#1967D2] dark:text-[#8AB4F8]">
-            3 Stations
-          </div>
-          <span className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6]">
-            Ruo River, Likhubula, Thuchila
-          </span>
-        </div>
-
-        <div
-          className={`p-4 rounded-2xl border ${
-            isDarkMode
-              ? 'bg-[#1E1F20] border-[#303134]'
-              : 'bg-white border-[#E1E3E1]'
-          }`}
-        >
-          <div className="flex items-center gap-2 text-xs font-bold text-[#5F6368] dark:text-[#9AA0A6] mb-1">
-            <AlertTriangle className="w-4 h-4 text-[#D93025]" />
-            <span>Active Flood Alerts</span>
-          </div>
-          <div
-            className={`text-2xl font-black font-mono ${
-              activeVillageAlerts.length > 0 ? 'text-[#D93025] animate-pulse' : 'text-[#137333]'
-            }`}
-          >
-            {activeVillageAlerts.length}
-          </div>
-          <span className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6]">
-            {activeVillageAlerts.length > 0 ? 'Action required' : 'All riverbanks safe'}
-          </span>
-        </div>
-
-        <div
-          className={`col-span-2 sm:col-span-1 p-4 rounded-2xl border ${
-            isDarkMode
-              ? 'bg-[#1E1F20] border-[#303134]'
-              : 'bg-white border-[#E1E3E1]'
-          }`}
-        >
-          <div className="flex items-center gap-2 text-xs font-bold text-[#5F6368] dark:text-[#9AA0A6] mb-1">
-            <Users className="w-4 h-4 text-emerald-600" />
-            <span>Active Resident</span>
-          </div>
-          <div className="text-base sm:text-lg font-bold truncate">
-            {currentUser?.name || 'Peter Damiano'}
-          </div>
-          <span className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6]">
-            {currentUser?.village ? `${currentUser.village} Resident` : 'Dzenje Community'}
-          </span>
-        </div>
-      </div>
-
-      {/* 5. Emergency Actions & Siren Test */}
-      <div
-        className={`rounded-3xl border p-5 transition-all shadow-xs ${
-          isDarkMode
-            ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
-            : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
-        }`}
-      >
-        <h3 className="font-bold text-sm uppercase tracking-wider text-[#5F6368] dark:text-[#9AA0A6] mb-3">
-          Village Emergency Protocol &bull; Mulanje
-        </h3>
-
-        <div className="flex flex-col">
-          <a
-            href="tel:999"
-            className="p-3.5 rounded-2xl font-bold text-xs bg-[#E8F0FE] text-[#1967D2] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8] border border-[#D2E3FC] dark:border-[#1A73E8]/30 hover:bg-[#1A73E8]/30 flex items-center justify-center gap-2 transition-all active:scale-98"
-          >
-            <PhoneCall className="w-4 h-4" />
-            <span>Call Malawi Emergency Rescue (999)</span>
-          </a>
-        </div>
-      </div>
 
       {/* Safety Modal */}
       <SafetyCheckInModal
@@ -357,6 +299,7 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
         currentUser={currentUser}
         isDarkMode={isDarkMode}
         initialStatus={selectedInitialStatus}
+        autoStartVoice={autoStartVoice}
       />
     </div>
   );

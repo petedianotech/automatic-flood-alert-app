@@ -1,7 +1,7 @@
 {
-  "name": "Automatic Flood Alert System",
-  "short_name": "FloodAlert",
-  "description": "Offline-first Community Flood Alert & Sensor Telemetry Network",
+  "name": "Flood Alert App Dzenje CDSS",
+  "short_name": "Flood Alert",
+  "description": "Flood Alert App by Dzenje CDSS ADDA STEM Club",
   "start_url": "/",
   "id": "/",
   "display": "standalone",

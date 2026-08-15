@@ -17,19 +17,22 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { TopBar } from './components/TopBar';
-import { MobileStatusBar } from './components/MobileStatusBar';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { MobileAuthModal } from './components/MobileAuthModal';
 import { VillageCommunityView } from './components/VillageCommunityView';
 import { SensorNodeView } from './components/SensorNodeView';
 import { ReceiverNodeView } from './components/ReceiverNodeView';
-import { DiagnosticsView } from './components/DiagnosticsView';
 import { AdminSafetyDashboardView } from './components/AdminSafetyDashboardView';
 import { CriticalAlarmModal } from './components/CriticalAlarmModal';
 import { FirebaseConfigModal } from './components/FirebaseConfigModal';
 import { SafetyCheckInModal } from './components/SafetyCheckInModal';
+import { InstallAppPrompt } from './components/InstallAppPrompt';
+import { Mic } from 'lucide-react';
 import {
   MotionData,
+  AcousticData,
+  AcousticSensorState,
+  SensorDetectionMode,
   FloodAlert,
   FloodSeverity,
   SensorConfig,
@@ -44,15 +47,19 @@ import {
 } from './types';
 import { wakeLockService } from './services/wakeLock';
 import { motionSensorService } from './services/motionSensor';
+import { acousticSensorService } from './services/acousticSensorService';
 import { firebaseFloodService } from './services/firebaseService';
 import { sirenService } from './services/audioSiren';
 import { NotificationService } from './services/notificationService';
-import { useBattery } from './services/batteryService';
 
 const DEFAULT_CONFIG: SensorConfig = {
   thresholdDelta: 1.5,
   thresholdYellow: 1.5,
   thresholdRed: 2.5,
+  thresholdYellowDb: 68,
+  thresholdRedDb: 82,
+  soundResonanceSensitivity: 1.2,
+  activeDetectionMode: 'motion',
   continuousDurationSec: 0.1,
   sensorName: 'Basement Water Vibrator Node',
   nodeId: 'node-vibrator-' + Math.random().toString(36).substring(2, 6),
@@ -67,13 +74,33 @@ const DEFAULT_CONFIG: SensorConfig = {
 const STORAGE_KEY_SETTINGS = 'flood_alert_settings_v1';
 
 export default function App() {
-  // Theme state: Forced Dark Mode for emergency professional UI
-  const isDarkMode = true;
+  // Theme state: Toggleable Light / Dark Mode
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('flood_alert_theme');
+      return saved ? saved === 'dark' : true; // Default to Dark Mode
+    } catch {
+      return true;
+    }
+  });
 
   // Dark mode class toggle
   useEffect(() => {
-    document.documentElement.classList.add('dark');
-  }, []);
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    try {
+      localStorage.setItem('flood_alert_theme', isDarkMode ? 'dark' : 'light');
+    } catch {
+      // ignore
+    }
+  }, [isDarkMode]);
+
+  const handleToggleTheme = () => {
+    setIsDarkMode((prev) => !prev);
+  };
   // Default to 'receiver' screen for residents / general users, and 'sensor' screen for admin
   const [currentMode, setCurrentMode] = useState<NodeMode>(() =>
     isAppAdmin(firebaseFloodService.getAuthState().user) ? 'sensor' : 'receiver'
@@ -81,9 +108,6 @@ export default function App() {
 
   // Network online/offline state
   const [isOnline, setIsOnline] = useState<boolean>(() => NotificationService.isOnline());
-
-  // Battery status hook for mobile status bar
-  const batteryState = useBattery();
 
   // Auth state
   const [authState, setAuthState] = useState<AuthState>(() => firebaseFloodService.getAuthState());
@@ -104,24 +128,42 @@ export default function App() {
     return DEFAULT_CONFIG;
   });
 
-  // Hardware states
-  const [isArmed, setIsArmed] = useState<boolean>(true);
+  // Detection Mode (Motion Vibration vs Sound & Resonance Sensor)
+  const [activeDetectionMode, setActiveDetectionMode] = useState<SensorDetectionMode>(
+    config.activeDetectionMode || 'motion'
+  );
+
+  // Hardware states: OFF by default as requested by user
+  const [isArmed, setIsArmed] = useState<boolean>(false);
   const [isPaused, setIsPaused] = useState<boolean>(false);
+
+  // Motion Sensor State
   const [motion, setMotion] = useState<MotionData>(() => motionSensorService.getLatestMotion());
   const [sustainedDuration, setSustainedDuration] = useState<number>(0);
   const [triggerProgress, setTriggerProgress] = useState<number>(0);
-
-  const [wakeLockState, setWakeLockState] = useState<WakeLockState>({
-    isSupported: wakeLockService.isSupported(),
-    isActive: false,
-  });
-
   const [sensorState, setSensorState] = useState<MotionSensorState>({
     isSupported: motionSensorService.isSupported(),
     isListening: false,
     permissionStatus: 'prompt',
     isCalibrating: false,
     hardwareAvailable: true,
+  });
+
+  // Sound / Acoustic Sensor State
+  const [soundData, setSoundData] = useState<AcousticData>(() => acousticSensorService.getLatestData());
+  const [acousticState, setAcousticState] = useState<AcousticSensorState>({
+    isSupported: acousticSensorService.isSupported(),
+    isListening: false,
+    permissionStatus: 'prompt',
+    isPaused: false,
+    thresholdYellowDb: config.thresholdYellowDb || 68,
+    thresholdRedDb: config.thresholdRedDb || 82,
+    resonanceThreshold: 65,
+  });
+
+  const [wakeLockState, setWakeLockState] = useState<WakeLockState>({
+    isSupported: wakeLockService.isSupported(),
+    isActive: false,
   });
 
   // Alerts state
@@ -133,6 +175,17 @@ export default function App() {
     firebaseFloodService.getLocalSafetyReports()
   );
   const [isSafetyModalOpen, setIsSafetyModalOpen] = useState(false);
+  const [isSafetyModalAutoVoice, setIsSafetyModalAutoVoice] = useState(false);
+
+  const handleOpenVoiceSOS = () => {
+    setIsSafetyModalAutoVoice(true);
+    setIsSafetyModalOpen(true);
+  };
+
+  const handleOpenNormalCheckIn = () => {
+    setIsSafetyModalAutoVoice(false);
+    setIsSafetyModalOpen(true);
+  };
 
   // Modals & UI helpers
   const [isFirebaseModalOpen, setIsFirebaseModalOpen] = useState(false);
@@ -225,16 +278,16 @@ export default function App() {
         
         // Trigger push notification if this is a newly received active alert from another device
         const isYellow = currentActive.severity === 'yellow';
-        const userVillage = authState.user?.village || 'Riverbank East';
+        const userVillage = authState.user?.village || 'Dzenje Village';
         const locationSummary = currentActive.riverName && currentActive.village
           ? `${currentActive.riverName}, ${currentActive.village}`
           : userVillage;
 
         NotificationService.sendFloodPushNotification(
-          isYellow ? `⚠️ FLOOD WARNING: ${locationSummary}` : `🚨 CRITICAL FLOOD: ${locationSummary}`,
+          isYellow ? `⚠️ FLOOD WARNING: ${locationSummary}` : `🚨 CRITICAL FLOOD ALARM: ${locationSummary}`,
           isYellow
-            ? `Water vibration warning at ${currentActive.riverName || 'River Station'} (Δ ${currentActive.peakDelta.toFixed(2)} m/s²). Prepare emergency kits!`
-            : `CRITICAL FLOOD ALARM at ${currentActive.riverName || 'River Station'} (${currentActive.locationLabel || userVillage}). Evacuate immediately!`,
+            ? `Flood warning at ${locationSummary}. Please get ready and check your safety!`
+            : `CRITICAL FLOOD ALARM at ${locationSummary}! Move to high ground immediately!`,
           {
             village: currentActive.village || userVillage,
             riverName: currentActive.riverName,
@@ -254,20 +307,38 @@ export default function App() {
     };
   }, [activeAlert]);
 
-  // 3. Motion Sensor Subscription & Alert Trigger Callback
+  // 3. Motion & Acoustic Sensors Subscriptions & Trigger Callbacks
   const handleFloodTrigger = useCallback(
     async (
-      peakDelta: number,
+      peakValue: number,
       severity: FloodSeverity = 'red',
       durationSec: number = 0.1,
-      source: 'hardware_sensor' | 'manual_test' | 'simulated' = 'hardware_sensor'
+      source: 'hardware_sensor' | 'acoustic_sound_sensor' | 'manual_test' | 'simulated' = 'hardware_sensor'
     ) => {
-      const userVillage = authState.user?.village || 'Riverbank East';
+      const userVillage = authState.user?.village || 'Dzenje Village';
       const isYellow = severity === 'yellow';
-      const newAlert = await firebaseFloodService.recordFloodAlert({
+      const isAcoustic = source === 'acoustic_sound_sensor';
+
+      let title = isYellow
+        ? '⚠️ Warning: Flood Motor Vibration Detected'
+        : '🚨 CRITICAL FLOOD ALARM: Move to Safety';
+      let message = isYellow
+        ? `Motor vibration reached ${peakValue.toFixed(1)} m/s². Be on alert.`
+        : `Strong motor flood vibration of ${peakValue.toFixed(1)} m/s² detected! Move to safe high ground now.`;
+
+      if (isAcoustic) {
+        title = isYellow
+          ? '⚠️ Warning: System Bell Ringing'
+          : '🚨 CRITICAL FLOOD ALARM: Emergency Warning Bell';
+        message = isYellow
+          ? `System warning bell sound reached ${peakValue.toFixed(0)} dB. Stay alert.`
+          : `Emergency flood warning bell ringing loudly at ${peakValue.toFixed(0)} dB! Move to safety now!`;
+      }
+
+      await firebaseFloodService.recordFloodAlert({
         timestamp: Date.now(),
         formattedTime: new Date().toLocaleTimeString(),
-        peakDelta,
+        peakDelta: peakValue,
         durationSeconds: durationSec,
         nodeId: config.nodeId,
         nodeName: config.sensorName,
@@ -275,20 +346,18 @@ export default function App() {
         status: 'active',
         source,
         severity,
-        title: isYellow
-          ? '⚠️ Yellow Warning: Water Vibration Detected'
-          : '🚨 CRITICAL FLOOD ALARM: Immediate Evacuation',
-        message: isYellow
-          ? `Water vibration reached ${peakDelta.toFixed(2)} m/s². Standby and prepare emergency supplies.`
-          : `Dangerous water vibration of ${peakDelta.toFixed(2)} m/s² detected! Move to high ground now.`,
-        notes: `Immediate trigger upon reaching ${severity.toUpperCase()} threshold (${peakDelta.toFixed(2)} m/s²)`,
+        title,
+        message,
+        notes: isAcoustic
+          ? `Sound sensor: ${peakValue.toFixed(0)} dB bell warning (${severity.toUpperCase()})`
+          : `Vibration sensor: ${peakValue.toFixed(1)} m/s² motor movement (${severity.toUpperCase()})`,
       });
     },
     [config.nodeId, config.sensorName, authState.user?.village]
   );
 
+  // Subscribe to Motion Sensor Data
   useEffect(() => {
-    // ONLY Admin devices carry the physical water vibration sensor and listen to hardware motion
     if (!isAdmin) {
       motionSensorService.stopListening();
       return;
@@ -313,17 +382,49 @@ export default function App() {
     };
   }, [isAdmin, handleFloodTrigger]);
 
-  // Handle arming / disarming (ADMIN ONLY)
+  // Subscribe to Acoustic Sound Sensor Data
+  useEffect(() => {
+    if (!isAdmin) {
+      acousticSensorService.stopListening();
+      return;
+    }
+
+    const unsubSound = acousticSensorService.onSoundData((data) => {
+      setSoundData(data);
+    });
+
+    const unsubTrigger = acousticSensorService.onTrigger(handleFloodTrigger);
+
+    const unsubState = acousticSensorService.onStateChange((newState) => {
+      setAcousticState(newState);
+    });
+
+    return () => {
+      unsubSound();
+      unsubTrigger();
+      unsubState();
+    };
+  }, [isAdmin, handleFloodTrigger]);
+
+  // Handle arming / disarming (ADMIN ONLY) - Respects active detection mode
   useEffect(() => {
     if (isAdmin && isArmed) {
-      motionSensorService.startListening();
+      if (activeDetectionMode === 'motion') {
+        acousticSensorService.stopListening();
+        motionSensorService.startListening();
+      } else {
+        motionSensorService.stopListening();
+        acousticSensorService.startListening();
+      }
+
       if (config.autoWakeLock) {
         wakeLockService.request();
       }
     } else {
       motionSensorService.stopListening();
+      acousticSensorService.stopListening();
     }
-  }, [isAdmin, isArmed, config.autoWakeLock]);
+  }, [isAdmin, isArmed, activeDetectionMode, config.autoWakeLock]);
 
   // Toggle Arm Handler
   const handleToggleArm = () => {
@@ -336,10 +437,33 @@ export default function App() {
     });
   };
 
-  // Toggle Pause Handler
+  // Toggle Pause Handler (Routes to active sensor)
   const handleTogglePause = () => {
-    const nextPaused = motionSensorService.togglePause();
-    setIsPaused(nextPaused);
+    if (activeDetectionMode === 'motion') {
+      const nextPaused = motionSensorService.togglePause();
+      setIsPaused(nextPaused);
+    } else {
+      const nextPaused = acousticSensorService.togglePause();
+      setIsPaused(nextPaused);
+    }
+  };
+
+  // Switch Detection Mode (Motion Vibration vs Sound & Resonance)
+  const handleSelectDetectionMode = (mode: SensorDetectionMode) => {
+    setActiveDetectionMode(mode);
+    setConfig((prev) => ({ ...prev, activeDetectionMode: mode }));
+    setIsPaused(false);
+  };
+
+  // Sound Config Update
+  const handleUpdateSoundConfig = (thresholdYellowDb: number, thresholdRedDb: number, sensitivity: number) => {
+    setConfig((prev) => ({
+      ...prev,
+      thresholdYellowDb,
+      thresholdRedDb,
+      soundResonanceSensitivity: sensitivity,
+    }));
+    acousticSensorService.setConfig(thresholdYellowDb, thresholdRedDb, sensitivity);
   };
 
   // Request Wake Lock manually
@@ -366,15 +490,25 @@ export default function App() {
     return newBaseline;
   };
 
-  // Simulate Flood Test
+  // Simulate Flood Test (Motion)
   const handleSimulateTest = (severity: FloodSeverity = 'red') => {
     motionSensorService.simulateFloodTest(severity);
   };
 
+  // Simulate Sound Roar Test (Acoustic)
+  const handleSimulateSoundTest = (severity: FloodSeverity = 'red') => {
+    acousticSensorService.simulateSoundTest(severity);
+  };
+
   // Manual Trigger Alert
   const handleManualTriggerAlert = (severity: FloodSeverity = 'red') => {
-    const peak = severity === 'yellow' ? (config.thresholdYellow ?? 1.5) : (config.thresholdRed ?? 2.5);
-    handleFloodTrigger(peak, severity, 0.2, 'manual_test');
+    if (activeDetectionMode === 'motion') {
+      const peak = severity === 'yellow' ? (config.thresholdYellow ?? 1.5) : (config.thresholdRed ?? 2.5);
+      handleFloodTrigger(peak, severity, 0.2, 'manual_test');
+    } else {
+      const peak = severity === 'yellow' ? (config.thresholdYellowDb ?? 68) : (config.thresholdRedDb ?? 82);
+      handleFloodTrigger(peak, severity, 0.2, 'acoustic_sound_sensor');
+    }
   };
 
   // Dismiss Active Alert from modal or log
@@ -410,21 +544,25 @@ export default function App() {
   return (
     <div
       id="app-root-container"
-      className="h-[100dvh] overflow-hidden flex justify-center transition-colors duration-200 font-sans bg-[#09090B] text-[#EDEDED]"
+      className={`h-[100dvh] overflow-hidden flex justify-center transition-colors duration-200 font-sans ${
+        isDarkMode ? 'bg-[#131314] text-[#E3E3E3]' : 'bg-[#F0F4F9] text-[#1F1F1F]'
+      }`}
     >
       {/* Mobile Device Frame Container */}
       <div
         id="mobile-phone-frame"
-        className="w-full max-w-md h-full sm:h-[96vh] sm:my-auto sm:rounded-[36px] sm:shadow-2xl sm:border flex flex-col relative overflow-hidden transition-all bg-[#0F0F11] sm:border-[#27272A] text-[#EDEDED]"
+        className={`w-full max-w-md h-full sm:h-[96vh] sm:my-auto sm:rounded-[32px] sm:shadow-xl sm:border flex flex-col relative overflow-hidden transition-all ${
+          isDarkMode
+            ? 'bg-[#141414] sm:border-[#303134] text-[#E3E3E3]'
+            : 'bg-[#FFFFFF] sm:border-[#E1E3E1] text-[#1F1F1F]'
+        }`}
       >
-        {/* 1. Native Mobile Status Bar with Live Online/Offline & Battery */}
-        <MobileStatusBar batteryState={batteryState} isDarkMode={isDarkMode} isOnline={isOnline} />
-
-        {/* 2. Top App Bar */}
+        {/* 1. Top App Bar */}
         <TopBar
           currentMode={currentMode}
           onSelectMode={setCurrentMode}
           isDarkMode={isDarkMode}
+          onToggleTheme={handleToggleTheme}
           isArmed={isArmed}
           isPaused={isPaused}
           sensorState={sensorState}
@@ -433,10 +571,11 @@ export default function App() {
           onOpenFirebaseModal={() => setIsFirebaseModalOpen(true)}
           currentUser={authState.user}
           onOpenAuthModal={() => setIsAuthModalOpen(true)}
+          onOpenVoiceSOS={handleOpenVoiceSOS}
           activeAlertCount={activeAlertCount}
         />
 
-        {/* 3. Fixed Mobile Content Screen (Smoothly scrollable, Bottom Nav stays fixed) */}
+        {/* 2. Fixed Mobile Content Screen (Smoothly scrollable, Bottom Nav stays fixed) */}
         <main
           id="mobile-main-scroll-area"
           className="flex-1 w-full overflow-y-auto min-h-0 px-3.5 sm:px-4 py-4 overscroll-contain"
@@ -447,7 +586,8 @@ export default function App() {
               alerts={alerts}
               currentUser={authState.user}
               isDarkMode={isDarkMode}
-              onOpenCheckInModal={() => setIsSafetyModalOpen(true)}
+              onOpenCheckInModal={handleOpenNormalCheckIn}
+              onGoToSensors={() => setCurrentMode('sensor')}
             />
           )}
 
@@ -455,6 +595,10 @@ export default function App() {
             <SensorNodeView
               motion={motion}
               sensorState={sensorState}
+              soundData={soundData}
+              acousticState={acousticState}
+              activeDetectionMode={activeDetectionMode}
+              onSelectDetectionMode={handleSelectDetectionMode}
               wakeLockState={wakeLockState}
               config={config}
               isArmed={isArmed}
@@ -468,10 +612,13 @@ export default function App() {
               onTogglePause={handleTogglePause}
               onCalibrate={handleCalibrateBaseline}
               onSimulateTest={handleSimulateTest}
+              onSimulateSoundTest={handleSimulateSoundTest}
               onRequestWakeLock={handleRequestWakeLock}
               onManualTriggerAlert={handleManualTriggerAlert}
+              onUpdateSoundConfig={handleUpdateSoundConfig}
               onOpenAuthModal={() => setIsAuthModalOpen(true)}
               onGoToReceiver={() => setCurrentMode('receiver')}
+              onGoToAdmin={() => setCurrentMode('admin')}
             />
           )}
 
@@ -486,6 +633,7 @@ export default function App() {
               onOpenFirebaseModal={() => setIsFirebaseModalOpen(true)}
               isDarkMode={isDarkMode}
               isOnline={isOnline}
+              onOpenVoiceSOS={handleOpenVoiceSOS}
             />
           )}
 
@@ -498,22 +646,22 @@ export default function App() {
               onOpenAuthModal={() => setIsAuthModalOpen(true)}
             />
           )}
-
-          {currentMode === 'diagnostics' && isAdmin && (
-            <DiagnosticsView
-              config={config}
-              onUpdateConfig={setConfig}
-              sensorState={sensorState}
-              wakeLockState={wakeLockState}
-              onRequestWakeLock={handleRequestWakeLock}
-              onRequestMotionPermission={() => motionSensorService.requestPermission()}
-              onTestSiren={handleTestSiren}
-              isDarkMode={isDarkMode}
-            />
-          )}
         </main>
 
-        {/* 4. Native Mobile Bottom Navigation Dock */}
+        {/* Floating Fast Access Voice Button */}
+        <div className="absolute right-4 bottom-20 z-30">
+          <button
+            type="button"
+            id="floating-fast-voice-sos-btn"
+            onClick={handleOpenVoiceSOS}
+            className="w-12 h-12 rounded-full bg-red-600 hover:bg-red-500 active:scale-90 text-white flex items-center justify-center shadow-xl shadow-red-950/60 border-2 border-red-400 transition-all group"
+            title="Fast Voice Check-In / SOS"
+          >
+            <Mic className="w-5 h-5 group-hover:scale-110 transition-transform animate-pulse" />
+          </button>
+        </div>
+
+        {/* 3. Native Mobile Bottom Navigation Dock */}
         <MobileBottomNav
           currentMode={currentMode}
           onSelectMode={setCurrentMode}
@@ -524,25 +672,29 @@ export default function App() {
           isAdmin={isAdmin}
         />
 
-        {/* 5. Mobile Home Indicator Pill */}
+        {/* 4. Mobile Home Indicator Pill */}
         <div className="hidden sm:flex justify-center pb-2 select-none pointer-events-none">
           <div className="w-28 h-1 rounded-full bg-black/20 dark:bg-white/20" />
         </div>
       </div>
 
-      {/* 6. Critical Alarm Full-Screen Modal Overlay */}
+      {/* 5. Critical Alarm Full-Screen Modal Overlay */}
       <CriticalAlarmModal
         activeAlert={activeAlert}
         onDismiss={handleDismissAlert}
         isSoundEnabled={config.soundAlarmOnDevice}
       />
 
-      {/* 7. Safety Status Check-In Modal */}
+      {/* 6. Safety Status Check-In Modal with Fast Voice Support */}
       <SafetyCheckInModal
         isOpen={isSafetyModalOpen}
-        onClose={() => setIsSafetyModalOpen(false)}
+        onClose={() => {
+          setIsSafetyModalOpen(false);
+          setIsSafetyModalAutoVoice(false);
+        }}
         currentUser={authState.user}
         isDarkMode={isDarkMode}
+        autoStartVoice={isSafetyModalAutoVoice}
       />
 
       {/* 8. Mobile Authentication & Profile Modal */}
@@ -559,6 +711,9 @@ export default function App() {
         onClose={() => setIsFirebaseModalOpen(false)}
         isDarkMode={isDarkMode}
       />
+
+      {/* 10. Automatic Install App Prompt on New Devices */}
+      <InstallAppPrompt isDarkMode={isDarkMode} />
     </div>
   );
 }

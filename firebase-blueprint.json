@@ -57,9 +57,27 @@
         "latitude": { "type": "number", "description": "GPS latitude" },
         "longitude": { "type": "number", "description": "GPS longitude" },
         "mapsUrl": { "type": "string", "description": "Google Maps link", "maxLength": 500 },
+        "voiceAudioBase64": { "type": "string", "description": "Base64 encoded audio voice clip for hands-free rescue reporting", "maxLength": 500000 },
+        "voiceDurationSec": { "type": "number", "description": "Audio recording duration in seconds" },
+        "hasVoiceNote": { "type": "boolean", "description": "Whether an emergency voice note is attached" },
         "updatedAt": { "type": "string", "description": "ISO timestamp of update" }
       },
       "required": ["userId", "userName", "village", "status", "timestamp"]
+    },
+    "FcmToken": {
+      "title": "FcmToken",
+      "description": "FCM device registration tokens for background alerts delivery.",
+      "type": "object",
+      "properties": {
+        "token": { "type": "string", "description": "FCM push registration token" },
+        "userId": { "type": "string", "description": "Owner UID", "maxLength": 128 },
+        "userName": { "type": "string", "description": "User name", "maxLength": 100 },
+        "village": { "type": "string", "description": "Village name", "maxLength": 100 },
+        "userAgent": { "type": "string", "description": "Client browser / device info", "maxLength": 300 },
+        "updatedAt": { "type": "string", "description": "ISO timestamp" },
+        "timestamp": { "type": "number", "description": "Epoch timestamp in milliseconds" }
+      },
+      "required": ["token", "timestamp"]
     }
   },
   "firestore": {
@@ -74,6 +92,10 @@
     "/safety_reports/{reportId}": {
       "schema": "ResidentSafetyReport",
       "description": "Community safety check-ins and emergency rescue requests."
+    },
+    "/fcm_tokens/{tokenId}": {
+      "schema": "FcmToken",
+      "description": "Device push tokens for background and closed-tab notifications."
     }
   }
 }

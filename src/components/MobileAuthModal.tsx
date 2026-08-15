@@ -90,7 +90,7 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
     setError(null);
     setLoading(true);
     try {
-      const targetVillage = village.trim() || 'Highland Riverside';
+      const targetVillage = village.trim() || 'Dzenje Village';
       await firebaseFloodService.signInWithGoogle(targetVillage);
       setSuccessMsg('Successfully connected with Google!');
       setTimeout(() => {
@@ -109,7 +109,7 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
     try {
       await firebaseFloodService.signOutUser();
       setName('');
-      setVillage('Riverbank East');
+      setVillage('Dzenje Village');
       setSuccessMsg('Signed out successfully');
       setTimeout(() => {
         onClose();
@@ -156,15 +156,18 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-4 pb-3 border-b border-black/5 dark:border-white/5">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-[#1A73E8] text-white flex items-center justify-center shadow-xs">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
+            <img
+              src="/icon.svg"
+              alt="App Icon"
+              className="w-9 h-9 rounded-xl shrink-0"
+              referrerPolicy="no-referrer"
+            />
             <div>
               <h3 className="font-bold text-base font-sans tracking-tight">
-                {currentUser ? 'Community Profile' : 'Flood Alert Access'}
+                {currentUser ? 'Your Village Profile' : 'Sign In to Flood Alert'}
               </h3>
               <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6]">
-                {currentUser ? 'Connected with Firebase' : 'Choose your sign in option'}
+                {currentUser ? 'Active Community Member' : 'Choose how you want to sign in'}
               </p>
             </div>
           </div>
@@ -459,7 +462,7 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                       type="text"
                       value={village}
                       onChange={(e) => setVillage(e.target.value)}
-                      placeholder="e.g. Highland Riverside"
+                      placeholder="e.g. Dzenje Village"
                       className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-black/15 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.03] text-sm focus:outline-none focus:ring-2 focus:ring-[#1A73E8]"
                     />
                   </div>
