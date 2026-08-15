@@ -11,6 +11,10 @@ import {
   X,
   AlertCircle,
   Loader2,
+  ArrowRight,
+  UserPlus,
+  Radio,
+  ArrowLeft,
 } from 'lucide-react';
 import { UserProfile, ADMIN_EMAIL, isAppAdmin } from '../types';
 import { firebaseFloodService } from '../services/firebaseService';
@@ -20,6 +24,7 @@ interface MobileAuthModalProps {
   onClose: () => void;
   currentUser: UserProfile | null;
   isDarkMode: boolean;
+  onSignedIn?: (isAdmin: boolean) => void;
 }
 
 const EXAMPLE_NAMES = ['Peter Damiano', 'Mr Banda'];
@@ -38,7 +43,9 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
   onClose,
   currentUser,
   isDarkMode,
+  onSignedIn,
 }) => {
+  const [viewStep, setViewStep] = useState<'choose' | 'form'>('choose');
   const [authMethod, setAuthMethod] = useState<'village' | 'google'>('village');
   const [name, setName] = useState(currentUser?.name || '');
   const [village, setVillage] = useState(currentUser?.village || 'Dzenje Village');
@@ -59,6 +66,15 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
 
   if (!isOpen) return null;
 
+  const handleContinueAsGuest = () => {
+    try {
+      localStorage.setItem('flood_welcome_chosen', 'guest');
+    } catch {
+      // ignore
+    }
+    onClose();
+  };
+
   const handleVillageSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -73,12 +89,23 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
     setError(null);
     setLoading(true);
     try {
-      await firebaseFloodService.signInWithNameAndVillage(name, village);
-      setSuccessMsg(`Welcome, ${name}! Signed in to ${village}.`);
+      try {
+        localStorage.setItem('flood_welcome_chosen', 'signed_in');
+      } catch {
+        // ignore
+      }
+      const profile = await firebaseFloodService.signInWithNameAndVillage(name, village);
+      const isUserAdmin = isAppAdmin(profile);
+      if (isUserAdmin) {
+        setSuccessMsg(`Welcome, Administrator! Opening Admin Safety Dashboard...`);
+      } else {
+        setSuccessMsg(`Welcome, ${profile.name}! Directing to ${profile.village} screen...`);
+      }
       setTimeout(() => {
         onClose();
+        onSignedIn?.(isUserAdmin);
         setSuccessMsg(null);
-      }, 1000);
+      }, 800);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed');
     } finally {
@@ -90,13 +117,24 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
     setError(null);
     setLoading(true);
     try {
+      try {
+        localStorage.setItem('flood_welcome_chosen', 'signed_in');
+      } catch {
+        // ignore
+      }
       const targetVillage = village.trim() || 'Dzenje Village';
-      await firebaseFloodService.signInWithGoogle(targetVillage);
-      setSuccessMsg('Successfully connected with Google!');
+      const profile = await firebaseFloodService.signInWithGoogle(targetVillage);
+      const isUserAdmin = isAppAdmin(profile);
+      if (isUserAdmin) {
+        setSuccessMsg(`Welcome, Administrator! Opening Admin Safety Dashboard...`);
+      } else {
+        setSuccessMsg(`Welcome, ${profile.name}! Directing to ${profile.village} screen...`);
+      }
       setTimeout(() => {
         onClose();
+        onSignedIn?.(isUserAdmin);
         setSuccessMsg(null);
-      }, 1000);
+      }, 800);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Google sign in failed');
     } finally {
@@ -110,6 +148,7 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
       await firebaseFloodService.signOutUser();
       setName('');
       setVillage('Dzenje Village');
+      setViewStep('choose');
       setSuccessMsg('Signed out successfully');
       setTimeout(() => {
         onClose();
@@ -138,7 +177,7 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
   return (
     <div
       id="mobile-auth-overlay"
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/65 backdrop-blur-xs animate-in fade-in duration-200"
     >
       <div
         id="mobile-auth-sheet"
@@ -156,39 +195,61 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-4 pb-3 border-b border-black/5 dark:border-white/5">
           <div className="flex items-center gap-2.5">
-            <img
-              src="/icon.svg"
-              alt="App Icon"
-              className="w-9 h-9 rounded-xl shrink-0"
-              referrerPolicy="no-referrer"
-            />
+            {!currentUser && viewStep === 'form' ? (
+              <button
+                type="button"
+                onClick={() => setViewStep('choose')}
+                className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 text-[#5F6368] dark:text-[#9AA0A6] -ml-2"
+                title="Back to options"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+            ) : (
+              <img
+                src="/icon.svg"
+                alt="App Icon"
+                className="w-9 h-9 rounded-xl shrink-0 object-cover shadow-2xs"
+                referrerPolicy="no-referrer"
+              />
+            )}
             <div>
               <h3 className="font-bold text-base font-sans tracking-tight">
-                {currentUser ? 'Your Village Profile' : 'Sign In to Flood Alert'}
+                {currentUser
+                  ? 'Your Village Profile'
+                  : viewStep === 'form'
+                  ? 'Create or Sign In'
+                  : 'Welcome to Flood Alert'}
               </h3>
               <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6]">
-                {currentUser ? 'Active Community Member' : 'Choose how you want to sign in'}
+                {currentUser
+                  ? 'Active Community Member'
+                  : viewStep === 'form'
+                  ? 'Enter your name and village'
+                  : 'Dzenje CDSS ADDA STEM Early Warning'}
               </p>
             </div>
           </div>
 
           <button
             id="btn-close-auth-modal"
-            onClick={onClose}
+            onClick={handleContinueAsGuest}
             className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 text-[#5F6368] dark:text-[#9AA0A6]"
+            title="Close"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Current Active User Banner */}
+        {/* 1. Signed-In Profile View */}
         {currentUser ? (
           <div className="p-6 space-y-5">
-            <div className={`p-4 rounded-2xl border flex items-center gap-3.5 ${
-              isAdmin
-                ? 'bg-[#FEF7E0] dark:bg-amber-950/20 border-[#FEEFC3] dark:border-amber-900/40'
-                : 'bg-[#E8F0FE] dark:bg-[#1A73E8]/15 border-[#D2E3FC] dark:border-[#1A73E8]/30'
-            }`}>
+            <div
+              className={`p-4 rounded-2xl border flex items-center gap-3.5 ${
+                isAdmin
+                  ? 'bg-[#FEF7E0] dark:bg-amber-950/20 border-[#FEEFC3] dark:border-amber-900/40'
+                  : 'bg-[#E8F0FE] dark:bg-[#1A73E8]/15 border-[#D2E3FC] dark:border-[#1A73E8]/30'
+              }`}
+            >
               {currentUser.photoURL ? (
                 <img
                   src={currentUser.photoURL}
@@ -198,9 +259,11 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                   }`}
                 />
               ) : (
-                <div className={`w-12 h-12 rounded-full text-white font-bold text-lg flex items-center justify-center shadow-xs ${
-                  isAdmin ? 'bg-amber-600' : 'bg-[#1A73E8]'
-                }`}>
+                <div
+                  className={`w-12 h-12 rounded-full text-white font-bold text-lg flex items-center justify-center shadow-xs ${
+                    isAdmin ? 'bg-amber-600' : 'bg-[#1A73E8]'
+                  }`}
+                >
                   {currentUser.name.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -281,8 +344,77 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
               </button>
             </div>
           </div>
+        ) : viewStep === 'choose' ? (
+          /* 2. Welcome First Open: Choose Create Account OR Continue Without Account */
+          <div className="p-6 space-y-4">
+            <div className="text-center space-y-1.5 py-1">
+              <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-[#1A73E8] dark:text-[#8AB4F8] mx-auto flex items-center justify-center border border-blue-100 dark:border-blue-900/40 shadow-xs">
+                <ShieldCheck className="w-7 h-7" />
+              </div>
+              <h4 className="font-extrabold text-lg font-sans tracking-tight text-[#1F1F1F] dark:text-white">
+                How would you like to start?
+              </h4>
+              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] max-w-xs mx-auto leading-relaxed">
+                Receive live Ruo River water level warnings, sirens, and community flood safety alerts.
+              </p>
+            </div>
+
+            {/* Option A: Create / Sign In Account */}
+            <button
+              id="btn-choice-create-account"
+              type="button"
+              onClick={() => {
+                setError(null);
+                setViewStep('form');
+              }}
+              className="w-full p-4 rounded-2xl bg-gradient-to-r from-[#1A73E8] to-[#1557B0] text-white text-left shadow-lg shadow-blue-500/20 hover:opacity-95 active:scale-98 transition-all flex items-center justify-between gap-3 group border border-blue-400/30"
+            >
+              <div className="flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                  <UserPlus className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <div className="font-bold text-sm leading-tight flex items-center gap-1.5">
+                    <span>Create Account or Sign In</span>
+                    <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  </div>
+                  <p className="text-[11px] text-white/80 leading-snug mt-0.5">
+                    Save your name &amp; village for SOS check-ins &amp; localized alerts
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="w-5 h-5 text-white/80 group-hover:translate-x-1 transition-transform shrink-0" />
+            </button>
+
+            {/* Option B: Continue without Account */}
+            <button
+              id="btn-choice-continue-guest"
+              type="button"
+              onClick={handleContinueAsGuest}
+              className="w-full p-4 rounded-2xl bg-black/[0.03] dark:bg-white/[0.05] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] text-left border border-black/10 dark:border-white/10 active:scale-98 transition-all flex items-center justify-between gap-3 group text-[#1F1F1F] dark:text-[#E3E3E3]"
+            >
+              <div className="flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                  <Radio className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="font-bold text-sm leading-tight">
+                    Continue without Account
+                  </div>
+                  <p className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6] leading-snug mt-0.5">
+                    Instant access to river radar, live flood siren &amp; safety maps
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="w-5 h-5 text-[#5F6368] dark:text-[#9AA0A6] group-hover:translate-x-1 transition-transform shrink-0" />
+            </button>
+
+            <p className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6] text-center pt-1">
+              You can create or switch an account anytime from the top bar.
+            </p>
+          </div>
         ) : (
-          /* Sign In Form */
+          /* 3. Sign In Form (Name & Village or Google) */
           <div className="p-6 space-y-5">
             {/* Auth Method Tabs */}
             <div className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-black/[0.04] dark:bg-white/[0.06]">
@@ -437,7 +569,7 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                   ) : (
                     <>
                       <LogIn className="w-4 h-4" />
-                      <span>Sign In &amp; Join Village Alert Network</span>
+                      <span>Sign In &amp; Join Village Network</span>
                     </>
                   )}
                 </button>
@@ -503,9 +635,21 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                 </button>
               </div>
             )}
+
+            {/* Link to Continue Without Account */}
+            <div className="pt-2 text-center">
+              <button
+                type="button"
+                onClick={handleContinueAsGuest}
+                className="text-xs text-[#5F6368] dark:text-[#9AA0A6] hover:text-[#1A73E8] dark:hover:text-[#8AB4F8] font-semibold underline underline-offset-2 transition-colors"
+              >
+                Skip and continue without an account →
+              </button>
+            </div>
           </div>
         )}
       </div>
     </div>
   );
 };
+

@@ -324,21 +324,40 @@ class FirebaseFloodService {
       let uid = 'user_' + Date.now();
 
       if (this.auth) {
-        // Authenticate with Firebase anonymously to secure Firestore write credentials
-        const cred = await signInAnonymously(this.auth);
-        uid = cred.user.uid;
-        if (trimmedName) {
-          try {
-            await updateProfile(cred.user, { displayName: trimmedName });
-          } catch {
-            // Ignore
+        try {
+          // Attempt Firebase anonymous authentication if enabled in project
+          const cred = await signInAnonymously(this.auth);
+          uid = cred.user.uid;
+          if (trimmedName) {
+            try {
+              await updateProfile(cred.user, { displayName: trimmedName });
+            } catch {
+              // Ignore
+            }
+          }
+        } catch (authErr) {
+          // Note: If Anonymous Auth is restricted in Firebase console (auth/admin-restricted-operation),
+          // fallback cleanly to persistent client device ID so all users can sign in smoothly.
+          console.warn('Firebase Anonymous sign-in unavailable or restricted, using persistent local session:', authErr);
+          const cached = this.getCachedProfile();
+          if (cached && cached.uid) {
+            uid = cached.uid;
+          } else {
+            uid = 'resident_' + Math.random().toString(36).substring(2, 10);
           }
         }
       }
 
       const cleanName = trimmedName.toLowerCase().replace(/\s+/g, ' ');
       const cleanVillage = trimmedVillage.toLowerCase().replace(/\s+/g, ' ');
-      const isAdminLogin = cleanName === 'dzenje cdss adda stem club' && cleanVillage === 'dzenje village';
+      const isMatchAdminName =
+        cleanName === 'dzenje cdss adda stem club' ||
+        cleanName === 'dzenje cdss' ||
+        cleanName === 'adda stem club' ||
+        cleanName.includes('adda stem');
+      const isMatchAdminVillage =
+        cleanVillage === 'dzenje village' || cleanVillage === 'dzenje';
+      const isAdminLogin = isMatchAdminName && isMatchAdminVillage;
 
       const profile: UserProfile = {
         uid,
@@ -351,10 +370,10 @@ class FirebaseFloodService {
         updatedAt: new Date().toISOString(),
       };
 
-      // Save to Firestore
+      // Save to Firestore if available
       if (this.db) {
         try {
-          await setDoc(doc(this.db, 'users', uid), profile);
+          await setDoc(doc(this.db, 'users', uid), profile, { merge: true });
         } catch (err) {
           console.warn('Could not write profile to Firestore (cached locally):', err);
         }

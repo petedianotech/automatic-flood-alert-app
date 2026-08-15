@@ -109,9 +109,21 @@ export default function App() {
   // Network online/offline state
   const [isOnline, setIsOnline] = useState<boolean>(() => NotificationService.isOnline());
 
-  // Auth state
+  // Auth state & First-Open Welcome logic
   const [authState, setAuthState] = useState<AuthState>(() => firebaseFloodService.getAuthState());
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(() => {
+    try {
+      const cached = firebaseFloodService.getCachedProfile();
+      const hasChosen = localStorage.getItem('flood_welcome_chosen');
+      // If user has not signed in and has never made a choice, display welcome choice modal on first open
+      if (!cached && !hasChosen) {
+        return true;
+      }
+    } catch {
+      // ignore
+    }
+    return false;
+  });
 
   const isAdmin = isAppAdmin(authState.user);
 
@@ -213,11 +225,11 @@ export default function App() {
   useEffect(() => {
     const unsubAuth = firebaseFloodService.subscribeAuth((state) => {
       setAuthState(state);
-      // If user is admin upon login, allow switching to admin dashboard or sensor mode
+      // If user is admin upon login, direct to admin dashboard; regular users directed to village screen
       if (isAppAdmin(state.user)) {
         setCurrentMode('admin');
-      } else {
-        setCurrentMode((prev) => (prev === 'sensor' || prev === 'diagnostics' || prev === 'admin' ? 'receiver' : prev));
+      } else if (state.isAuthenticated) {
+        setCurrentMode((prev) => (prev === 'sensor' || prev === 'diagnostics' || prev === 'admin' ? 'village' : prev));
       }
     });
     return () => {
@@ -228,7 +240,7 @@ export default function App() {
   // Mode access security: non-admins can only access receiver & village
   useEffect(() => {
     if (!isAdmin && (currentMode === 'sensor' || currentMode === 'diagnostics' || currentMode === 'admin')) {
-      setCurrentMode('receiver');
+      setCurrentMode('village');
     }
   }, [isAdmin, currentMode]);
 
@@ -703,6 +715,13 @@ export default function App() {
         onClose={() => setIsAuthModalOpen(false)}
         currentUser={authState.user}
         isDarkMode={isDarkMode}
+        onSignedIn={(isAdminUser) => {
+          if (isAdminUser) {
+            setCurrentMode('admin');
+          } else {
+            setCurrentMode('village');
+          }
+        }}
       />
 
       {/* 9. Firebase Modular Web SDK Config Modal */}

@@ -8,7 +8,15 @@ export const isAppAdmin = (user?: UserProfile | null): boolean => {
   }
   const cleanName = (user.name || '').toLowerCase().trim().replace(/\s+/g, ' ');
   const cleanVillage = (user.village || '').toLowerCase().trim().replace(/\s+/g, ' ');
-  if (cleanName === 'dzenje cdss adda stem club' && cleanVillage === 'dzenje village') {
+  const isMatchAdminName =
+    cleanName === 'dzenje cdss adda stem club' ||
+    cleanName === 'dzenje cdss' ||
+    cleanName === 'adda stem club' ||
+    cleanName.includes('adda stem');
+  const isMatchAdminVillage =
+    cleanVillage === 'dzenje village' || cleanVillage === 'dzenje';
+
+  if (isMatchAdminName && isMatchAdminVillage) {
     return true;
   }
   return false;

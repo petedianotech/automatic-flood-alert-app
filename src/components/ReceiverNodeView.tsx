@@ -226,52 +226,158 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
         </div>
       )}
 
-      {/* 2. Overview Stats & Connection Banner */}
-      <div className="shrink-0 grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div
-          className={`rounded-2xl border p-4 transition-all shadow-xs ${
-            isDarkMode
-              ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
-              : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
-          }`}
-        >
-          <div className="text-xs font-semibold text-[#5F6368] dark:text-[#9AA0A6] mb-1">
-            Active Alerts
-          </div>
-          <div className="flex items-center justify-between">
-            <span
-              id="stat-active-alerts"
-              className={`text-2xl sm:text-3xl font-black font-mono ${
-                activeCount > 0 ? 'text-[#D93025]' : 'text-[#1E8E3E]'
+      {/* 2. What you must do right now (Simple English Safety Guide) */}
+      <div
+        id="card-what-to-do-right-now"
+        className={`shrink-0 rounded-3xl border p-5 transition-all shadow-xs ${
+          activeCount > 0
+            ? 'bg-gradient-to-br from-red-600 to-red-800 text-white border-red-500 shadow-md shadow-red-900/20'
+            : isDarkMode
+            ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
+            : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
+        }`}
+      >
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2.5">
+            <div
+              className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                activeCount > 0
+                  ? 'bg-white text-red-700 shadow-xs'
+                  : 'bg-blue-100 dark:bg-blue-950/50 text-[#1A73E8] dark:text-[#8AB4F8]'
               }`}
             >
-              {activeCount}
-            </span>
-            {activeCount > 0 ? (
-              <ShieldAlert className="w-6 h-6 text-[#D93025] animate-bounce" />
-            ) : (
-              <CheckCircle className="w-6 h-6 text-[#1E8E3E]" />
-            )}
+              {activeCount > 0 ? (
+                <ShieldAlert className="w-5 h-5 animate-bounce" />
+              ) : (
+                <LifeBuoy className="w-5 h-5" />
+              )}
+            </div>
+            <div>
+              <h3 className="font-bold text-sm sm:text-base font-sans tracking-tight">
+                What you must do right now
+              </h3>
+              <p
+                className={`text-xs ${
+                  activeCount > 0 ? 'text-red-100' : 'text-[#5F6368] dark:text-[#9AA0A6]'
+                }`}
+              >
+                {activeCount > 0
+                  ? 'Emergency actions for your family and village'
+                  : 'Simple flood safety guide and precautions'}
+              </p>
+            </div>
           </div>
+
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 ${
+              activeCount > 0
+                ? 'bg-white text-red-700 shadow-xs animate-pulse'
+                : 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300'
+            }`}
+          >
+            {activeCount > 0 ? '🚨 Flood Danger!' : '✓ Safe Condition'}
+          </span>
         </div>
 
-        <div
-          className={`rounded-2xl border p-4 transition-all shadow-xs ${
-            isDarkMode
-              ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
-              : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
-          }`}
-        >
-          <div className="text-xs font-semibold text-[#5F6368] dark:text-[#9AA0A6] mb-1">
-            Total Historic Events
+        {activeCount > 0 ? (
+          /* Active Flood Alert - Urgent Actions */
+          <div className="space-y-2 pt-1 text-xs sm:text-sm">
+            <div className="p-3 rounded-2xl bg-black/25 border border-white/20 flex items-start gap-2.5">
+              <span className="w-5 h-5 rounded-full bg-yellow-400 text-black font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+                1
+              </span>
+              <div>
+                <strong className="text-white block font-bold">
+                  Move to high ground immediately
+                </strong>
+                <span className="text-red-100 text-xs leading-relaxed">
+                  Walk quickly to the nearest village hill, church, or primary school shelter.
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-black/25 border border-white/20 flex items-start gap-2.5">
+              <span className="w-5 h-5 rounded-full bg-yellow-400 text-black font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+                2
+              </span>
+              <div>
+                <strong className="text-white block font-bold">
+                  Help children and elderly neighbors
+                </strong>
+                <span className="text-red-100 text-xs leading-relaxed">
+                  Gather all family members and move livestock away from low river banks.
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-black/25 border border-white/20 flex items-start gap-2.5">
+              <span className="w-5 h-5 rounded-full bg-yellow-400 text-black font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+                3
+              </span>
+              <div>
+                <strong className="text-white block font-bold">
+                  Do NOT cross flowing water or bridges
+                </strong>
+                <span className="text-red-100 text-xs leading-relaxed">
+                  Fast rushing flood water can sweep away people and vehicles in seconds.
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-black/25 border border-white/20 flex items-start gap-2.5">
+              <span className="w-5 h-5 rounded-full bg-yellow-400 text-black font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+                4
+              </span>
+              <div>
+                <strong className="text-white block font-bold">
+                  Keep torches and phones in dry plastic
+                </strong>
+                <span className="text-red-100 text-xs leading-relaxed">
+                  Stay connected and listen for the village community alerts.
+                </span>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-2xl sm:text-3xl font-black font-mono text-[#1F1F1F] dark:text-[#E3E3E3]">
-              {alerts.length}
-            </span>
-            <Clock className="w-6 h-6 text-[#5F6368] dark:text-[#9AA0A6]" />
+        ) : (
+          /* Normal / Clear Condition - Simple Preparedness Tips */
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+            <div className="p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.04] border border-black/5 dark:border-white/5 space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-xs text-[#1F1F1F] dark:text-[#E3E3E3]">
+                <span className="w-4 h-4 rounded-full bg-[#1A73E8] text-white text-[10px] flex items-center justify-center font-bold">
+                  1
+                </span>
+                <span>Know Your High Ground</span>
+              </div>
+              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] leading-snug">
+                Know the fastest route from your home to safe high hills or the village school.
+              </p>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.04] border border-black/5 dark:border-white/5 space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-xs text-[#1F1F1F] dark:text-[#E3E3E3]">
+                <span className="w-4 h-4 rounded-full bg-[#1A73E8] text-white text-[10px] flex items-center justify-center font-bold">
+                  2
+                </span>
+                <span>Keep Essentials Packed</span>
+              </div>
+              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] leading-snug">
+                Store ID cards, medicine, torches, and charged phone inside a waterproof bag.
+              </p>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.04] border border-black/5 dark:border-white/5 space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-xs text-[#1F1F1F] dark:text-[#E3E3E3]">
+                <span className="w-4 h-4 rounded-full bg-[#1A73E8] text-white text-[10px] flex items-center justify-center font-bold">
+                  3
+                </span>
+                <span>Listen for Siren Alarms</span>
+              </div>
+              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] leading-snug">
+                If the siren sounds or river water rises, move early before water blocks the roads.
+              </p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* 3. Recent Alerts Log (Material 3 Card List) */}
@@ -450,17 +556,17 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
                               </div>
                               {isActive ? (
                                 <span
-                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                                     isYellow
                                       ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300'
-                                      : 'bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300'
+                                      : 'bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300 animate-pulse'
                                   }`}
                                 >
-                                  {isYellow ? '⚠️ Warning' : '🚨 Active Alert'}
+                                  {isYellow ? '⚠️ Warning: Water Rising' : '🚨 Danger: Flood Detected'}
                                 </span>
                               ) : (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
-                                  ✓ Safe / Clear
+                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
+                                  ✓ Cleared / Safe
                                 </span>
                               )}
                             </div>
