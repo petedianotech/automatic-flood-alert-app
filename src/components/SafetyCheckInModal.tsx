@@ -583,9 +583,9 @@ export const SafetyCheckInModal: React.FC<SafetyCheckInModalProps> = ({
             {/* Headcount & Phone */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">
+                <label className="block text-xs font-bold text-[#3C4043] dark:text-[#BDC1C6] mb-1">
                   <span className="flex items-center gap-1">
-                    <Users className="w-3.5 h-3.5" /> Family Headcount
+                    <Users className="w-3.5 h-3.5" /> People with you
                   </span>
                 </label>
                 <input
@@ -595,18 +595,18 @@ export const SafetyCheckInModal: React.FC<SafetyCheckInModalProps> = ({
                   max="50"
                   value={peopleCount}
                   onChange={(e) => setPeopleCount(Math.max(1, parseInt(e.target.value) || 1))}
-                  className={`w-full px-3 py-2 text-xs rounded-xl border outline-none ${
+                  className={`w-full px-3 py-2 text-xs font-medium rounded-xl border outline-none ${
                     isDarkMode
-                      ? 'bg-zinc-900 border-zinc-800 text-zinc-100 focus:border-emerald-500'
-                      : 'bg-zinc-50 border-zinc-200 text-zinc-900 focus:border-emerald-500'
+                      ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3] focus:border-[#1A73E8]'
+                      : 'bg-[#F8F9FA] border-[#E1E3E1] text-[#1F1F1F] focus:border-[#1A73E8]'
                   }`}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">
+                <label className="block text-xs font-bold text-[#3C4043] dark:text-[#BDC1C6] mb-1">
                   <span className="flex items-center gap-1">
-                    <Phone className="w-3.5 h-3.5" /> Phone / WhatsApp
+                    <Phone className="w-3.5 h-3.5" /> Phone Number
                   </span>
                 </label>
                 <input
@@ -614,11 +614,11 @@ export const SafetyCheckInModal: React.FC<SafetyCheckInModalProps> = ({
                   id="safety-phone-input"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+265..."
-                  className={`w-full px-3 py-2 text-xs rounded-xl border outline-none ${
+                  placeholder="0888..."
+                  className={`w-full px-3 py-2 text-xs font-medium rounded-xl border outline-none ${
                     isDarkMode
-                      ? 'bg-zinc-900 border-zinc-800 text-zinc-100 focus:border-emerald-500'
-                      : 'bg-zinc-50 border-zinc-200 text-zinc-900 focus:border-emerald-500'
+                      ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3] focus:border-[#1A73E8]'
+                      : 'bg-[#F8F9FA] border-[#E1E3E1] text-[#1F1F1F] focus:border-[#1A73E8]'
                   }`}
                 />
               </div>
@@ -627,12 +627,12 @@ export const SafetyCheckInModal: React.FC<SafetyCheckInModalProps> = ({
             {/* Optional Note / Message */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-medium text-zinc-400">
-                  Situation Note / Description (Spoken or Typed)
+                <label className="block text-xs font-bold text-[#3C4043] dark:text-[#BDC1C6]">
+                  Message or Note
                 </label>
                 {isRecording && (
-                  <span className="text-[10px] text-red-400 animate-pulse flex items-center gap-1">
-                    <Radio className="w-3 h-3" /> Live Transcribing
+                  <span className="text-[10px] text-[#D93025] font-bold animate-pulse flex items-center gap-1">
+                    <Radio className="w-3 h-3" /> Live Recording
                   </span>
                 )}
               </div>
@@ -643,38 +643,38 @@ export const SafetyCheckInModal: React.FC<SafetyCheckInModalProps> = ({
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder={
                   status === 'safe'
-                    ? 'e.g. Waters receded, all 4 family members safe at home.'
+                    ? 'e.g. Water is low, my family is safe at home.'
                     : status === 'evacuated'
-                    ? 'e.g. Relocated to Dzenje Primary School classroom 3.'
-                    : 'e.g. Water is knee high, on roof with 2 children, need boat.'
+                    ? 'e.g. Relocated to Dzenje Primary School classroom.'
+                    : 'e.g. Water is rising near house, need rescue boat.'
                 }
-                className={`w-full px-3 py-2 text-xs rounded-xl border outline-none resize-none ${
+                className={`w-full px-3 py-2 text-xs font-medium rounded-xl border outline-none resize-none ${
                   isDarkMode
-                    ? 'bg-zinc-900 border-zinc-800 text-zinc-100 focus:border-emerald-500'
-                    : 'bg-zinc-50 border-zinc-200 text-zinc-900 focus:border-emerald-500'
+                    ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3] focus:border-[#1A73E8]'
+                    : 'bg-[#F8F9FA] border-[#E1E3E1] text-[#1F1F1F] focus:border-[#1A73E8]'
                 }`}
               />
             </div>
 
             {/* GPS Location Attachment */}
             <div
-              className={`p-3 rounded-xl border flex items-center justify-between ${
+              className={`p-3 rounded-2xl border flex items-center justify-between ${
                 latitude && longitude
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  ? 'bg-[#E6F4EA] border-[#CEEAD6] text-[#137333] dark:bg-[#137333]/20 dark:border-[#137333]/40 dark:text-[#81C995]'
                   : isDarkMode
-                  ? 'bg-zinc-900 border-zinc-800 text-zinc-400'
-                  : 'bg-zinc-50 border-zinc-200 text-zinc-600'
+                  ? 'bg-[#1E1F20] border-[#303134] text-[#9AA0A6]'
+                  : 'bg-[#F8F9FA] border-[#E1E3E1] text-[#5F6368]'
               }`}
             >
               <div className="flex items-center gap-2 text-xs">
-                <MapPin className="w-4 h-4 text-emerald-400 shrink-0" />
+                <MapPin className="w-4 h-4 text-[#D93025] shrink-0" />
                 <div>
                   {latitude && longitude ? (
-                    <span className="font-mono text-[11px]">
+                    <span className="font-mono text-[11px] font-bold">
                       GPS: {latitude.toFixed(4)}, {longitude.toFixed(4)}
                     </span>
                   ) : (
-                    <span>Add GPS coordinates for rescue dispatch</span>
+                    <span>Add GPS location for village rescue</span>
                   )}
                 </div>
               </div>
@@ -684,7 +684,7 @@ export const SafetyCheckInModal: React.FC<SafetyCheckInModalProps> = ({
                 id="get-gps-coords-btn"
                 onClick={handleGetLocation}
                 disabled={isLocating}
-                className="px-2.5 py-1 text-xs font-medium rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 flex items-center gap-1.5 transition-colors"
+                className="px-3 py-1.5 text-xs font-bold rounded-full bg-[#1F1F1F] dark:bg-white text-white dark:text-[#1F1F1F] flex items-center gap-1.5 transition-all shadow-xs active:scale-95"
               >
                 {isLocating ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -701,10 +701,10 @@ export const SafetyCheckInModal: React.FC<SafetyCheckInModalProps> = ({
                 type="button"
                 id="cancel-safety-btn"
                 onClick={onClose}
-                className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-colors ${
+                className={`flex-1 py-3 rounded-full text-xs font-bold border transition-all active:scale-95 ${
                   isDarkMode
-                    ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-800'
-                    : 'border-zinc-200 text-zinc-700 hover:bg-zinc-100'
+                    ? 'border-[#303134] text-[#E3E3E3] hover:bg-[#303134]'
+                    : 'border-[#E1E3E1] text-[#1F1F1F] hover:bg-[#F1F3F4]'
                 }`}
               >
                 Cancel
@@ -714,14 +714,14 @@ export const SafetyCheckInModal: React.FC<SafetyCheckInModalProps> = ({
                 type="submit"
                 id="confirm-safety-report-btn"
                 disabled={isSubmitting || !userName.trim()}
-                className={`flex-1 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg transition-all flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-3 rounded-full text-xs font-bold text-white shadow-xs transition-all flex items-center justify-center gap-1.5 active:scale-95 ${
                   status === 'safe'
-                    ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/30'
+                    ? 'bg-[#137333] hover:bg-[#0D652D]'
                     : status === 'evacuated'
-                    ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-900/30'
+                    ? 'bg-[#1A73E8] hover:bg-[#1557B0]'
                     : status === 'in_flooding'
-                    ? 'bg-amber-600 hover:bg-amber-500 shadow-amber-900/30'
-                    : 'bg-red-600 hover:bg-red-500 shadow-red-900/30'
+                    ? 'bg-[#B06000] hover:bg-[#8C4D00]'
+                    : 'bg-[#D93025] hover:bg-[#B3261E]'
                 }`}
               >
                 {isSubmitting ? (
@@ -729,7 +729,7 @@ export const SafetyCheckInModal: React.FC<SafetyCheckInModalProps> = ({
                 ) : (
                   <CheckCircle2 className="w-4 h-4" />
                 )}
-                <span>Submit Status</span>
+                <span>Submit Safety Status</span>
               </button>
             </div>
           </form>

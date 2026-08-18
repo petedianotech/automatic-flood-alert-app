@@ -367,7 +367,7 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                 setError(null);
                 setViewStep('form');
               }}
-              className="w-full p-4 rounded-2xl bg-gradient-to-r from-[#1A73E8] to-[#1557B0] text-white text-left shadow-lg shadow-blue-500/20 hover:opacity-95 active:scale-98 transition-all flex items-center justify-between gap-3 group border border-blue-400/30"
+              className="w-full p-4 rounded-2xl bg-[#1A73E8] hover:bg-[#1557B0] text-white text-left shadow-xs active:scale-98 transition-all flex items-center justify-between gap-3 group border border-[#1A73E8]"
             >
               <div className="flex items-center gap-3.5">
                 <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">

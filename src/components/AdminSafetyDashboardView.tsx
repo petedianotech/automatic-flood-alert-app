@@ -9,22 +9,19 @@ import {
   MapPin,
   ExternalLink,
   Search,
-  Filter,
   Download,
   Activity,
-  CheckCircle,
-  RefreshCw,
-  Clock,
   Radio,
-  FileSpreadsheet,
   Mic,
   Play,
   Pause,
-  Volume2,
   Trash2,
   BellRing,
-  ArrowLeft,
-  ArrowRight,
+  X,
+  Clock,
+  Plus,
+  ArrowUpRight,
+  Filter,
 } from 'lucide-react';
 import { ResidentSafetyReport, FloodAlert, UserProfile } from '../types';
 import { firebaseFloodService } from '../services/firebaseService';
@@ -56,7 +53,7 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const handleDeleteReport = async (reportId: string, userName: string) => {
-    if (window.confirm(`Delete safety report for "${userName}" from Firebase Firestore?`)) {
+    if (window.confirm(`Delete safety report for "${userName}"?`)) {
       setDeletingId(reportId);
       try {
         if (playingReportId === reportId && activeAudioRef.current) {
@@ -73,7 +70,11 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
   };
 
   const handleClearAllReports = async () => {
-    if (window.confirm('Are you sure you want to clear ALL resident roll-call records from Firebase Firestore and local storage?')) {
+    if (
+      window.confirm(
+        'Are you sure you want to clear ALL resident safety records from the database?'
+      )
+    ) {
       if (activeAudioRef.current) {
         activeAudioRef.current.pause();
         setPlayingReportId(null);
@@ -83,7 +84,7 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
   };
 
   const handleDeleteAlert = async (alertId: string) => {
-    if (window.confirm('Delete this flood alert incident record from Firebase Firestore?')) {
+    if (window.confirm('Delete this flood alert record?')) {
       await firebaseFloodService.deleteAlert(alertId);
     }
   };
@@ -121,7 +122,7 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
 
     audio.onerror = () => {
       setPlayingReportId(null);
-      alert('Could not play audio clip.');
+      alert('Could not play voice clip.');
     };
 
     audio.play().catch((err) => {
@@ -132,21 +133,35 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
 
   // Summary Metrics
   const totalReports = safetyReports.length;
-  const totalPeopleAccounted = safetyReports.reduce((acc, r) => acc + (r.peopleCount || 1), 0);
+  const totalPeopleAccounted = safetyReports.reduce(
+    (acc, r) => acc + (r.peopleCount || 1),
+    0
+  );
 
   const safeReports = safetyReports.filter((r) => r.status === 'safe');
   const safePeople = safeReports.reduce((acc, r) => acc + (r.peopleCount || 1), 0);
 
   const evacuatedReports = safetyReports.filter((r) => r.status === 'evacuated');
-  const evacuatedPeople = evacuatedReports.reduce((acc, r) => acc + (r.peopleCount || 1), 0);
+  const evacuatedPeople = evacuatedReports.reduce(
+    (acc, r) => acc + (r.peopleCount || 1),
+    0
+  );
 
   const inFloodingReports = safetyReports.filter((r) => r.status === 'in_flooding');
-  const inFloodingPeople = inFloodingReports.reduce((acc, r) => acc + (r.peopleCount || 1), 0);
+  const inFloodingPeople = inFloodingReports.reduce(
+    (acc, r) => acc + (r.peopleCount || 1),
+    0
+  );
 
   const needsHelpReports = safetyReports.filter((r) => r.status === 'needs_help');
-  const needsHelpPeople = needsHelpReports.reduce((acc, r) => acc + (r.peopleCount || 1), 0);
+  const needsHelpPeople = needsHelpReports.reduce(
+    (acc, r) => acc + (r.peopleCount || 1),
+    0
+  );
 
-  const voiceReportsCount = safetyReports.filter((r) => r.voiceAudioBase64 || r.hasVoiceNote).length;
+  const voiceReportsCount = safetyReports.filter(
+    (r) => r.voiceAudioBase64 || r.hasVoiceNote
+  ).length;
 
   // Urgent Rescue Queue
   const urgentQueue = safetyReports.filter(
@@ -154,7 +169,9 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
   );
 
   // Distinct Villages
-  const villages = Array.from(new Set(safetyReports.map((r) => r.village).filter(Boolean)));
+  const villages = Array.from(
+    new Set(safetyReports.map((r) => r.village).filter(Boolean))
+  );
 
   // Filtered Reports
   const filteredReports = safetyReports.filter((report) => {
@@ -173,300 +190,369 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
   });
 
   const exportCSV = () => {
-    const headers = ['Resident Name', 'Village', 'Status', 'Headcount', 'Phone', 'Has Voice Note', 'Message', 'GPS Location', 'Time'];
+    const headers = [
+      'Resident Name',
+      'Village',
+      'Status',
+      'People Count',
+      'Phone',
+      'Has Voice Clip',
+      'Message',
+      'GPS Location',
+      'Time',
+    ];
     const rows = safetyReports.map((r) => [
       `"${r.userName.replace(/"/g, '""')}"`,
       `"${r.village.replace(/"/g, '""')}"`,
       `"${r.status}"`,
       r.peopleCount || 1,
       `"${r.phone || ''}"`,
-      `"${r.voiceAudioBase64 || r.hasVoiceNote ? 'Yes (Audio Recorded)' : 'No'}"`,
+      `"${r.voiceAudioBase64 || r.hasVoiceNote ? 'Yes' : 'No'}"`,
       `"${(r.message || '').replace(/"/g, '""')}"`,
       `"${r.latitude && r.longitude ? `${r.latitude},${r.longitude}` : ''}"`,
       `"${new Date(r.timestamp).toLocaleString()}"`,
     ]);
 
-    const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+    const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join(
+      '\n'
+    );
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `flood_safety_rollcall_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute(
+      'download',
+      `village_safety_records_${new Date().toISOString().slice(0, 10)}.csv`
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
   return (
-    <div id="admin-safety-dashboard" className="space-y-4 pb-12">
-      {/* 1. Header & Emergency Mode Banner */}
+    <div id="admin-safety-dashboard" className="space-y-4 pb-16">
+      {/* 1. Google Material 3 Header Card */}
       <div
-        className={`p-5 rounded-3xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+        id="dashboard-header-card"
+        className={`p-5 sm:p-6 rounded-3xl border transition-all shadow-xs ${
           isDarkMode
             ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
             : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
         }`}
       >
-        <div className="flex items-start gap-3.5">
-          <img
-            src="/icon.svg"
-            alt="App Icon"
-            className="w-12 h-12 rounded-2xl shrink-0 shadow-xs border border-black/5"
-            referrerPolicy="no-referrer"
-          />
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#E8F0FE] text-[#1A73E8] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8]">
-                Admin Safety Center
-              </span>
-              <span className="flex items-center gap-1 text-xs text-[#5F6368] dark:text-[#9AA0A6]">
-                <Radio className="w-3.5 h-3.5 text-[#137333] dark:text-[#81C995]" /> Live Roll-Call &amp; Voice SOS
-              </span>
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <img
+              src="/icon.svg"
+              alt="Flood Alert App Icon"
+              className="w-12 h-12 rounded-2xl shrink-0 border border-black/5 shadow-2xs"
+              referrerPolicy="no-referrer"
+            />
+            <div>
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#E8F0FE] text-[#1A73E8] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8] flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#1A73E8] dark:bg-[#8AB4F8]" />
+                  Village Safety Dashboard
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/20 dark:text-[#81C995] flex items-center gap-1">
+                  <Radio className="w-3 h-3 text-[#137333] dark:text-[#81C995]" />
+                  Live Network
+                </span>
+              </div>
+              <h1 className="text-xl sm:text-2xl font-bold font-sans tracking-tight">
+                Village Safety &amp; Rescue Overview
+              </h1>
+              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] mt-0.5">
+                See which families are safe, who moved to shelters, and who needs help.
+              </p>
             </div>
-            <h1 className="text-lg font-bold">Village Safety &amp; Rescue Dashboard</h1>
-            <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6]">
-              Real-time roll-call of residents marked Safe, Evacuated, or In Flooding with live voice notes.
+          </div>
+
+          {/* Action Buttons (Google Material 3 Pills) */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {onGoToSensors && (
+              <button
+                type="button"
+                id="admin-nav-goto-sensors-btn"
+                onClick={onGoToSensors}
+                className="px-4 py-2 text-xs font-semibold rounded-full bg-[#F1F3F4] hover:bg-[#E8EAED] dark:bg-[#2D2E30] dark:hover:bg-[#3C4043] text-[#1F1F1F] dark:text-[#E3E3E3] transition-colors flex items-center gap-1.5 active:scale-95"
+              >
+                <Activity className="w-3.5 h-3.5 text-[#1A73E8] dark:text-[#8AB4F8]" />
+                <span>Flood Sensors</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              id="export-rollcall-csv-btn"
+              onClick={exportCSV}
+              className="px-4 py-2 text-xs font-semibold rounded-full bg-[#F1F3F4] hover:bg-[#E8EAED] dark:bg-[#2D2E30] dark:hover:bg-[#3C4043] text-[#1F1F1F] dark:text-[#E3E3E3] transition-colors flex items-center gap-1.5 active:scale-95"
+              title="Download safety list as CSV"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Download List</span>
+            </button>
+
+            {safetyReports.length > 0 && (
+              <button
+                type="button"
+                id="admin-clear-rollcall-btn"
+                onClick={handleClearAllReports}
+                className="px-4 py-2 text-xs font-semibold rounded-full bg-[#FCE8E6] hover:bg-[#FAD2CF] text-[#D93025] dark:bg-red-950/40 dark:hover:bg-red-950/60 dark:text-red-300 transition-colors flex items-center gap-1.5 active:scale-95"
+                title="Clear all saved records"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Clear All</span>
+              </button>
+            )}
+
+            {onOpenCheckInModal && (
+              <button
+                type="button"
+                id="admin-record-status-btn"
+                onClick={onOpenCheckInModal}
+                className="px-4 py-2 text-xs font-bold rounded-full bg-[#1A73E8] hover:bg-[#1557B0] text-white flex items-center gap-1.5 transition-all shadow-xs active:scale-95"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Check-in</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Google Tonal Metric KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* KPI 1: Marked Safe (Google Green) */}
+        <div
+          id="kpi-safe"
+          className={`p-4 rounded-3xl border transition-all flex flex-col justify-between ${
+            isDarkMode
+              ? 'bg-[#1E1F20] border-[#303134]'
+              : 'bg-[#E6F4EA] border-[#CEEAD6]'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-[#137333] dark:text-[#81C995]">
+              Safe at Home
+            </span>
+            <div className="w-8 h-8 rounded-xl bg-[#137333]/15 text-[#137333] dark:text-[#81C995] flex items-center justify-center">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl sm:text-3xl font-bold font-sans text-[#137333] dark:text-[#81C995]">
+              {safeReports.length}
+            </div>
+            <p className="text-[11px] text-[#3C4043] dark:text-[#9AA0A6] font-medium mt-0.5">
+              {safePeople} {safePeople === 1 ? 'person' : 'people'} safe
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-center flex-wrap">
-          {onGoToSensors && (
-            <button
-              type="button"
-              id="admin-nav-goto-sensors-btn"
-              onClick={onGoToSensors}
-              className="px-3.5 py-2 text-xs font-bold rounded-full bg-[#1A73E8] hover:bg-[#1557B0] text-white transition-all flex items-center gap-1.5 shadow-2xs active:scale-95"
-            >
-              <Activity className="w-3.5 h-3.5" />
-              <span>← Open Flood Sensors</span>
-            </button>
-          )}
-
-          <button
-            id="export-rollcall-csv-btn"
-            onClick={exportCSV}
-            className="px-3.5 py-2 text-xs font-semibold rounded-full bg-[#F1F3F4] hover:bg-[#E8EAED] dark:bg-[#28292C] dark:hover:bg-[#3C4043] text-[#1F1F1F] dark:text-[#E3E3E3] transition-colors flex items-center gap-1.5"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Export CSV</span>
-          </button>
-
-          {safetyReports.length > 0 && (
-            <button
-              id="admin-clear-rollcall-btn"
-              onClick={handleClearAllReports}
-              className="px-3.5 py-2 text-xs font-semibold rounded-full bg-[#FCE8E6] text-[#D93025] dark:bg-red-950/40 dark:text-red-300 transition-colors flex items-center gap-1.5"
-              title="Clear all resident safety records from database"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Clear Roll-Call</span>
-            </button>
-          )}
-
-          {onOpenCheckInModal && (
-            <button
-              id="admin-record-status-btn"
-              onClick={onOpenCheckInModal}
-              className="px-4 py-2 text-xs font-bold rounded-full bg-[#137333] hover:bg-[#0F9D58] text-white flex items-center gap-1.5 transition-all"
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Record Check-in</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* 2. Top Metric KPI Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-        {/* Safe */}
-        <div
-          id="kpi-safe"
-          className={`p-3.5 rounded-[20px] border flex flex-col justify-between ${
-            isDarkMode ? 'bg-[#1E1F20] border-[#303134]' : 'bg-[#E6F4EA] border-[#CEEAD6]'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#137333] dark:text-[#81C995]">Marked Safe</span>
-            <div className="w-7 h-7 rounded-lg bg-[#137333]/15 text-[#137333] dark:text-[#81C995] flex items-center justify-center">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <div className="text-2xl font-bold text-[#137333] dark:text-[#81C995]">{safeReports.length}</div>
-            <div className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6] font-medium">
-              {safePeople} people accounted for
-            </div>
-          </div>
-        </div>
-
-        {/* Evacuated */}
+        {/* KPI 2: Evacuated (Google Blue) */}
         <div
           id="kpi-evacuated"
-          className={`p-3.5 rounded-[20px] border flex flex-col justify-between ${
-            isDarkMode ? 'bg-[#1E1F20] border-[#303134]' : 'bg-[#E8F0FE] border-[#D2E3FC]'
+          className={`p-4 rounded-3xl border transition-all flex flex-col justify-between ${
+            isDarkMode
+              ? 'bg-[#1E1F20] border-[#303134]'
+              : 'bg-[#E8F0FE] border-[#D2E3FC]'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#1967D2] dark:text-[#8AB4F8]">Evacuated / Shelters</span>
-            <div className="w-7 h-7 rounded-lg bg-[#1A73E8]/15 text-[#1967D2] dark:text-[#8AB4F8] flex items-center justify-center">
+            <span className="text-xs font-bold text-[#1967D2] dark:text-[#8AB4F8]">
+              At Safe Shelters
+            </span>
+            <div className="w-8 h-8 rounded-xl bg-[#1A73E8]/15 text-[#1967D2] dark:text-[#8AB4F8] flex items-center justify-center">
               <Home className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2">
-            <div className="text-2xl font-black text-blue-400">{evacuatedReports.length}</div>
-            <div className="text-[11px] text-zinc-400 font-medium">
-              {evacuatedPeople} people in safe zones
+          <div className="mt-3">
+            <div className="text-2xl sm:text-3xl font-bold font-sans text-[#1967D2] dark:text-[#8AB4F8]">
+              {evacuatedReports.length}
             </div>
+            <p className="text-[11px] text-[#3C4043] dark:text-[#9AA0A6] font-medium mt-0.5">
+              {evacuatedPeople} {evacuatedPeople === 1 ? 'person' : 'people'} moved
+            </p>
           </div>
         </div>
 
-        {/* In Flooding */}
+        {/* KPI 3: In Flooding (Google Amber / Warning) */}
         <div
           id="kpi-in-flooding"
-          className={`p-3.5 rounded-2xl border flex flex-col justify-between ${
-            isDarkMode ? 'bg-zinc-900/80 border-amber-900/30' : 'bg-amber-50/60 border-amber-200'
+          className={`p-4 rounded-3xl border transition-all flex flex-col justify-between ${
+            isDarkMode
+              ? 'bg-[#1E1F20] border-[#303134]'
+              : 'bg-[#FEF7E0] border-[#FEEFC3]'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-amber-400">In Flooding</span>
-            <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+            <span className="text-xs font-bold text-[#B06000] dark:text-[#FDD663]">
+              Water Rising
+            </span>
+            <div className="w-8 h-8 rounded-xl bg-[#B06000]/15 text-[#B06000] dark:text-[#FDD663] flex items-center justify-center">
               <AlertTriangle className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2">
-            <div className="text-2xl font-black text-amber-400">{inFloodingReports.length}</div>
-            <div className="text-[11px] text-zinc-400 font-medium">
-              {inFloodingPeople} people under watch
+          <div className="mt-3">
+            <div className="text-2xl sm:text-3xl font-bold font-sans text-[#B06000] dark:text-[#FDD663]">
+              {inFloodingReports.length}
             </div>
+            <p className="text-[11px] text-[#3C4043] dark:text-[#9AA0A6] font-medium mt-0.5">
+              {inFloodingPeople} {inFloodingPeople === 1 ? 'person' : 'people'} watching water
+            </p>
           </div>
         </div>
 
-        {/* Urgent Help */}
+        {/* KPI 4: Need Help (Google Red / Critical) */}
         <div
           id="kpi-needs-help"
-          className={`p-3.5 rounded-2xl border flex flex-col justify-between ${
+          className={`p-4 rounded-3xl border transition-all flex flex-col justify-between ${
             needsHelpReports.length > 0
-              ? 'bg-red-950/40 border-red-500/50 animate-pulse ring-1 ring-red-500/30'
+              ? 'bg-[#FCE8E6] border-[#D93025] ring-2 ring-[#D93025]/30'
               : isDarkMode
-              ? 'bg-zinc-900/80 border-zinc-800'
-              : 'bg-zinc-50 border-zinc-200'
+              ? 'bg-[#1E1F20] border-[#303134]'
+              : 'bg-white border-[#E1E3E1]'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-red-400">Rescue Needed</span>
-            <div className="w-7 h-7 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center">
+            <span className="text-xs font-bold text-[#D93025] dark:text-[#F28B82]">
+              Need Help Now
+            </span>
+            <div className="w-8 h-8 rounded-xl bg-[#D93025]/15 text-[#D93025] dark:text-[#F28B82] flex items-center justify-center">
               <LifeBuoy className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2">
-            <div className="text-2xl font-black text-red-400">{needsHelpReports.length}</div>
-            <div className="text-[11px] text-zinc-400 font-medium">
-              {needsHelpPeople} people in critical danger
+          <div className="mt-3">
+            <div className="text-2xl sm:text-3xl font-bold font-sans text-[#D93025] dark:text-[#F28B82]">
+              {needsHelpReports.length}
             </div>
+            <p className="text-[11px] text-[#3C4043] dark:text-[#9AA0A6] font-medium mt-0.5">
+              {needsHelpPeople} {needsHelpPeople === 1 ? 'person' : 'people'} need rescue
+            </p>
           </div>
         </div>
       </div>
 
-      {/* 3. High Priority Emergency Rescue Queue */}
+      {/* 3. Urgent Rescue & Flooding Queue (Google Crisis Action Cards) */}
       {urgentQueue.length > 0 && (
         <div
           id="admin-urgent-rescue-queue"
-          className={`p-4 rounded-2xl border space-y-3 ${
-            isDarkMode ? 'bg-red-950/20 border-red-900/50' : 'bg-red-50/80 border-red-200'
+          className={`p-5 rounded-3xl border space-y-3 transition-all ${
+            isDarkMode
+              ? 'bg-[#1E1F20] border-[#D93025]/50'
+              : 'bg-[#FCE8E6] border-[#FAD2CF]'
           }`}
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
-              <h2 className="text-sm font-bold text-red-400">
-                Priority Rescue & Flooding Queue ({urgentQueue.length})
+              <span className="w-3 h-3 rounded-full bg-[#D93025] animate-ping shrink-0" />
+              <h2 className="text-sm font-bold text-[#D93025] dark:text-[#F28B82]">
+                Urgent Help Needed ({urgentQueue.length} {urgentQueue.length === 1 ? 'resident' : 'residents'})
               </h2>
             </div>
-            <span className="text-[11px] font-semibold text-zinc-400">Requires Dispatch / Call</span>
+            <span className="text-xs text-[#5F6368] dark:text-[#9AA0A6]">
+              Please call or send rescue teams to these locations
+            </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {urgentQueue.map((item) => {
               const isPlayingThis = playingReportId === item.id;
+              const isEmergency = item.status === 'needs_help';
 
               return (
                 <div
                   key={item.id}
-                  className={`p-3.5 rounded-xl border flex flex-col justify-between space-y-2.5 ${
-                    item.status === 'needs_help'
-                      ? 'bg-red-900/30 border-red-500/40 text-red-100'
-                      : 'bg-amber-900/20 border-amber-500/40 text-amber-100'
+                  className={`p-4 rounded-2xl border flex flex-col justify-between space-y-3 transition-all ${
+                    isDarkMode
+                      ? isEmergency
+                        ? 'bg-[#2D1B1B] border-[#D93025]/60 text-white'
+                        : 'bg-[#2A2318] border-[#B06000]/60 text-white'
+                      : isEmergency
+                      ? 'bg-white border-[#FAD2CF] text-[#1F1F1F] shadow-xs'
+                      : 'bg-white border-[#FEEFC3] text-[#1F1F1F] shadow-xs'
                   }`}
                 >
-                  <div>
+                  <div className="space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <div className="font-bold text-sm text-zinc-100">{item.userName}</div>
-                        <div className="text-xs text-zinc-400 flex items-center gap-1.5 mt-0.5">
-                          <MapPin className="w-3 h-3 text-red-400" />
-                          <span>{item.village}</span>
-                          <span>•</span>
-                          <Users className="w-3 h-3 text-zinc-400" />
-                          <span className="font-semibold">{item.peopleCount || 1} people</span>
+                        <h3 className="font-bold text-base">{item.userName}</h3>
+                        <div className="text-xs text-[#5F6368] dark:text-[#C4C7C5] flex items-center gap-2 mt-0.5 flex-wrap">
+                          <span className="flex items-center gap-1 font-medium text-[#D93025] dark:text-[#F28B82]">
+                            <MapPin className="w-3.5 h-3.5" />
+                            <span>{item.village}</span>
+                          </span>
+                          <span>&bull;</span>
+                          <span className="flex items-center gap-1 font-medium">
+                            <Users className="w-3.5 h-3.5" />
+                            <span>{item.peopleCount || 1} people</span>
+                          </span>
                         </div>
                       </div>
 
                       <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                          item.status === 'needs_help'
-                            ? 'bg-red-500 text-white animate-bounce'
-                            : 'bg-amber-500/30 text-amber-300 border border-amber-500/40'
+                        className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          isEmergency
+                            ? 'bg-[#D93025] text-white'
+                            : 'bg-[#FEF7E0] text-[#B06000] dark:bg-[#B06000]/30 dark:text-[#FDD663] border border-[#FEEFC3] dark:border-[#B06000]/50'
                         }`}
                       >
-                        {item.status === 'needs_help' ? 'Rescue SOS' : 'In Flooding'}
+                        {isEmergency ? 'Need Rescue' : 'Water Rising'}
                       </span>
                     </div>
 
                     {item.message && (
-                      <p className="mt-2 text-xs text-zinc-200 bg-black/30 p-2 rounded-lg italic">
+                      <p className="text-xs text-[#3C4043] dark:text-[#E3E3E3] bg-[#F1F3F4] dark:bg-black/30 p-2.5 rounded-xl font-medium">
                         "{item.message}"
                       </p>
                     )}
 
-                    {/* Voice Audio Player if Voice Note Attached */}
+                    {/* Google-style Voice Player Button */}
                     {item.voiceAudioBase64 && (
-                      <div className="mt-2 p-2 rounded-lg bg-indigo-950/60 border border-indigo-500/30 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
+                      <div className="p-2.5 rounded-xl bg-[#E8F0FE] dark:bg-[#1A73E8]/20 border border-[#D2E3FC] dark:border-[#1A73E8]/40 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
                           <button
                             type="button"
                             onClick={() => handleTogglePlayVoice(item.id, item.voiceAudioBase64)}
-                            className="w-7 h-7 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shrink-0 shadow transition-transform active:scale-95"
+                            className="w-8 h-8 rounded-full bg-[#1A73E8] hover:bg-[#1557B0] text-white flex items-center justify-center shrink-0 shadow-xs transition-transform active:scale-95 cursor-pointer"
+                            title={isPlayingThis ? 'Pause voice message' : 'Play voice message'}
                           >
-                            {isPlayingThis ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current ml-0.5" />}
+                            {isPlayingThis ? (
+                              <Pause className="w-4 h-4" />
+                            ) : (
+                              <Play className="w-4 h-4 fill-current ml-0.5" />
+                            )}
                           </button>
+
                           <div>
-                            <div className="text-[11px] font-bold text-indigo-300 flex items-center gap-1">
-                              <Mic className="w-3 h-3 text-indigo-400" />
-                              <span>{isPlayingThis ? 'Playing Voice Note...' : 'Resident Voice Clip'}</span>
+                            <div className="text-xs font-bold text-[#1A73E8] dark:text-[#8AB4F8] flex items-center gap-1">
+                              <Mic className="w-3.5 h-3.5" />
+                              <span>{isPlayingThis ? 'Playing Voice Clip...' : 'Listen to Voice Message'}</span>
                             </div>
-                            <span className="text-[10px] text-zinc-400">
-                              {item.voiceDurationSec ? `${item.voiceDurationSec}s audio duration` : 'Tap to listen to resident'}
+                            <span className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6]">
+                              {item.voiceDurationSec ? `${item.voiceDurationSec} seconds audio` : 'Tap play to listen'}
                             </span>
                           </div>
                         </div>
 
                         {isPlayingThis && (
-                          <div className="flex items-center gap-0.5 h-4">
-                            <span className="w-1 bg-indigo-400 rounded-full h-3 animate-pulse" />
-                            <span className="w-1 bg-indigo-400 rounded-full h-4 animate-bounce" />
-                            <span className="w-1 bg-indigo-400 rounded-full h-2 animate-pulse" />
+                          <div className="flex items-center gap-1 h-4 pr-1">
+                            <span className="w-1 bg-[#1A73E8] dark:bg-[#8AB4F8] rounded-full h-3 animate-pulse" />
+                            <span className="w-1 bg-[#1A73E8] dark:bg-[#8AB4F8] rounded-full h-4 animate-bounce" />
+                            <span className="w-1 bg-[#1A73E8] dark:bg-[#8AB4F8] rounded-full h-2 animate-pulse" />
                           </div>
                         )}
                       </div>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2 pt-1 border-t border-white/10">
+                  {/* Actions: Call & Map Buttons */}
+                  <div className="flex items-center gap-2 pt-2 border-t border-[#E1E3E1] dark:border-white/10 flex-wrap">
                     {item.phone && (
                       <a
                         href={`tel:${item.phone}`}
-                        className="flex-1 py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                        className="py-2 px-3.5 rounded-xl bg-[#137333] hover:bg-[#0D652D] text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs active:scale-95"
                       >
                         <Phone className="w-3.5 h-3.5" />
                         <span>Call {item.phone}</span>
@@ -478,10 +564,10 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                         href={item.mapsUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="py-1.5 px-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
+                        className="py-2 px-3.5 rounded-xl bg-[#F1F3F4] hover:bg-[#E8EAED] dark:bg-[#2D2E30] dark:hover:bg-[#3C4043] text-[#1F1F1F] dark:text-[#E3E3E3] text-xs font-semibold flex items-center gap-1.5 transition-colors"
                       >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        <span>GPS Map</span>
+                        <ExternalLink className="w-3.5 h-3.5 text-[#1A73E8] dark:text-[#8AB4F8]" />
+                        <span>View on Map</span>
                       </a>
                     ) : null}
 
@@ -489,15 +575,11 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                       type="button"
                       onClick={() => handleDeleteReport(item.id, item.userName)}
                       disabled={deletingId === item.id}
-                      className="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/40 text-xs transition-colors"
-                      title="Delete this rescue record from Firestore"
+                      className="p-2 rounded-xl bg-transparent hover:bg-black/5 dark:hover:bg-white/5 text-[#5F6368] hover:text-[#D93025] dark:text-[#9AA0A6] dark:hover:text-[#F28B82] transition-colors ml-auto text-xs"
+                      title="Remove record"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
-
-                    <span className="text-[10px] text-zinc-400 ml-auto whitespace-nowrap">
-                      {item.formattedTime}
-                    </span>
                   </div>
                 </div>
               );
@@ -506,104 +588,177 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
         </div>
       )}
 
-      {/* 4. Filter & Search Controls */}
+      {/* 4. Google Material 3 Search & Segmented Filter Bar */}
       <div
-        className={`p-3.5 rounded-2xl border flex flex-col sm:flex-row gap-2.5 items-center justify-between ${
-          isDarkMode ? 'bg-zinc-900/60 border-zinc-800' : 'bg-zinc-50 border-zinc-200'
+        id="dashboard-search-filter-card"
+        className={`p-4 rounded-3xl border transition-all shadow-xs space-y-3 ${
+          isDarkMode
+            ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
+            : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
         }`}
       >
-        <div className="relative w-full sm:w-64">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-          <input
-            type="text"
-            placeholder="Search residents, village, note..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className={`w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border outline-none ${
-              isDarkMode
-                ? 'bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-500'
-                : 'bg-white border-zinc-300 text-zinc-900 placeholder:text-zinc-400'
-            }`}
-          />
+        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+          {/* Google Search Bar */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5F6368] dark:text-[#9AA0A6]" />
+            <input
+              type="text"
+              id="search-safety-records-input"
+              placeholder="Search by name, village, or phone..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={`w-full pl-10 pr-9 py-2.5 text-xs rounded-2xl border outline-none transition-all font-medium ${
+                isDarkMode
+                  ? 'bg-[#121316] border-[#303134] text-white placeholder:text-[#5F6368] focus:border-[#8AB4F8]'
+                  : 'bg-[#F8F9FA] border-[#E1E3E1] text-[#1F1F1F] placeholder:text-[#5F6368] focus:border-[#1A73E8] focus:bg-white'
+              }`}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5F6368] hover:text-[#1F1F1F] dark:text-[#9AA0A6] dark:hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Village Filter Select */}
+          {villages.length > 0 && (
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-[#5F6368] dark:text-[#9AA0A6] shrink-0 hidden sm:block" />
+              <select
+                id="select-filter-village"
+                value={filterVillage}
+                onChange={(e) => setFilterVillage(e.target.value)}
+                className={`px-3.5 py-2 text-xs rounded-2xl border outline-none font-medium transition-colors ${
+                  isDarkMode
+                    ? 'bg-[#121316] border-[#303134] text-white'
+                    : 'bg-[#F8F9FA] border-[#E1E3E1] text-[#1F1F1F]'
+                }`}
+              >
+                <option value="all">All Villages ({totalReports})</option>
+                {villages.map((v) => (
+                  <option key={v} value={v}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto">
-          {/* Status Filter */}
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className={`px-3 py-1.5 text-xs rounded-xl border outline-none font-medium ${
-              isDarkMode ? 'bg-zinc-900 border-zinc-700 text-zinc-200' : 'bg-white border-zinc-300 text-zinc-800'
+        {/* Material 3 Segmented Filter Chips */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 text-xs select-none">
+          <button
+            type="button"
+            onClick={() => setFilterStatus('all')}
+            className={`px-3.5 py-1.5 rounded-full font-semibold transition-all shrink-0 ${
+              filterStatus === 'all'
+                ? 'bg-[#1A73E8] text-white shadow-xs'
+                : 'bg-[#F1F3F4] text-[#3C4043] hover:bg-[#E8EAED] dark:bg-[#2D2E30] dark:text-[#C4C7C5] dark:hover:bg-[#3C4043]'
             }`}
           >
-            <option value="all">All Statuses ({totalReports})</option>
-            <option value="safe">Safe Only ({safeReports.length})</option>
-            <option value="evacuated">Evacuated Only ({evacuatedReports.length})</option>
-            <option value="in_flooding">In Flooding ({inFloodingReports.length})</option>
-            <option value="needs_help">Rescue SOS ({needsHelpReports.length})</option>
-          </select>
+            All Records ({totalReports})
+          </button>
 
-          {/* Village Filter */}
-          {villages.length > 0 && (
-            <select
-              value={filterVillage}
-              onChange={(e) => setFilterVillage(e.target.value)}
-              className={`px-3 py-1.5 text-xs rounded-xl border outline-none font-medium ${
-                isDarkMode ? 'bg-zinc-900 border-zinc-700 text-zinc-200' : 'bg-white border-zinc-300 text-zinc-800'
-              }`}
-            >
-              <option value="all">All Villages</option>
-              {villages.map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          )}
+          <button
+            type="button"
+            onClick={() => setFilterStatus('safe')}
+            className={`px-3.5 py-1.5 rounded-full font-semibold transition-all shrink-0 flex items-center gap-1.5 ${
+              filterStatus === 'safe'
+                ? 'bg-[#137333] text-white shadow-xs'
+                : 'bg-[#E6F4EA] text-[#0D652D] hover:bg-[#CEEAD6] dark:bg-[#137333]/20 dark:text-[#81C995]'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Safe ({safeReports.length})</span>
+          </button>
 
-          {/* Voice Notes Filter Button */}
+          <button
+            type="button"
+            onClick={() => setFilterStatus('evacuated')}
+            className={`px-3.5 py-1.5 rounded-full font-semibold transition-all shrink-0 flex items-center gap-1.5 ${
+              filterStatus === 'evacuated'
+                ? 'bg-[#1A73E8] text-white shadow-xs'
+                : 'bg-[#E8F0FE] text-[#1557B0] hover:bg-[#D2E3FC] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8]'
+            }`}
+          >
+            <Home className="w-3.5 h-3.5" />
+            <span>Shelters ({evacuatedReports.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFilterStatus('in_flooding')}
+            className={`px-3.5 py-1.5 rounded-full font-semibold transition-all shrink-0 flex items-center gap-1.5 ${
+              filterStatus === 'in_flooding'
+                ? 'bg-[#B06000] text-white shadow-xs'
+                : 'bg-[#FEF7E0] text-[#B06000] hover:bg-[#FEEFC3] dark:bg-[#B06000]/20 dark:text-[#FDD663]'
+            }`}
+          >
+            <AlertTriangle className="w-3.5 h-3.5" />
+            <span>Water Rising ({inFloodingReports.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFilterStatus('needs_help')}
+            className={`px-3.5 py-1.5 rounded-full font-semibold transition-all shrink-0 flex items-center gap-1.5 ${
+              filterStatus === 'needs_help'
+                ? 'bg-[#D93025] text-white shadow-xs'
+                : 'bg-[#FCE8E6] text-[#C5221F] hover:bg-[#FAD2CF] dark:bg-[#D93025]/20 dark:text-[#F28B82]'
+            }`}
+          >
+            <LifeBuoy className="w-3.5 h-3.5" />
+            <span>Need Help ({needsHelpReports.length})</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setFilterOnlyVoice(!filterOnlyVoice)}
-            className={`px-3 py-1.5 text-xs rounded-xl border flex items-center gap-1.5 font-medium transition-all ${
+            className={`px-3.5 py-1.5 rounded-full font-semibold transition-all shrink-0 flex items-center gap-1.5 ml-auto ${
               filterOnlyVoice
-                ? 'bg-indigo-600 border-indigo-500 text-white shadow'
-                : isDarkMode
-                ? 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:border-zinc-500'
-                : 'bg-white border-zinc-300 text-zinc-700 hover:border-zinc-400'
+                ? 'bg-[#1A73E8] text-white shadow-xs'
+                : 'bg-[#F1F3F4] text-[#3C4043] hover:bg-[#E8EAED] dark:bg-[#2D2E30] dark:text-[#C4C7C5]'
             }`}
           >
-            <Mic className="w-3.5 h-3.5 text-indigo-400" />
+            <Mic className="w-3.5 h-3.5 text-[#1A73E8] dark:text-[#8AB4F8]" />
             <span>Voice Notes {voiceReportsCount > 0 && `(${voiceReportsCount})`}</span>
           </button>
         </div>
       </div>
 
-      {/* 5. Complete Resident Roll-Call Table & Records List */}
+      {/* 5. Complete Resident Safety Checks List & Table */}
       <div
-        className={`rounded-2xl border overflow-hidden ${
-          isDarkMode ? 'bg-zinc-900/60 border-zinc-800' : 'bg-white border-zinc-200'
+        id="dashboard-records-table-card"
+        className={`rounded-3xl border overflow-hidden transition-all shadow-xs ${
+          isDarkMode
+            ? 'bg-[#1E1F20] border-[#303134]'
+            : 'bg-white border-[#E1E3E1]'
         }`}
       >
         <div
-          className={`px-4 py-3 border-b flex items-center justify-between ${
-            isDarkMode ? 'border-[#303134] bg-[#1E1F20]' : 'border-[#E1E3E1] bg-[#F8F9FA]'
+          className={`px-5 py-4 border-b flex items-center justify-between ${
+            isDarkMode ? 'border-[#303134] bg-[#28292A]' : 'border-[#E1E3E1] bg-[#F8F9FA]'
           }`}
         >
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-[#5F6368] dark:text-[#9AA0A6]" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#5F6368] dark:text-[#9AA0A6]">
-              Resident Safety Roll-Call Records ({filteredReports.length})
-            </h3>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-[#5F6368] dark:text-[#9AA0A6]">
+              Resident Safety Records ({filteredReports.length})
+            </h2>
           </div>
           <span className="text-xs text-[#5F6368] dark:text-[#9AA0A6] font-medium">
-            Total People: <strong className="text-[#1F1F1F] dark:text-white">{totalPeopleAccounted}</strong>
+            Total Accounted: <strong className="text-[#1F1F1F] dark:text-white">{totalPeopleAccounted} people</strong>
           </span>
         </div>
 
         {filteredReports.length === 0 ? (
-          <div className="p-8 text-center text-[#5F6368] dark:text-[#9AA0A6] text-xs">
-            No safety reports found matching current filters.
+          <div className="p-10 text-center text-[#5F6368] dark:text-[#9AA0A6] text-xs space-y-1">
+            <p className="font-semibold text-sm">No records found.</p>
+            <p>Try changing your filter or search words.</p>
           </div>
         ) : (
           <div className="divide-y divide-[#E1E3E1] dark:divide-[#303134]">
@@ -617,26 +772,30 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
               return (
                 <div
                   key={report.id}
-                  className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#F1F3F4] dark:hover:bg-[#28292C] transition-colors"
+                  className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[#F8F9FA] dark:hover:bg-[#28292A] transition-colors"
                 >
                   <div className="space-y-1.5 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-sm text-[#1F1F1F] dark:text-[#E3E3E3]">{report.userName}</span>
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <span className="font-bold text-sm sm:text-base text-[#1F1F1F] dark:text-[#E3E3E3]">
+                        {report.userName}
+                      </span>
+
+                      {/* Status Badge */}
                       <span
-                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${
+                        className={`px-3 py-0.5 rounded-full text-xs font-bold flex items-center gap-1 ${
                           isSafe
                             ? 'bg-[#E6F4EA] text-[#0D652D] border border-[#CEEAD6]'
                             : isEvacuated
                             ? 'bg-[#E8F0FE] text-[#1557B0] border border-[#D2E3FC]'
                             : isInFlooding
                             ? 'bg-[#FEF7E0] text-[#B06000] border border-[#FEEFC3]'
-                            : 'bg-[#FCE8E6] text-[#C5221F] border border-[#FAD2CF] animate-pulse'
+                            : 'bg-[#FCE8E6] text-[#C5221F] border border-[#FAD2CF]'
                         }`}
                       >
-                        {isSafe && <ShieldCheck className="w-3 h-3" />}
-                        {isEvacuated && <Home className="w-3 h-3" />}
-                        {isInFlooding && <AlertTriangle className="w-3 h-3" />}
-                        {isNeedsHelp && <LifeBuoy className="w-3 h-3" />}
+                        {isSafe && <ShieldCheck className="w-3.5 h-3.5" />}
+                        {isEvacuated && <Home className="w-3.5 h-3.5" />}
+                        {isInFlooding && <AlertTriangle className="w-3.5 h-3.5" />}
+                        {isNeedsHelp && <LifeBuoy className="w-3.5 h-3.5" />}
                         <span>
                           {isSafe
                             ? 'Safe'
@@ -644,37 +803,38 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                             ? 'Evacuated'
                             : isInFlooding
                             ? 'In Flooding'
-                            : 'Needs Rescue'}
+                            : 'Needs Help'}
                         </span>
                       </span>
 
-                      <span className="text-xs px-2 py-0.5 rounded-md bg-[#F1F3F4] dark:bg-[#28292C] text-[#3C4043] dark:text-[#E3E3E3] font-mono font-medium">
+                      {/* Headcount */}
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#F1F3F4] dark:bg-[#2D2E30] text-[#3C4043] dark:text-[#E3E3E3] font-medium">
                         {report.peopleCount || 1} {report.peopleCount === 1 ? 'person' : 'people'}
                       </span>
 
                       {report.voiceAudioBase64 && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#E8F0FE] text-[#1A73E8] dark:bg-indigo-950/40 dark:text-indigo-300 border border-[#D2E3FC] flex items-center gap-1 font-semibold">
-                          <Mic className="w-3 h-3 text-[#1A73E8]" />
-                          <span>Voice Note Attached</span>
+                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#E8F0FE] text-[#1A73E8] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8] border border-[#D2E3FC] dark:border-[#1A73E8]/40 flex items-center gap-1 font-semibold">
+                          <Mic className="w-3 h-3" />
+                          <span>Voice Attached</span>
                         </span>
                       )}
                     </div>
 
                     <div className="text-xs text-[#5F6368] dark:text-[#9AA0A6] flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
                       <span className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-[#D93025]" />
+                        <MapPin className="w-3.5 h-3.5 text-[#D93025]" />
                         <span>{report.village}</span>
                       </span>
 
                       {report.phone && (
-                        <span className="flex items-center gap-1 font-mono text-[#3C4043] dark:text-[#E3E3E3]">
-                          <Phone className="w-3 h-3 text-[#1A73E8]" />
+                        <span className="flex items-center gap-1 text-[#3C4043] dark:text-[#E3E3E3]">
+                          <Phone className="w-3.5 h-3.5 text-[#1A73E8]" />
                           <span>{report.phone}</span>
                         </span>
                       )}
 
                       <span className="flex items-center gap-1 text-[#5F6368] dark:text-[#9AA0A6]">
-                        <Clock className="w-3 h-3" />
+                        <Clock className="w-3.5 h-3.5" />
                         <span>{report.formattedTime}</span>
                       </span>
                     </div>
@@ -685,24 +845,28 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                       </p>
                     )}
 
-                    {/* Inline Voice Player */}
+                    {/* Voice Note Play Button */}
                     {report.voiceAudioBase64 && (
                       <div className="pt-1">
                         <button
                           type="button"
                           onClick={() => handleTogglePlayVoice(report.id, report.voiceAudioBase64)}
-                          className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-2 transition-all ${
+                          className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
                             isPlayingThis
-                              ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-900/30'
+                              ? 'bg-[#1A73E8] text-white border-[#1A73E8] shadow-xs'
                               : isDarkMode
-                              ? 'bg-zinc-800/80 border-indigo-500/30 text-indigo-300 hover:bg-zinc-700'
-                              : 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
+                              ? 'bg-[#2D2E30] border-[#303134] text-[#8AB4F8] hover:bg-[#3C4043]'
+                              : 'bg-[#E8F0FE] border-[#D2E3FC] text-[#1A73E8] hover:bg-[#D2E3FC]'
                           }`}
                         >
-                          {isPlayingThis ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-                          <span>{isPlayingThis ? 'Playing Resident Voice...' : 'Listen to Voice Message'}</span>
+                          {isPlayingThis ? (
+                            <Pause className="w-3.5 h-3.5" />
+                          ) : (
+                            <Play className="w-3.5 h-3.5 fill-current" />
+                          )}
+                          <span>{isPlayingThis ? 'Playing Voice Clip...' : 'Listen to Voice Message'}</span>
                           {report.voiceDurationSec ? (
-                            <span className="text-[10px] opacity-75">({report.voiceDurationSec}s)</span>
+                            <span className="text-[10px] opacity-80">({report.voiceDurationSec}s)</span>
                           ) : null}
                         </button>
                       </div>
@@ -714,11 +878,11 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                     {report.phone && (
                       <a
                         href={`tel:${report.phone}`}
-                        className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-emerald-400 border border-zinc-700 text-xs flex items-center gap-1 transition-colors"
+                        className="py-1.5 px-3 rounded-xl bg-[#F1F3F4] hover:bg-[#E8EAED] dark:bg-[#2D2E30] dark:hover:bg-[#3C4043] text-[#137333] dark:text-[#81C995] text-xs font-semibold flex items-center gap-1.5 transition-colors"
                         title="Call Resident"
                       >
                         <Phone className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline font-medium">Call</span>
+                        <span>Call</span>
                       </a>
                     )}
 
@@ -727,11 +891,11 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                         href={report.mapsUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 text-xs flex items-center gap-1 transition-colors"
-                        title="View GPS Location"
+                        className="py-1.5 px-3 rounded-xl bg-[#F1F3F4] hover:bg-[#E8EAED] dark:bg-[#2D2E30] dark:hover:bg-[#3C4043] text-[#1A73E8] dark:text-[#8AB4F8] text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                        title="View Location on Map"
                       >
-                        <MapPin className="w-3.5 h-3.5 text-red-400" />
-                        <span className="hidden sm:inline font-medium">Location</span>
+                        <MapPin className="w-3.5 h-3.5 text-[#D93025]" />
+                        <span>Location</span>
                       </a>
                     )}
 
@@ -739,11 +903,10 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                       type="button"
                       onClick={() => handleDeleteReport(report.id, report.userName)}
                       disabled={deletingId === report.id}
-                      className="p-2 rounded-xl bg-zinc-800 hover:bg-red-950/50 text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-800/40 text-xs flex items-center gap-1 transition-colors"
-                      title="Delete record from Firestore"
+                      className="p-1.5 rounded-xl bg-transparent hover:bg-black/5 dark:hover:bg-white/5 text-[#5F6368] hover:text-[#D93025] dark:text-[#9AA0A6] dark:hover:text-[#F28B82] text-xs transition-colors"
+                      title="Delete record"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline font-medium">Delete</span>
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -753,22 +916,25 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
         )}
       </div>
 
-      {/* 6. Flood Incident Telemetry & Log Management */}
+      {/* 6. Flood Alarm Incidents Database Log (Google-style Flat Card) */}
       <div
-        className={`rounded-2xl border overflow-hidden ${
-          isDarkMode ? 'bg-zinc-900/60 border-zinc-800' : 'bg-white border-zinc-200'
+        id="dashboard-incidents-log-card"
+        className={`rounded-3xl border overflow-hidden transition-all shadow-xs ${
+          isDarkMode
+            ? 'bg-[#1E1F20] border-[#303134]'
+            : 'bg-white border-[#E1E3E1]'
         }`}
       >
         <div
-          className={`px-4 py-3 border-b flex items-center justify-between ${
-            isDarkMode ? 'border-zinc-800 bg-zinc-900/40' : 'border-zinc-100 bg-zinc-50'
+          className={`px-5 py-4 border-b flex items-center justify-between ${
+            isDarkMode ? 'border-[#303134] bg-[#28292A]' : 'border-[#E1E3E1] bg-[#F8F9FA]'
           }`}
         >
           <div className="flex items-center gap-2">
-            <BellRing className="w-4 h-4 text-zinc-400" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-              Flood Alarm Incidents in Database ({alerts.length})
-            </h3>
+            <BellRing className="w-4 h-4 text-[#5F6368] dark:text-[#9AA0A6]" />
+            <h2 className="text-xs font-bold uppercase tracking-wider text-[#5F6368] dark:text-[#9AA0A6]">
+              Flood Alarm Incidents ({alerts.length})
+            </h2>
           </div>
           {alerts.length > 0 && (
             <button
@@ -777,51 +943,55 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                   firebaseFloodService.clearAlerts();
                 }
               }}
-              className="text-[11px] font-semibold text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors"
+              className="text-xs font-semibold text-[#D93025] hover:underline flex items-center gap-1 transition-colors"
             >
-              <Trash2 className="w-3 h-3" />
+              <Trash2 className="w-3.5 h-3.5" />
               <span>Clear Incidents</span>
             </button>
           )}
         </div>
 
         {alerts.length === 0 ? (
-          <div className="p-6 text-center text-zinc-400 text-xs">
-            No flood alarm incidents recorded. All clear.
+          <div className="p-8 text-center text-[#5F6368] dark:text-[#9AA0A6] text-xs">
+            No flood alarm incidents recorded. All rivers clear.
           </div>
         ) : (
-          <div className="divide-y divide-zinc-800/50 max-h-60 overflow-y-auto">
+          <div className="divide-y divide-[#E1E3E1] dark:divide-[#303134] max-h-60 overflow-y-auto">
             {alerts.map((alert) => (
               <div
                 key={alert.id}
-                className="p-3.5 flex items-center justify-between gap-3 hover:bg-zinc-800/20 text-xs"
+                className="p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:bg-[#F8F9FA] dark:hover:bg-[#28292A] text-xs"
               >
-                <div className="space-y-0.5 min-w-0">
-                  <div className="flex items-center gap-2">
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span
-                      className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                         alert.severity === 'yellow'
-                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                          : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                          ? 'bg-[#FEF7E0] text-[#B06000] dark:bg-[#B06000]/20 dark:text-[#FDD663] border border-[#FEEFC3]'
+                          : 'bg-[#FCE8E6] text-[#D93025] dark:bg-[#D93025]/20 dark:text-[#F28B82] border border-[#FAD2CF]'
                       }`}
                     >
                       {alert.severity === 'yellow' ? 'Warning' : 'Critical'}
                     </span>
-                    <span className="font-bold text-zinc-200 truncate">{alert.title || 'Flood Alert'}</span>
-                    <span className="font-mono text-[10px] text-zinc-400">Δ {alert.peakDelta.toFixed(2)} m/s²</span>
+                    <span className="font-bold text-[#1F1F1F] dark:text-[#E3E3E3] truncate">
+                      {alert.title || 'Flood Alert'}
+                    </span>
+                    <span className="font-mono text-[10px] text-[#5F6368] dark:text-[#9AA0A6]">
+                      &Delta; {alert.peakDelta.toFixed(2)} m/s&sup2;
+                    </span>
                   </div>
-                  <div className="text-[11px] text-zinc-400 truncate">
-                    {alert.locationLabel || alert.village || 'River Node'} • {alert.formattedTime} • Source: {alert.source}
+                  <div className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6] truncate">
+                    {alert.locationLabel || alert.village || 'River Node'} &bull; {alert.formattedTime} &bull; Source: {alert.source}
                   </div>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => handleDeleteAlert(alert.id)}
-                  className="p-1.5 rounded-lg bg-zinc-800 hover:bg-red-950/60 text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-800/40 text-xs transition-colors shrink-0"
-                  title="Delete incident from Firestore"
+                  className="p-1.5 rounded-xl text-[#5F6368] hover:text-[#D93025] dark:text-[#9AA0A6] dark:hover:text-[#F28B82] hover:bg-black/5 dark:hover:bg-white/5 transition-colors shrink-0"
+                  title="Delete incident"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             ))}

@@ -26,6 +26,8 @@ import {
   ChevronUp,
   Mic,
   LifeBuoy,
+  ShieldCheck,
+  Share2,
 } from 'lucide-react';
 import { FloodAlert } from '../types';
 import { NotificationService } from '../services/notificationService';
@@ -91,12 +93,14 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
   };
 
   const activeCount = alerts.filter((a) => a.status === 'active').length;
+  const hasActiveDanger = alerts.some((a) => a.status === 'active' && a.severity !== 'yellow');
+  const hasActiveWarning = alerts.some((a) => a.status === 'active' && a.severity === 'yellow');
 
   const handleSendTestPush = async () => {
     setTestSent(true);
     await NotificationService.sendFloodPushNotification(
-      '🚨 FLOOD WARNING TEST',
-      'Alert system is ready. Your phone will ring and vibrate when a flood warning happens.',
+      'FLOOD WARNING TEST',
+      'Alert system is ready. Your phone will ring loudly when flood danger occurs.',
       { isTest: true, village: 'Dzenje Village', peakDelta: 4.8 }
     );
     setTimeout(() => setTestSent(false), 3000);
@@ -104,8 +108,9 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
 
   return (
     <div id="receiver-node-view" className="space-y-4 pb-24">
-      {/* 1. App Welcome & Notification Status Card */}
+      {/* 1. Header Card: Status & Loud Alert Controls */}
       <div
+        id="alerts-header-card"
         className={`rounded-3xl border p-4 sm:p-5 transition-all shadow-xs ${
           isDarkMode
             ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
@@ -114,66 +119,83 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <img
-              src="/icon.svg"
-              alt="Flood Alert App Icon"
-              className="w-12 h-12 rounded-2xl shrink-0 shadow-xs border border-black/5"
-              referrerPolicy="no-referrer"
-            />
+            <div
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
+                activeCount > 0
+                  ? 'bg-[#D93025] text-white animate-bounce'
+                  : 'bg-[#E8F0FE] text-[#1A73E8] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8]'
+              }`}
+            >
+              {activeCount > 0 ? <ShieldAlert className="w-6 h-6" /> : <Radio className="w-6 h-6" />}
+            </div>
 
             <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-base font-bold font-sans tracking-tight">
-                  Flood Alert Receiver
+              <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                <h2 className="text-base sm:text-lg font-bold font-sans tracking-tight">
+                  Village Flood Alerts
                 </h2>
-                {notificationPermission === 'granted' ? (
+                {activeCount > 0 ? (
+                  <span
+                    id="badge-active-flood-danger"
+                    className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FCE8E6] text-[#D93025] dark:bg-[#D93025]/20 dark:text-[#F28B82] border border-[#FAD2CF] dark:border-[#D93025]/40 flex items-center gap-1"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-[#D93025] animate-ping" />
+                    {activeCount} Active {activeCount === 1 ? 'Alert' : 'Alerts'}
+                  </span>
+                ) : notificationPermission === 'granted' ? (
                   <span
                     id="badge-push-granted"
                     className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/20 dark:text-[#81C995] flex items-center gap-1"
                   >
-                    <CheckCircle className="w-3 h-3" />
-                    Alerts Active
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    Sirens Ready
                   </span>
                 ) : (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FEF7E0] text-[#B06000] dark:bg-amber-950/40 dark:text-amber-300">
-                    Turn On Alerts
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FEF7E0] text-[#B06000] dark:bg-[#B06000]/20 dark:text-[#FDD663]">
+                    Enable Alerts
                   </span>
                 )}
               </div>
 
-              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] mt-1 leading-relaxed">
-                You will hear loud warning sirens as soon as flood sensors detect water danger.
+              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] leading-relaxed">
+                {activeCount > 0
+                  ? 'Flood detected near the river. Follow safety steps below immediately.'
+                  : 'Your phone will sound a loud siren and vibrate as soon as river sensors detect rising water.'}
               </p>
             </div>
           </div>
 
+          {/* Quick Action Buttons */}
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             {notificationPermission !== 'granted' ? (
               <button
+                type="button"
                 id="btn-enable-push-alerts"
                 onClick={onRequestNotificationPermission}
-                className="px-4 py-2 rounded-full bg-[#1A73E8] hover:bg-[#1557B0] text-white font-semibold text-xs transition-all flex items-center gap-1.5 active:scale-95"
+                className="px-4 py-2 rounded-full bg-[#1A73E8] hover:bg-[#1557B0] text-white font-bold text-xs transition-all flex items-center gap-1.5 active:scale-95 shadow-xs"
               >
                 <BellRing className="w-3.5 h-3.5" />
-                <span>Turn On Loud Alerts</span>
+                <span>Turn On Loud Sirens</span>
               </button>
             ) : (
               <button
+                type="button"
                 id="btn-test-fcm-alert"
                 onClick={handleSendTestPush}
                 disabled={testSent}
                 className="px-3.5 py-2 rounded-full bg-[#F1F3F4] hover:bg-[#E8EAED] dark:bg-[#28292C] dark:hover:bg-[#3C4043] text-xs font-semibold text-[#1F1F1F] dark:text-[#E3E3E3] transition-all active:scale-95"
               >
-                <Zap className="w-3.5 h-3.5 text-[#B06000] inline mr-1" />
-                <span>{testSent ? 'Alarm Tested!' : 'Test Siren Sound'}</span>
+                <Zap className="w-3.5 h-3.5 text-[#B06000] dark:text-[#FDD663] inline mr-1" />
+                <span>{testSent ? 'Sound Tested!' : 'Test Loud Sound'}</span>
               </button>
             )}
 
             {canInstallPwa && (
               <button
+                type="button"
                 id="btn-install-pwa"
                 onClick={handleInstallApp}
-                className="px-3.5 py-2 rounded-full bg-[#1F1F1F] text-white dark:bg-white dark:text-[#1F1F1F] text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95"
+                className="px-3.5 py-2 rounded-full bg-[#1F1F1F] text-white dark:bg-white dark:text-[#1F1F1F] text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 shadow-xs"
               >
                 <Smartphone className="w-3.5 h-3.5" />
                 <span>Install App</span>
@@ -183,32 +205,32 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
         </div>
       </div>
 
-      {/* Emergency Voice SOS Card */}
+      {/* 2. Emergency Voice SOS Card */}
       {onOpenVoiceSOS && (
         <div
           id="fast-voice-sos-card"
-          className={`shrink-0 rounded-[24px] border p-4 transition-all shadow-xs ${
+          className={`shrink-0 rounded-3xl border p-4 transition-all shadow-xs ${
             isDarkMode
-              ? 'bg-[#1E1F20] border-red-900/40 text-[#E3E3E3]'
-              : 'bg-[#FCE8E6] border-red-200 text-[#1F1F1F]'
+              ? 'bg-[#1E1F20] border-[#D93025]/40 text-[#E3E3E3]'
+              : 'bg-[#FCE8E6] border-[#FAD2CF] text-[#1F1F1F]'
           }`}
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-[#D93025] text-white flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-2xl bg-[#D93025] text-white flex items-center justify-center shrink-0 shadow-xs">
                 <Mic className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-sm text-[#D93025] dark:text-red-400">
-                    Emergency Voice Report
+                  <h3 className="font-bold text-sm text-[#D93025] dark:text-[#F28B82]">
+                    Quick Voice Safety Message
                   </h3>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 dark:bg-red-950/40 text-[#D93025] dark:text-red-300">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#D93025] text-white">
                     SOS
                   </span>
                 </div>
                 <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] mt-0.5">
-                  Record a quick voice status or message for village rescue teams.
+                  Record a fast voice note to let village leaders and rescue teams know if you need help.
                 </p>
               </div>
             </div>
@@ -217,7 +239,7 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
               type="button"
               id="btn-fast-voice-receiver"
               onClick={onOpenVoiceSOS}
-              className="px-4 py-2 rounded-full bg-[#D93025] hover:bg-[#B3261E] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all self-stretch sm:self-center shrink-0"
+              className="px-5 py-2.5 rounded-full bg-[#D93025] hover:bg-[#B3261E] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all self-stretch sm:self-center shrink-0 active:scale-95"
             >
               <Mic className="w-3.5 h-3.5" />
               <span>Record Voice Status</span>
@@ -226,24 +248,26 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
         </div>
       )}
 
-      {/* 2. What you must do right now (Simple English Safety Guide) */}
+      {/* 3. Safety Action Guide (Solid Material 3 Surfaces, strictly no gradients) */}
       <div
         id="card-what-to-do-right-now"
         className={`shrink-0 rounded-3xl border p-5 transition-all shadow-xs ${
           activeCount > 0
-            ? 'bg-gradient-to-br from-red-600 to-red-800 text-white border-red-500 shadow-md shadow-red-900/20'
+            ? hasActiveDanger
+              ? 'bg-[#B3261E] text-white border-[#D93025]'
+              : 'bg-[#B06000] text-white border-[#FDD663]'
             : isDarkMode
             ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
             : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
         }`}
       >
-        <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="flex items-center justify-between gap-3 mb-3.5">
           <div className="flex items-center gap-2.5">
             <div
-              className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+              className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${
                 activeCount > 0
-                  ? 'bg-white text-red-700 shadow-xs'
-                  : 'bg-blue-100 dark:bg-blue-950/50 text-[#1A73E8] dark:text-[#8AB4F8]'
+                  ? 'bg-white text-[#B3261E]'
+                  : 'bg-[#E8F0FE] text-[#1A73E8] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8]'
               }`}
             >
               {activeCount > 0 ? (
@@ -254,16 +278,16 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-sm sm:text-base font-sans tracking-tight">
-                What you must do right now
+                {activeCount > 0 ? 'Urgent Safety Actions' : 'What to do right now'}
               </h3>
               <p
                 className={`text-xs ${
-                  activeCount > 0 ? 'text-red-100' : 'text-[#5F6368] dark:text-[#9AA0A6]'
+                  activeCount > 0 ? 'text-white/90' : 'text-[#5F6368] dark:text-[#9AA0A6]'
                 }`}
               >
                 {activeCount > 0
-                  ? 'Emergency actions for your family and village'
-                  : 'Simple flood safety guide and precautions'}
+                  ? 'Follow these immediate steps to stay safe'
+                  : 'Simple flood safety rules and steps'}
               </p>
             </div>
           </div>
@@ -271,117 +295,118 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
           <span
             className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 ${
               activeCount > 0
-                ? 'bg-white text-red-700 shadow-xs animate-pulse'
-                : 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300'
+                ? 'bg-white text-[#B3261E] shadow-xs'
+                : 'bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/20 dark:text-[#81C995]'
             }`}
           >
-            {activeCount > 0 ? '🚨 Flood Danger!' : '✓ Safe Condition'}
+            {activeCount > 0 ? 'Flood Danger Active' : 'Normal Conditions'}
           </span>
         </div>
 
         {activeCount > 0 ? (
-          /* Active Flood Alert - Urgent Actions */
+          /* Active Flood Alert - Simple 4 steps with solid container cards */
           <div className="space-y-2 pt-1 text-xs sm:text-sm">
-            <div className="p-3 rounded-2xl bg-black/25 border border-white/20 flex items-start gap-2.5">
-              <span className="w-5 h-5 rounded-full bg-yellow-400 text-black font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+            <div className="p-3 rounded-2xl bg-black/30 border border-white/20 flex items-start gap-3">
+              <span className="w-6 h-6 rounded-full bg-white text-[#B3261E] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
                 1
               </span>
               <div>
-                <strong className="text-white block font-bold">
+                <strong className="text-white block font-bold text-sm">
                   Move to high ground immediately
                 </strong>
-                <span className="text-red-100 text-xs leading-relaxed">
+                <span className="text-white/90 text-xs leading-relaxed">
                   Walk quickly to the nearest village hill, church, or primary school shelter.
                 </span>
               </div>
             </div>
 
-            <div className="p-3 rounded-2xl bg-black/25 border border-white/20 flex items-start gap-2.5">
-              <span className="w-5 h-5 rounded-full bg-yellow-400 text-black font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+            <div className="p-3 rounded-2xl bg-black/30 border border-white/20 flex items-start gap-3">
+              <span className="w-6 h-6 rounded-full bg-white text-[#B3261E] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
                 2
               </span>
               <div>
-                <strong className="text-white block font-bold">
+                <strong className="text-white block font-bold text-sm">
                   Help children and elderly neighbors
                 </strong>
-                <span className="text-red-100 text-xs leading-relaxed">
-                  Gather all family members and move livestock away from low river banks.
+                <span className="text-white/90 text-xs leading-relaxed">
+                  Bring all family members together and move livestock away from river banks.
                 </span>
               </div>
             </div>
 
-            <div className="p-3 rounded-2xl bg-black/25 border border-white/20 flex items-start gap-2.5">
-              <span className="w-5 h-5 rounded-full bg-yellow-400 text-black font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+            <div className="p-3 rounded-2xl bg-black/30 border border-white/20 flex items-start gap-3">
+              <span className="w-6 h-6 rounded-full bg-white text-[#B3261E] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
                 3
               </span>
               <div>
-                <strong className="text-white block font-bold">
-                  Do NOT cross flowing water or bridges
+                <strong className="text-white block font-bold text-sm">
+                  Do not cross moving water or bridges
                 </strong>
-                <span className="text-red-100 text-xs leading-relaxed">
-                  Fast rushing flood water can sweep away people and vehicles in seconds.
+                <span className="text-white/90 text-xs leading-relaxed">
+                  Fast flood water can sweep away people and vehicles in seconds.
                 </span>
               </div>
             </div>
 
-            <div className="p-3 rounded-2xl bg-black/25 border border-white/20 flex items-start gap-2.5">
-              <span className="w-5 h-5 rounded-full bg-yellow-400 text-black font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+            <div className="p-3 rounded-2xl bg-black/30 border border-white/20 flex items-start gap-3">
+              <span className="w-6 h-6 rounded-full bg-white text-[#B3261E] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
                 4
               </span>
               <div>
-                <strong className="text-white block font-bold">
-                  Keep torches and phones in dry plastic
+                <strong className="text-white block font-bold text-sm">
+                  Keep phones and lights dry
                 </strong>
-                <span className="text-red-100 text-xs leading-relaxed">
-                  Stay connected and listen for the village community alerts.
+                <span className="text-white/90 text-xs leading-relaxed">
+                  Put your mobile phone and torch in a plastic bag to keep them dry and working.
                 </span>
               </div>
             </div>
           </div>
         ) : (
-          /* Normal / Clear Condition - Simple Preparedness Tips */
+          /* Normal Condition - Simple Preparedness Cards */
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-            <div className="p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.04] border border-black/5 dark:border-white/5 space-y-1">
+            <div className="p-3.5 rounded-2xl bg-[#F8F9FA] dark:bg-[#28292A] border border-[#E1E3E1] dark:border-[#303134] space-y-1">
               <div className="flex items-center gap-1.5 font-bold text-xs text-[#1F1F1F] dark:text-[#E3E3E3]">
                 <span className="w-4 h-4 rounded-full bg-[#1A73E8] text-white text-[10px] flex items-center justify-center font-bold">
                   1
                 </span>
                 <span>Know Your High Ground</span>
               </div>
-              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] leading-snug">
-                Know the fastest route from your home to safe high hills or the village school.
+              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] leading-relaxed">
+                Know the quickest path from your house to high ground or the village school.
               </p>
             </div>
 
-            <div className="p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.04] border border-black/5 dark:border-white/5 space-y-1">
+            <div className="p-3.5 rounded-2xl bg-[#F8F9FA] dark:bg-[#28292A] border border-[#E1E3E1] dark:border-[#303134] space-y-1">
               <div className="flex items-center gap-1.5 font-bold text-xs text-[#1F1F1F] dark:text-[#E3E3E3]">
                 <span className="w-4 h-4 rounded-full bg-[#1A73E8] text-white text-[10px] flex items-center justify-center font-bold">
                   2
                 </span>
-                <span>Keep Essentials Packed</span>
+                <span>Keep Essentials Ready</span>
               </div>
-              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] leading-snug">
-                Store ID cards, medicine, torches, and charged phone inside a waterproof bag.
+              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] leading-relaxed">
+                Keep ID papers, medicine, torch, and charged phone in a clean plastic bag.
               </p>
             </div>
 
-            <div className="p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.04] border border-black/5 dark:border-white/5 space-y-1">
+            <div className="p-3.5 rounded-2xl bg-[#F8F9FA] dark:bg-[#28292A] border border-[#E1E3E1] dark:border-[#303134] space-y-1">
               <div className="flex items-center gap-1.5 font-bold text-xs text-[#1F1F1F] dark:text-[#E3E3E3]">
                 <span className="w-4 h-4 rounded-full bg-[#1A73E8] text-white text-[10px] flex items-center justify-center font-bold">
                   3
                 </span>
-                <span>Listen for Siren Alarms</span>
+                <span>Listen for Siren Sound</span>
               </div>
-              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] leading-snug">
-                If the siren sounds or river water rises, move early before water blocks the roads.
+              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] leading-relaxed">
+                When the bell sensor sounds, move right away before water blocks the road.
               </p>
             </div>
           </div>
         )}
       </div>
 
-      {/* 3. Recent Alerts Log (Material 3 Card List) */}
+      {/* 4. Alert History & Live Alerts Card List */}
       <div
+        id="alerts-history-container"
         className={`rounded-3xl border transition-all shadow-xs ${
           isDarkMode
             ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
@@ -389,99 +414,103 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
         }`}
       >
         <button
+          type="button"
+          id="btn-toggle-alert-history"
           onClick={() => setShowHistory(!showHistory)}
-          className="w-full flex items-center justify-between p-5 sm:p-6 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors"
+          className="w-full flex items-center justify-between p-5 sm:p-6 hover:bg-[#F8F9FA] dark:hover:bg-[#28292A] transition-colors rounded-3xl"
         >
           <div className="text-left">
-            <h3 className="text-sm sm:text-base font-bold font-sans">Recent Flood Alerts</h3>
+            <h3 className="text-base font-bold font-sans">Flood Alert Log</h3>
             <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6]">
-              Live flood warning list and history
+              Real-time warnings and sensor history
             </p>
           </div>
           {showHistory ? (
-            <ChevronUp className="w-5 h-5 text-[#5F6368]" />
+            <ChevronUp className="w-5 h-5 text-[#5F6368] dark:text-[#9AA0A6]" />
           ) : (
-            <ChevronDown className="w-5 h-5 text-[#5F6368]" />
+            <ChevronDown className="w-5 h-5 text-[#5F6368] dark:text-[#9AA0A6]" />
           )}
         </button>
 
         {showHistory && (
           <div className="px-5 pb-5 sm:px-6 sm:pb-6 space-y-4">
-            {/* Log Toolbar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-black/5 dark:border-white/5">
-              <div className="hidden sm:block">
-                {/* Empty spacer */}
+            {/* Toolbar with Segmented Filter Chips */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E1E3E1] dark:border-[#303134]">
+              {/* Segmented Filter Pills */}
+              <div className="flex items-center gap-1.5 p-1 rounded-full bg-[#F1F3F4] dark:bg-[#28292A]">
+                <button
+                  type="button"
+                  id="filter-alerts-all-btn"
+                  onClick={() => setFilterType('all')}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
+                    filterType === 'all'
+                      ? 'bg-white dark:bg-[#303134] text-[#1F1F1F] dark:text-white shadow-xs'
+                      : 'text-[#5F6368] dark:text-[#9AA0A6]'
+                  }`}
+                >
+                  All ({alerts.length})
+                </button>
+                <button
+                  type="button"
+                  id="filter-alerts-active-btn"
+                  onClick={() => setFilterType('active')}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
+                    filterType === 'active'
+                      ? 'bg-[#FCE8E6] text-[#D93025] dark:bg-[#D93025]/20 dark:text-[#F28B82] shadow-xs'
+                      : 'text-[#5F6368] dark:text-[#9AA0A6]'
+                  }`}
+                >
+                  Active ({activeCount})
+                </button>
+                <button
+                  type="button"
+                  id="filter-alerts-dismissed-btn"
+                  onClick={() => setFilterType('dismissed')}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
+                    filterType === 'dismissed'
+                      ? 'bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/20 dark:text-[#81C995] shadow-xs'
+                      : 'text-[#5F6368] dark:text-[#9AA0A6]'
+                  }`}
+                >
+                  Cleared
+                </button>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Filter Chips */}
-                <div className="flex items-center gap-1 p-1 rounded-xl bg-black/5 dark:bg-white/5">
+              {/* Action Buttons */}
+              {alerts.length > 0 && (
+                <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setFilterType('all')}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-                      filterType === 'all'
-                        ? 'bg-white dark:bg-[#303134] text-[#1F1F1F] dark:text-white shadow-xs'
-                        : 'text-[#5F6368] dark:text-[#9AA0A6]'
-                    }`}
+                    type="button"
+                    id="btn-export-alerts"
+                    onClick={exportAlertsJson}
+                    className="p-2 rounded-full border border-[#E1E3E1] dark:border-[#303134] hover:bg-[#F1F3F4] dark:hover:bg-[#28292A] text-xs font-semibold transition-colors text-[#5F6368] dark:text-[#9AA0A6]"
+                    title="Download Alert Log"
                   >
-                    All ({alerts.length})
+                    <Download className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => setFilterType('active')}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-                      filterType === 'active'
-                        ? 'bg-white dark:bg-[#303134] text-[#D93025] shadow-xs'
-                        : 'text-[#5F6368] dark:text-[#9AA0A6]'
-                    }`}
+                    type="button"
+                    id="btn-clear-alerts-log"
+                    onClick={onClearAlerts}
+                    className="p-2 rounded-full border border-[#FAD2CF] dark:border-[#D93025]/40 text-[#D93025] hover:bg-[#FCE8E6] dark:hover:bg-[#D93025]/20 transition-colors"
+                    title="Clear Log"
                   >
-                    Active ({activeCount})
-                  </button>
-                  <button
-                    onClick={() => setFilterType('dismissed')}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-                      filterType === 'dismissed'
-                        ? 'bg-white dark:bg-[#303134] text-[#137333] shadow-xs'
-                        : 'text-[#5F6368] dark:text-[#9AA0A6]'
-                    }`}
-                  >
-                    Dismissed
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
-
-                {alerts.length > 0 && (
-                  <>
-                    <button
-                      id="btn-export-alerts"
-                      onClick={exportAlertsJson}
-                      className="p-2 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 text-xs font-semibold transition-colors"
-                      title="Export JSON Log"
-                    >
-                      <Download className="w-4 h-4" />
-                    </button>
-                    <button
-                      id="btn-clear-alerts-log"
-                      onClick={onClearAlerts}
-                      className="p-2 rounded-xl border border-red-200 dark:border-red-950/80 text-[#D93025] hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                      title="Clear Alert History"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </>
-                )}
-              </div>
+              )}
             </div>
 
-            {/* Card List */}
+            {/* List of Alerts */}
             <div>
               {filteredAlerts.length === 0 ? (
-                <div className="text-center py-10 px-4 rounded-2xl bg-black/[0.01] dark:bg-white/[0.01] border border-dashed border-black/10 dark:border-white/10">
-                  <CheckCircle className="w-9 h-9 text-[#1E8E3E] mx-auto mb-2 opacity-80" />
+                <div className="text-center py-10 px-4 rounded-3xl bg-[#F8F9FA] dark:bg-[#28292A] border border-[#E1E3E1] dark:border-[#303134]">
+                  <CheckCircle className="w-10 h-10 text-[#137333] dark:text-[#81C995] mx-auto mb-2" />
                   <h4 className="font-bold text-sm text-[#1F1F1F] dark:text-[#E3E3E3]">
-                    No Flood Incidents in Log
+                    No Active Flood Warnings
                   </h4>
                   <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] mt-1 max-w-sm mx-auto">
-                    Standing guard. When water sensor vibrations trip the threshold,
-                    incidents will appear here and notify all subscribers.
+                    The river is currently safe. When sensors detect rising water or bell ringing, alarms will appear here.
                   </p>
                 </div>
               ) : (
@@ -512,22 +541,22 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
                       <div
                         key={alert.id}
                         id={`alert-card-${alert.id}`}
-                        className={`rounded-2xl p-4 border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                        className={`rounded-3xl p-4 border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
                           isActive
                             ? isYellow
-                              ? 'bg-[#FEF7E0] dark:bg-amber-950/30 border-[#FEEFC3] dark:border-amber-700/60 shadow-xs'
-                              : 'bg-[#FCE8E6] dark:bg-red-950/30 border-[#FAD2CF] dark:border-red-900/60 shadow-xs'
-                            : 'bg-[#F8F9FA] dark:bg-[#28292C] border-[#E1E3E1] dark:border-[#303134]'
+                              ? 'bg-[#FEF7E0] dark:bg-[#B06000]/20 border-[#FEEFC3] dark:border-[#B06000]/40 shadow-xs'
+                              : 'bg-[#FCE8E6] dark:bg-[#D93025]/20 border-[#FAD2CF] dark:border-[#D93025]/40 shadow-xs'
+                            : 'bg-[#F8F9FA] dark:bg-[#28292A] border-[#E1E3E1] dark:border-[#303134]'
                         }`}
                       >
                         <div className="flex items-start gap-3">
                           <div
-                            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                            className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 mt-0.5 ${
                               isActive
                                 ? isYellow
-                                  ? 'bg-[#B06000] text-white animate-pulse'
-                                  : 'bg-[#D93025] text-white animate-pulse'
-                                : 'bg-[#E6F4EA] text-[#0D652D]'
+                                  ? 'bg-[#B06000] text-white'
+                                  : 'bg-[#D93025] text-white'
+                                : 'bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/20 dark:text-[#81C995]'
                             }`}
                           >
                             {isActive ? (
@@ -539,34 +568,34 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
 
                           <div className="space-y-1">
                             {/* Location */}
-                            <div className="flex items-center gap-1.5 text-xs font-bold text-[#1F1F1F] dark:text-white">
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-[#1F1F1F] dark:text-[#E3E3E3]">
                               <MapPin className="w-4 h-4 text-[#D93025] shrink-0" />
                               <span>{locationStr}</span>
                             </div>
 
                             {/* Date, Year & Time */}
-                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#5F6368] dark:text-[#9AA0A6] font-medium">
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#5F6368] dark:text-[#9AA0A6]">
                               <div className="flex items-center gap-1">
-                                <Calendar className="w-3.5 h-3.5 text-[#1A73E8]" />
+                                <Calendar className="w-3.5 h-3.5 text-[#1A73E8] dark:text-[#8AB4F8]" />
                                 <span>Date: {formattedDateAndYear}</span>
                               </div>
                               <div className="flex items-center gap-1">
-                                <Clock className="w-3.5 h-3.5 text-[#1A73E8]" />
+                                <Clock className="w-3.5 h-3.5 text-[#1A73E8] dark:text-[#8AB4F8]" />
                                 <span>Time: {formattedTimeStr}</span>
                               </div>
                               {isActive ? (
                                 <span
                                   className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                                     isYellow
-                                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300'
-                                      : 'bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300 animate-pulse'
+                                      ? 'bg-[#FEF7E0] text-[#B06000] dark:bg-[#B06000]/30 dark:text-[#FDD663]'
+                                      : 'bg-[#FCE8E6] text-[#D93025] dark:bg-[#D93025]/30 dark:text-[#F28B82]'
                                   }`}
                                 >
-                                  {isYellow ? '⚠️ Warning: Water Rising' : '🚨 Danger: Flood Detected'}
+                                  {isYellow ? 'Warning: Water Rising' : 'Danger: Flood Detected'}
                                 </span>
                               ) : (
-                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
-                                  ✓ Cleared / Safe
+                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/30 dark:text-[#81C995]">
+                                  Safe / Cleared
                                 </span>
                               )}
                             </div>
@@ -575,9 +604,10 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
 
                         {isActive && (
                           <button
+                            type="button"
                             id={`btn-dismiss-alert-${alert.id}`}
                             onClick={() => onDismissAlert(alert.id)}
-                            className="px-3.5 py-2 rounded-xl bg-white dark:bg-[#2D2E30] hover:bg-gray-100 dark:hover:bg-[#3C4043] text-xs font-bold text-[#1F1F1F] dark:text-white border border-[#E1E3E1] dark:border-[#303134] transition-colors shrink-0 self-start sm:self-center"
+                            className="px-4 py-2 rounded-full bg-white dark:bg-[#1E1F20] hover:bg-[#F1F3F4] dark:hover:bg-[#303134] text-xs font-bold text-[#1F1F1F] dark:text-[#E3E3E3] border border-[#E1E3E1] dark:border-[#303134] transition-all shadow-2xs shrink-0 self-start sm:self-center active:scale-95"
                           >
                             Clear Alert
                           </button>

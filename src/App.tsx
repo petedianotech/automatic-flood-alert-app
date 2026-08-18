@@ -26,6 +26,7 @@ import { AdminSafetyDashboardView } from './components/AdminSafetyDashboardView'
 import { CriticalAlarmModal } from './components/CriticalAlarmModal';
 import { FirebaseConfigModal } from './components/FirebaseConfigModal';
 import { SafetyCheckInModal } from './components/SafetyCheckInModal';
+import { DirectVoiceSOSModal } from './components/DirectVoiceSOSModal';
 import { InstallAppPrompt } from './components/InstallAppPrompt';
 import { Mic } from 'lucide-react';
 import {
@@ -188,10 +189,10 @@ export default function App() {
   );
   const [isSafetyModalOpen, setIsSafetyModalOpen] = useState(false);
   const [isSafetyModalAutoVoice, setIsSafetyModalAutoVoice] = useState(false);
+  const [isDirectVoiceSOSOpen, setIsDirectVoiceSOSOpen] = useState(false);
 
-  const handleOpenVoiceSOS = () => {
-    setIsSafetyModalAutoVoice(true);
-    setIsSafetyModalOpen(true);
+  const handleOpenDirectVoiceSOS = () => {
+    setIsDirectVoiceSOSOpen(true);
   };
 
   const handleOpenNormalCheckIn = () => {
@@ -533,6 +534,16 @@ export default function App() {
     sirenService.stopEmergencySiren();
   };
 
+  // One-Tap Turn Off Sensors & Dismiss Alert
+  const handleTurnOffSensorAndDismiss = async (alertId: string) => {
+    setIsArmed(false);
+    setIsPaused(false);
+    motionSensorService.stopListening();
+    acousticSensorService.stopListening();
+    sirenService.stopAllAlarms();
+    await handleDismissAlert(alertId);
+  };
+
   // Clear Alerts Log
   const handleClearAlerts = async () => {
     if (window.confirm('Clear all recorded flood incidents from the history log?')) {
@@ -583,7 +594,7 @@ export default function App() {
           onOpenFirebaseModal={() => setIsFirebaseModalOpen(true)}
           currentUser={authState.user}
           onOpenAuthModal={() => setIsAuthModalOpen(true)}
-          onOpenVoiceSOS={handleOpenVoiceSOS}
+          onOpenVoiceSOS={handleOpenDirectVoiceSOS}
           activeAlertCount={activeAlertCount}
         />
 
@@ -645,7 +656,7 @@ export default function App() {
               onOpenFirebaseModal={() => setIsFirebaseModalOpen(true)}
               isDarkMode={isDarkMode}
               isOnline={isOnline}
-              onOpenVoiceSOS={handleOpenVoiceSOS}
+              onOpenVoiceSOS={handleOpenDirectVoiceSOS}
             />
           )}
 
@@ -656,6 +667,7 @@ export default function App() {
               safetyReports={safetyReports}
               isDarkMode={isDarkMode}
               onOpenAuthModal={() => setIsAuthModalOpen(true)}
+              onOpenDirectVoiceSOS={handleOpenDirectVoiceSOS}
             />
           )}
         </main>
@@ -665,9 +677,9 @@ export default function App() {
           <button
             type="button"
             id="floating-fast-voice-sos-btn"
-            onClick={handleOpenVoiceSOS}
-            className="w-12 h-12 rounded-full bg-red-600 hover:bg-red-500 active:scale-90 text-white flex items-center justify-center shadow-xl shadow-red-950/60 border-2 border-red-400 transition-all group"
-            title="Fast Voice Check-In / SOS"
+            onClick={handleOpenDirectVoiceSOS}
+            className="w-12 h-12 rounded-full bg-red-600 hover:bg-red-500 active:scale-90 text-white flex items-center justify-center shadow-xl shadow-red-950/60 border-2 border-red-400 transition-all group cursor-pointer"
+            title="Fast Direct Voice SOS"
           >
             <Mic className="w-5 h-5 group-hover:scale-110 transition-transform animate-pulse" />
           </button>
@@ -694,10 +706,19 @@ export default function App() {
       <CriticalAlarmModal
         activeAlert={activeAlert}
         onDismiss={handleDismissAlert}
+        onTurnOffSensorAndDismiss={handleTurnOffSensorAndDismiss}
         isSoundEnabled={config.soundAlarmOnDevice}
       />
 
-      {/* 6. Safety Status Check-In Modal with Fast Voice Support */}
+      {/* 6. Direct Fast Voice Emergency SOS Modal */}
+      <DirectVoiceSOSModal
+        isOpen={isDirectVoiceSOSOpen}
+        onClose={() => setIsDirectVoiceSOSOpen(false)}
+        currentUser={authState.user}
+        isDarkMode={isDarkMode}
+      />
+
+      {/* 7. Detailed Safety Status Check-In Modal */}
       <SafetyCheckInModal
         isOpen={isSafetyModalOpen}
         onClose={() => {

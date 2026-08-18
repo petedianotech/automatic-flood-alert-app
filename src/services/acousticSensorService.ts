@@ -1,10 +1,6 @@
 /**
- * Acoustic & Sound Resonance Sensor Service
- * Secondary Flood Detection Method (Microphone Audio Analysis)
- * 
- * Analyzes ambient sound decibels (SPL dB) and low-frequency flood resonance (40Hz - 450Hz)
- * created by rushing river water, torrential flash floods, and turbulent culvert flow.
- * Triggers flood warning / critical alerts when acoustic resonance & dB exceed safety limits.
+ * Bell Sound Sensor Service
+ * Detects bell ringing while ignoring human voice and whistles.
  */
 
 import { AcousticData, AcousticSensorState, FloodSeverity } from '../types';
@@ -27,11 +23,15 @@ class AcousticSensorService {
   private isListening: boolean = false;
   private isPaused: boolean = false;
 
-  // Thresholds
-  private thresholdYellowDb: number = 68; // dB (Moderate Roar / Warning)
-  private thresholdRedDb: number = 82; // dB (Severe Rushing Water / Critical)
-  private resonanceThreshold: number = 65; // % low-frequency resonance
-  private sensitivityMultiplier: number = 1.2;
+  // Reduced, sensitive thresholds to easily detect real-world bell ringing
+  private thresholdYellowDb: number = 48; // dB (Warning level)
+  private thresholdRedDb: number = 60; // dB (Alarm / Danger level)
+  private resonanceThreshold: number = 30; // % Bell Match Score
+  private sensitivityMultiplier: number = 1.3;
+
+  // Circular history buffer for strike rhythm
+  private bellEnergyHistory: number[] = [];
+  private historyMaxLength: number = 60;
 
   // Debounce & timing
   private soundStartTime: number | null = null;
@@ -40,7 +40,7 @@ class AcousticSensorService {
   private lastRedTriggerTime: number = 0;
 
   private latestData: AcousticData = {
-    decibels: 32,
+    decibels: 30,
     rms: 0.01,
     peakRms: 0.01,
     resonanceScore: 0,
@@ -49,6 +49,14 @@ class AcousticSensorService {
     sustainedDurationSec: 0,
     triggerProgress: 0,
     timestamp: Date.now(),
+    bellDetectionScore: 0,
+    isBellRingingDetected: false,
+    soundClassification: 'quiet',
+    voiceRejectionActive: false,
+    whistleRejectionActive: false,
+    motorCadenceHz: 0,
+    bellBandDb: 30,
+    speechBandDb: 30,
   };
 
   private callbacks: Set<AcousticCallback> = new Set();
@@ -57,7 +65,7 @@ class AcousticSensorService {
   private simIntervalId: number | null = null;
 
   constructor() {
-    //
+    this.bellEnergyHistory = new Array(this.historyMaxLength).fill(0);
   }
 
   public isSupported(): boolean {
@@ -69,9 +77,9 @@ class AcousticSensorService {
   }
 
   public setConfig(
-    thresholdYellowDb: number = 68,
-    thresholdRedDb: number = 82,
-    sensitivity: number = 1.2
+    thresholdYellowDb: number = 48,
+    thresholdRedDb: number = 60,
+    sensitivity: number = 1.3
   ) {
     this.thresholdYellowDb = thresholdYellowDb;
     this.thresholdRedDb = thresholdRedDb;
@@ -89,7 +97,6 @@ class AcousticSensorService {
           autoGainControl: false,
         },
       });
-      // Stop stream immediately if just requesting permission
       stream.getTracks().forEach((track) => track.stop());
       return 'granted';
     } catch (err) {
@@ -108,7 +115,7 @@ class AcousticSensorService {
         isListening: false,
         permissionStatus: 'unsupported',
         isPaused: false,
-        error: 'Microphone / Web Audio API is not supported on this browser.',
+        error: 'Microphone is not supported on this browser.',
         thresholdYellowDb: this.thresholdYellowDb,
         thresholdRedDb: this.thresholdRedDb,
         resonanceThreshold: this.resonanceThreshold,
@@ -117,7 +124,9 @@ class AcousticSensorService {
     }
 
     try {
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.audioContext = new AudioCtx();
       if (this.audioContext.state === 'suspended') {
         await this.audioContext.resume();
@@ -133,14 +142,15 @@ class AcousticSensorService {
 
       this.sourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
       this.analyser = this.audioContext.createAnalyser();
-      this.analyser.fftSize = 512;
-      this.analyser.smoothingTimeConstant = 0.6;
+      this.analyser.fftSize = 1024;
+      this.analyser.smoothingTimeConstant = 0.4;
       this.sourceNode.connect(this.analyser);
 
       this.isListening = true;
       this.isPaused = false;
       this.soundStartTime = null;
       this.currentPeakDb = 0;
+      this.bellEnergyHistory = new Array(this.historyMaxLength).fill(0);
 
       this.notifyStateChange({
         isSupported: true,
@@ -162,7 +172,7 @@ class AcousticSensorService {
         isListening: false,
         permissionStatus: 'denied',
         isPaused: false,
-        error: 'Microphone access denied or unavailable. Grant permission to use sound recognition.',
+        error: 'Microphone access denied. Please allow microphone access to use sound sensor.',
         thresholdYellowDb: this.thresholdYellowDb,
         thresholdRedDb: this.thresholdRedDb,
         resonanceThreshold: this.resonanceThreshold,
@@ -270,7 +280,7 @@ class AcousticSensorService {
   }
 
   private startProcessingLoop() {
-    const bufferLength = this.analyser?.frequencyBinCount || 256;
+    const bufferLength = this.analyser?.frequencyBinCount || 512;
     const timeData = new Uint8Array(bufferLength);
     const freqData = new Uint8Array(bufferLength);
 
@@ -284,37 +294,36 @@ class AcousticSensorService {
         return;
       }
 
-      // 1. Time-domain waveform for RMS calculation
+      // 1. Time-domain waveform for overall sound loudness
       this.analyser.getByteTimeDomainData(timeData);
 
       let sumSquares = 0;
       for (let i = 0; i < bufferLength; i++) {
-        const normalized = (timeData[i] - 128) / 128; // -1.0 to 1.0
+        const normalized = (timeData[i] - 128) / 128;
         sumSquares += normalized * normalized;
       }
       const rawRms = Math.sqrt(sumSquares / bufferLength);
       const rms = Math.min(1.0, rawRms * this.sensitivityMultiplier);
 
-      // Decibel calculation: map RMS to approximate Sound Pressure Level (SPL dB: 30dB - 110dB)
-      // Reference: silence ~ 30dB, normal speech ~ 60dB, loud water/rush ~ 75-90dB, jet/siren ~ 100dB+
+      // Decibels calculation (~30dB to 105dB range)
       let decibels = 30;
       if (rms > 0.001) {
-        // dBFS formula: 20 * log10(rms)
         const dbfs = 20 * Math.log10(rms);
-        // Map dbfs (-60dB to 0dB) to approximate SPL (30dB to 105dB)
-        decibels = Math.max(30, Math.min(110, Math.round(98 + dbfs * 1.15)));
+        decibels = Math.max(30, Math.min(105, Math.round(96 + dbfs * 1.12)));
       }
 
-      // 2. Frequency spectrum for Low-Frequency Turbulent Water Resonance (40Hz - 450Hz)
+      // 2. Frequency analysis
       this.analyser.getByteFrequencyData(freqData);
 
-      // Calculate sample rate step per bin
       const sampleRate = this.audioContext?.sampleRate || 44100;
-      const binWidth = sampleRate / (bufferLength * 2); // ~86 Hz per bin if fftSize=512
+      const binWidth = sampleRate / (bufferLength * 2); // ~43 Hz per bin
 
-      // Analyze bins corresponding to 40Hz - 450Hz (turbulent water roar)
-      let lowEnergy = 0;
-      let lowBinCount = 0;
+      let speechEnergy = 0;
+      let speechBinCount = 0;
+      let whistleEnergy = 0;
+      let whistleBinCount = 0;
+      let bellPrimaryEnergy = 0;
+      let bellPrimaryBinCount = 0;
       let totalEnergy = 0;
 
       for (let i = 0; i < bufferLength; i++) {
@@ -322,21 +331,91 @@ class AcousticSensorService {
         const val = freqData[i];
         totalEnergy += val;
 
-        if (freq >= 40 && freq <= 480) {
-          lowEnergy += val;
-          lowBinCount++;
+        // Human Speech Band (85Hz - 1,200Hz)
+        if (freq >= 85 && freq <= 1200) {
+          speechEnergy += val;
+          speechBinCount++;
+        }
+        // Whistle Band (1,300Hz - 1,900Hz)
+        else if (freq > 1200 && freq <= 1900) {
+          whistleEnergy += val;
+          whistleBinCount++;
+        }
+        // Bell Sound Band (Broadened: 1,600Hz - 5,500Hz for easy detection)
+        else if (freq >= 1600 && freq <= 5500) {
+          bellPrimaryEnergy += val;
+          bellPrimaryBinCount++;
         }
       }
 
-      const avgLow = lowBinCount > 0 ? lowEnergy / lowBinCount : 0;
-      const avgTotal = bufferLength > 0 ? totalEnergy / bufferLength : 1;
+      const avgSpeech = speechBinCount > 0 ? speechEnergy / speechBinCount : 0;
+      const avgWhistle = whistleBinCount > 0 ? whistleEnergy / whistleBinCount : 0;
+      const avgBellPrimary = bellPrimaryBinCount > 0 ? bellPrimaryEnergy / bellPrimaryBinCount : 0;
 
-      // Low frequency turbulence ratio (0 to 100%)
-      let resonanceScore = Math.round(
-        Math.min(100, Math.max(0, (avgLow / 255) * 100 * (avgTotal > 10 ? avgLow / avgTotal : 0.5) * this.sensitivityMultiplier))
-      );
+      // Approximate localized dB
+      const speechBandDb = Math.round(30 + (avgSpeech / 255) * 65);
+      const bellBandDb = Math.round(30 + (avgBellPrimary / 255) * 75);
 
-      // Visualizer bin aggregation (downsample to 32 visual bars)
+      // Track bell energy history for cadence
+      this.bellEnergyHistory.push(avgBellPrimary);
+      if (this.bellEnergyHistory.length > this.historyMaxLength) {
+        this.bellEnergyHistory.shift();
+      }
+
+      let motorCadenceHz = 0;
+      let strikePeakCount = 0;
+      const histLen = this.bellEnergyHistory.length;
+      if (histLen >= 15) {
+        let mean = 0;
+        for (let j = 0; j < histLen; j++) mean += this.bellEnergyHistory[j];
+        mean /= histLen;
+
+        for (let j = 1; j < histLen - 1; j++) {
+          const prev = this.bellEnergyHistory[j - 1];
+          const curr = this.bellEnergyHistory[j];
+          const next = this.bellEnergyHistory[j + 1];
+
+          if (curr > 20 && curr > prev && curr > next && curr > mean * 1.1) {
+            strikePeakCount++;
+          }
+        }
+        motorCadenceHz = Math.round((strikePeakCount / (histLen / 60)) * 10) / 10;
+      }
+
+      // === REJECTION & DETECTION LOGIC ===
+      let soundClassification: AcousticData['soundClassification'] = 'quiet';
+      let voiceRejectionActive = false;
+      let whistleRejectionActive = false;
+      let bellDetectionScore = 0;
+
+      if (decibels < 38 && avgBellPrimary < 10 && avgSpeech < 10) {
+        soundClassification = 'quiet';
+        bellDetectionScore = 0;
+      }
+      // 1. Voice Rejection (Only if speech is distinctly dominant and bell is not ringing)
+      else if (avgSpeech > 30 && avgSpeech > avgBellPrimary * 1.8) {
+        soundClassification = 'human_voice';
+        voiceRejectionActive = true;
+        bellDetectionScore = Math.max(0, Math.round((avgBellPrimary / (avgSpeech + 1)) * 30));
+      }
+      // 2. Whistle Rejection (Only if whistle is distinctly dominant)
+      else if (avgWhistle > 45 && avgWhistle > avgBellPrimary * 2.0) {
+        soundClassification = 'whistle';
+        whistleRejectionActive = true;
+        bellDetectionScore = 0;
+      }
+      // 3. Bell Sound Detection (Generous calculation)
+      else if (avgBellPrimary >= 18) {
+        const ratio = avgBellPrimary / (avgSpeech + 1);
+        const baseScore = Math.min(100, Math.round((avgBellPrimary / 100) * 75 * Math.min(2.0, Math.max(0.8, ratio))));
+        bellDetectionScore = Math.min(100, Math.max(35, baseScore));
+        soundClassification = 'bell_ringing';
+      } else {
+        soundClassification = decibels > 45 ? 'ambient_noise' : 'quiet';
+        bellDetectionScore = Math.max(0, Math.round((avgBellPrimary / 255) * 50));
+      }
+
+      // 32 visual spectrum bars
       const visualBarsCount = 32;
       const step = Math.floor(bufferLength / visualBarsCount);
       const visualBins: number[] = [];
@@ -348,15 +427,21 @@ class AcousticSensorService {
         visualBins.push(Math.round(barSum / step));
       }
 
-      const isWaterRoarDetected = resonanceScore >= this.resonanceThreshold && decibels >= this.thresholdYellowDb;
+      // Detection condition (Low, friendly thresholds)
+      const isBellRingingDetected =
+        bellDetectionScore >= this.resonanceThreshold &&
+        (bellBandDb >= this.thresholdYellowDb || decibels >= this.thresholdYellowDb) &&
+        !voiceRejectionActive &&
+        !whistleRejectionActive;
 
       const now = Date.now();
       let sustainedSec = 0;
       let triggerProgress = 0;
 
-      // Threshold trigger logic
-      const isAboveYellow = decibels >= this.thresholdYellowDb || resonanceScore >= this.resonanceThreshold;
-      const isAboveRed = decibels >= this.thresholdRedDb || (decibels >= this.thresholdYellowDb && resonanceScore >= 80);
+      const isAboveYellow = isBellRingingDetected || (bellDetectionScore >= 40 && decibels >= this.thresholdYellowDb);
+      const isAboveRed =
+        (bellDetectionScore >= 45 && (bellBandDb >= this.thresholdRedDb || decibels >= this.thresholdRedDb)) ||
+        (isBellRingingDetected && decibels >= this.thresholdRedDb);
 
       if (isAboveYellow) {
         if (this.soundStartTime === null) {
@@ -366,34 +451,31 @@ class AcousticSensorService {
           this.currentPeakDb = Math.max(this.currentPeakDb, decibels);
         }
         sustainedSec = (now - this.soundStartTime) / 1000;
-        triggerProgress = Math.min(1.0, (decibels - 40) / (this.thresholdRedDb - 40));
+        triggerProgress = Math.min(1.0, bellDetectionScore / 100);
       } else {
         if (this.soundStartTime !== null) {
           const timeSinceHigh = (now - this.soundStartTime) / 1000;
-          if (timeSinceHigh >= 0.2) {
+          if (timeSinceHigh >= 0.3) {
             this.soundStartTime = null;
             this.currentPeakDb = 0;
           }
         }
       }
 
-      // === IMMEDIATE THRESHOLD TRIGGER LOGIC ===
-      // 1. RED CRITICAL LEVEL: Loud continuous water roar / extreme sound level
-      if (isAboveRed) {
+      // Trigger Alerts
+      if (isAboveRed && !voiceRejectionActive) {
         const timeSinceLastRed = now - this.lastRedTriggerTime;
-        if (timeSinceLastRed > 8000) {
+        if (timeSinceLastRed > 6000) {
           this.lastRedTriggerTime = now;
           this.lastYellowTriggerTime = now;
-          this.notifyFloodTrigger(decibels, 'red', Math.max(0.1, sustainedSec), 'acoustic_sound_sensor');
+          this.notifyFloodTrigger(decibels, 'red', Math.max(0.2, sustainedSec), 'acoustic_sound_sensor');
         }
-      }
-      // 2. YELLOW WARNING LEVEL: Moderate roar / elevated resonance
-      else if (isAboveYellow) {
+      } else if (isAboveYellow && !voiceRejectionActive) {
         const timeSinceLastYellow = now - this.lastYellowTriggerTime;
         const timeSinceLastRed = now - this.lastRedTriggerTime;
-        if (timeSinceLastYellow > 10000 && timeSinceLastRed > 5000) {
+        if (timeSinceLastYellow > 8000 && timeSinceLastRed > 4000) {
           this.lastYellowTriggerTime = now;
-          this.notifyFloodTrigger(decibels, 'yellow', Math.max(0.1, sustainedSec), 'acoustic_sound_sensor');
+          this.notifyFloodTrigger(decibels, 'yellow', Math.max(0.2, sustainedSec), 'acoustic_sound_sensor');
         }
       }
 
@@ -401,12 +483,20 @@ class AcousticSensorService {
         decibels,
         rms,
         peakRms: rms,
-        resonanceScore,
+        resonanceScore: bellDetectionScore,
         frequencyData: visualBins,
-        isWaterRoarDetected,
+        isWaterRoarDetected: isBellRingingDetected,
         sustainedDurationSec: sustainedSec,
         triggerProgress,
         timestamp: now,
+        bellDetectionScore,
+        isBellRingingDetected,
+        soundClassification,
+        voiceRejectionActive,
+        whistleRejectionActive,
+        motorCadenceHz,
+        bellBandDb,
+        speechBandDb,
       };
 
       this.callbacks.forEach((cb) => cb(this.latestData));
@@ -420,27 +510,26 @@ class AcousticSensorService {
   public simulateSoundTest(severity: FloodSeverity = 'red') {
     this.stopSimulation();
     const isRed = severity === 'red';
-    const targetDb = isRed ? 88 : 72;
-    const targetResonance = isRed ? 85 : 68;
+    const targetDb = isRed ? 72 : 55;
+    const targetScore = isRed ? 88 : 65;
 
     let tick = 0;
-    const durationTicks = 18; // ~3.6 seconds
+    const durationTicks = 15;
 
     this.simIntervalId = window.setInterval(() => {
       tick++;
-      const jitter = (Math.random() - 0.5) * 4;
-      const currentDb = Math.round(targetDb + jitter);
-      const resonance = Math.round(targetResonance + (Math.random() - 0.5) * 5);
+      const isStrikeTick = tick % 2 === 0;
+      const currentDb = Math.round(targetDb + (isStrikeTick ? 6 : -4) + (Math.random() - 0.5) * 2);
+      const bellScore = Math.min(100, Math.round(targetScore + (Math.random() - 0.5) * 4));
 
-      // Generate synthetic frequency bins emphasizing low frequencies
       const simBins: number[] = [];
       for (let i = 0; i < 32; i++) {
-        if (i < 8) {
-          simBins.push(Math.min(255, Math.round(180 + Math.random() * 70)));
-        } else if (i < 16) {
-          simBins.push(Math.min(255, Math.round(100 + Math.random() * 60)));
+        if (i < 10) {
+          simBins.push(Math.min(255, Math.round(15 + Math.random() * 15)));
+        } else if (i >= 12 && i <= 24) {
+          simBins.push(Math.min(255, Math.round(isStrikeTick ? 210 + Math.random() * 30 : 150 + Math.random() * 25)));
         } else {
-          simBins.push(Math.min(255, Math.round(30 + Math.random() * 40)));
+          simBins.push(Math.min(255, Math.round(25 + Math.random() * 15)));
         }
       }
 
@@ -449,18 +538,26 @@ class AcousticSensorService {
         decibels: currentDb,
         rms: currentDb / 100,
         peakRms: currentDb / 100,
-        resonanceScore: resonance,
+        resonanceScore: bellScore,
         frequencyData: simBins,
         isWaterRoarDetected: true,
         sustainedDurationSec: tick * 0.2,
-        triggerProgress: Math.min(1.0, tick / 6),
+        triggerProgress: Math.min(1.0, tick / 5),
         timestamp: now,
+        bellDetectionScore: bellScore,
+        isBellRingingDetected: true,
+        soundClassification: 'bell_ringing',
+        voiceRejectionActive: false,
+        whistleRejectionActive: false,
+        motorCadenceHz: 10,
+        bellBandDb: currentDb,
+        speechBandDb: 25,
       };
 
       this.callbacks.forEach((cb) => cb(this.latestData));
 
-      if (tick === 4) {
-        this.notifyFloodTrigger(targetDb, severity, 0.8, 'simulated');
+      if (tick === 3) {
+        this.notifyFloodTrigger(targetDb, severity, 0.6, 'simulated');
       }
 
       if (tick >= durationTicks) {

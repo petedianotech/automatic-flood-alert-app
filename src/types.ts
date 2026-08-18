@@ -116,6 +116,16 @@ export interface AcousticData {
   sustainedDurationSec: number;
   triggerProgress: number; // 0.0 - 1.0
   timestamp: number;
+
+  // Continuous Motor-Driven Bicycle Bell Detection & Rejection Metrics
+  bellDetectionScore: number; // 0 - 100% match with metallic bicycle bell profile
+  isBellRingingDetected: boolean; // True when motor-rotated bell is actively detected
+  soundClassification: 'bell_ringing' | 'human_voice' | 'whistle' | 'ambient_noise' | 'water_roar' | 'quiet';
+  voiceRejectionActive: boolean; // True when speech is detected and filtered out
+  whistleRejectionActive: boolean; // True when whistling is filtered out
+  motorCadenceHz: number; // Estimated repetitive motor strike frequency (Hz)
+  bellBandDb: number; // Sound level in 2.4kHz - 4.8kHz bell band
+  speechBandDb: number; // Sound level in 100Hz - 1.4kHz human voice band
 }
 
 export interface AcousticSensorState {

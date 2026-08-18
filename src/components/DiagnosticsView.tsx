@@ -5,14 +5,8 @@ import {
   VolumeX,
   Smartphone,
   Zap,
-  Radio,
-  Sparkles,
   Save,
   Check,
-  Shield,
-  HelpCircle,
-  Play,
-  RotateCcw,
 } from 'lucide-react';
 import { SensorConfig, MotionSensorState, WakeLockState } from '../types';
 import { sirenService } from '../services/audioSiren';
@@ -61,25 +55,25 @@ export const DiagnosticsView: React.FC<DiagnosticsViewProps> = ({
   };
 
   return (
-    <div id="diagnostics-view" className="space-y-6">
+    <div id="diagnostics-view" className="space-y-4 pb-16">
       {/* 1. Threshold & Sensor Tuning Parameters Card */}
       <form
         onSubmit={handleSave}
-        className={`rounded-3xl border p-6 transition-all shadow-xs ${
+        className={`rounded-3xl border p-5 sm:p-6 transition-all shadow-xs space-y-5 ${
           isDarkMode
             ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
             : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
         }`}
       >
-        <div className="flex items-center justify-between gap-4 pb-4 border-b border-black/5 dark:border-white/5 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E1E3E1] dark:border-[#303134]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#1A73E8]/10 text-[#1A73E8] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-2xl bg-[#E8F0FE] text-[#1A73E8] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8] flex items-center justify-center">
               <Sliders className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold font-sans">Sensor Calibration &amp; Threshold Tuning</h2>
+              <h2 className="text-lg font-bold font-sans tracking-tight">Sensor Settings &amp; Alarm Volume</h2>
               <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6]">
-                Configure physical water vibrator sensitivity and trip timing
+                Configure vibration sensitivity, trigger timer, and siren loudness
               </p>
             </div>
           </div>
@@ -87,21 +81,21 @@ export const DiagnosticsView: React.FC<DiagnosticsViewProps> = ({
           <button
             type="submit"
             id="btn-save-diagnostics-config"
-            className="px-5 py-2.5 rounded-2xl bg-[#1A73E8] hover:bg-[#1557B0] text-white text-xs font-bold flex items-center gap-2 shadow-xs transition-all"
+            className="px-5 py-2.5 rounded-full bg-[#1A73E8] hover:bg-[#1557B0] text-white text-xs font-bold flex items-center gap-2 shadow-xs transition-all active:scale-95"
           >
             {isSaved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-            <span>{isSaved ? 'Settings Saved!' : 'Save Config'}</span>
+            <span>{isSaved ? 'Settings Saved' : 'Save Settings'}</span>
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Threshold Slider */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="flex justify-between items-center text-xs font-bold">
               <label className="text-[#1F1F1F] dark:text-[#E3E3E3]">
-                Vibration Trip Threshold ($\Delta$):
+                Vibration Alarm Level:
               </label>
-              <span className="font-mono text-sm px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-[#1A73E8] font-bold">
+              <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-[#E8F0FE] text-[#1A73E8] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8] font-bold">
                 {localConfig.thresholdDelta.toFixed(2)} m/s²
               </span>
             </div>
@@ -114,22 +108,22 @@ export const DiagnosticsView: React.FC<DiagnosticsViewProps> = ({
               onChange={(e) =>
                 setLocalConfig({ ...localConfig, thresholdDelta: parseFloat(e.target.value) })
               }
-              className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#1A73E8]"
+              className="w-full h-2 bg-[#E1E3E1] dark:bg-[#303134] rounded-lg appearance-none cursor-pointer accent-[#1A73E8]"
             />
             <div className="flex justify-between text-[11px] text-[#5F6368] dark:text-[#9AA0A6]">
-              <span>0.5 m/s² (Very Sensitive)</span>
-              <span>1.5 m/s² (Recommended)</span>
-              <span>5.0 m/s² (Heavy Jolts)</span>
+              <span>0.5 (Very Sensitive)</span>
+              <span>1.5 (Recommended)</span>
+              <span>5.0 (Strong Vibration)</span>
             </div>
           </div>
 
           {/* Continuous Duration Slider */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="flex justify-between items-center text-xs font-bold">
               <label className="text-[#1F1F1F] dark:text-[#E3E3E3]">
-                Continuous Vibration Hold Duration:
+                Continuous Vibration Time:
               </label>
-              <span className="font-mono text-sm px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-[#1A73E8] font-bold">
+              <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-[#E8F0FE] text-[#1A73E8] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8] font-bold">
                 {localConfig.continuousDurationSec.toFixed(1)} Seconds
               </span>
             </div>
@@ -142,50 +136,50 @@ export const DiagnosticsView: React.FC<DiagnosticsViewProps> = ({
               onChange={(e) =>
                 setLocalConfig({ ...localConfig, continuousDurationSec: parseFloat(e.target.value) })
               }
-              className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#1A73E8]"
+              className="w-full h-2 bg-[#E1E3E1] dark:bg-[#303134] rounded-lg appearance-none cursor-pointer accent-[#1A73E8]"
             />
             <div className="flex justify-between text-[11px] text-[#5F6368] dark:text-[#9AA0A6]">
-              <span>1.0s (Fast Trip)</span>
-              <span>3.0s (Default)</span>
-              <span>10.0s (High Filter)</span>
+              <span>1.0s (Instant Trigger)</span>
+              <span>3.0s (Normal)</span>
+              <span>10.0s (Wait longer)</span>
             </div>
           </div>
 
           {/* Node Name */}
-          <div>
-            <label className="block text-xs font-bold text-[#5F6368] dark:text-[#9AA0A6] mb-1.5">
-              Sensor Node Location / Name
+          <div className="space-y-1">
+            <label className="block text-xs font-bold text-[#5F6368] dark:text-[#9AA0A6]">
+              Sensor Station Name / Location
             </label>
             <input
               type="text"
               value={localConfig.sensorName}
               onChange={(e) => setLocalConfig({ ...localConfig, sensorName: e.target.value })}
-              placeholder="Basement Sump Pump Sensor"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-black/15 dark:border-white/15 bg-transparent text-xs font-semibold focus:ring-2 focus:ring-[#1A73E8] outline-none"
+              placeholder="River Node #1 - Dzenje Bridge"
+              className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E1E3E1] dark:border-[#303134] bg-[#F8F9FA] dark:bg-[#121316] text-xs font-semibold focus:border-[#1A73E8] outline-none"
             />
           </div>
 
           {/* Node ID */}
-          <div>
-            <label className="block text-xs font-bold text-[#5F6368] dark:text-[#9AA0A6] mb-1.5">
-              Node Identifier (Unique Tag)
+          <div className="space-y-1">
+            <label className="block text-xs font-bold text-[#5F6368] dark:text-[#9AA0A6]">
+              Sensor ID Tag
             </label>
             <input
               type="text"
               value={localConfig.nodeId}
               onChange={(e) => setLocalConfig({ ...localConfig, nodeId: e.target.value })}
               placeholder="sensor-node-01"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-black/15 dark:border-white/15 bg-transparent font-mono text-xs focus:ring-2 focus:ring-[#1A73E8] outline-none"
+              className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E1E3E1] dark:border-[#303134] bg-[#F8F9FA] dark:bg-[#121316] font-mono text-xs focus:border-[#1A73E8] outline-none"
             />
           </div>
 
           {/* Siren Volume Slider */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="flex justify-between items-center text-xs font-bold">
               <label className="text-[#1F1F1F] dark:text-[#E3E3E3]">
-                Emergency Siren Audio Volume:
+                Emergency Siren Loudness:
               </label>
-              <span className="font-mono text-sm px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-[#1A73E8] font-bold">
+              <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-[#E8F0FE] text-[#1A73E8] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8] font-bold">
                 {Math.round(localConfig.sirenVolume * 100)}%
               </span>
             </div>
@@ -200,7 +194,7 @@ export const DiagnosticsView: React.FC<DiagnosticsViewProps> = ({
                 setLocalConfig({ ...localConfig, sirenVolume: vol });
                 sirenService.setVolume(vol);
               }}
-              className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#1A73E8]"
+              className="w-full h-2 bg-[#E1E3E1] dark:bg-[#303134] rounded-lg appearance-none cursor-pointer accent-[#1A73E8]"
             />
           </div>
 
@@ -210,106 +204,106 @@ export const DiagnosticsView: React.FC<DiagnosticsViewProps> = ({
               type="button"
               id="btn-toggle-siren-test"
               onClick={handleToggleSirenTest}
-              className={`w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all ${
+              className={`w-full py-2.5 rounded-full text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95 ${
                 isSirenTesting
-                  ? 'bg-[#D93025] text-white border-transparent shadow-xs animate-pulse'
-                  : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 hover:bg-black/10'
+                  ? 'bg-[#D93025] text-white shadow-xs'
+                  : 'bg-[#F1F3F4] hover:bg-[#E8EAED] dark:bg-[#2D2E30] dark:hover:bg-[#3C4043] text-[#1F1F1F] dark:text-[#E3E3E3]'
               }`}
             >
-              {isSirenTesting ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4 text-[#1A73E8]" />}
-              <span>{isSirenTesting ? 'Stop Audio Siren Test' : 'Test Audio Siren Synth'}</span>
+              {isSirenTesting ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4 text-[#1A73E8] dark:text-[#8AB4F8]" />}
+              <span>{isSirenTesting ? 'Stop Siren Test' : 'Test Siren Sound'}</span>
             </button>
           </div>
         </div>
       </form>
 
-      {/* 2. Web API Diagnostics & Hardware Health */}
+      {/* 2. Device Hardware & Sensors Health */}
       <div
-        className={`rounded-3xl border p-6 transition-all shadow-xs ${
+        className={`rounded-3xl border p-5 sm:p-6 transition-all shadow-xs space-y-4 ${
           isDarkMode
             ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
             : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
         }`}
       >
-        <h3 className="text-base font-bold font-sans mb-4">Underlying Web APIs Diagnostics</h3>
+        <h3 className="text-base font-bold font-sans">Phone Sensors &amp; System Status</h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* Motion Sensor API */}
-          <div className="p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-2">
+          <div className="p-4 rounded-2xl bg-[#F8F9FA] dark:bg-[#28292A] border border-[#E1E3E1] dark:border-[#303134] space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold flex items-center gap-1.5">
-                <Smartphone className="w-4 h-4 text-[#1A73E8]" />
-                Device Motion API
+                <Smartphone className="w-4 h-4 text-[#1A73E8] dark:text-[#8AB4F8]" />
+                Movement Sensor
               </span>
               <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
                   sensorState.isListening
-                    ? 'bg-[#E6F4EA] text-[#137333]'
-                    : 'bg-[#F1F3F4] text-[#5F6368]'
+                    ? 'bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/20 dark:text-[#81C995]'
+                    : 'bg-[#F1F3F4] text-[#5F6368] dark:bg-[#2D2E30] dark:text-[#9AA0A6]'
                 }`}
               >
-                {sensorState.isListening ? 'LISTENING' : 'IDLE'}
+                {sensorState.isListening ? 'Active' : 'Idle'}
               </span>
             </div>
-            <p className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6]">
-              Permission: <strong>{sensorState.permissionStatus}</strong> • Hardware:{' '}
+            <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6]">
+              Permission: <strong>{sensorState.permissionStatus}</strong> &bull; Hardware:{' '}
               {sensorState.isSupported ? 'Supported' : 'Unavailable'}
             </p>
             <button
               onClick={onRequestMotionPermission}
-              className="text-[11px] text-[#1A73E8] font-bold hover:underline"
+              className="text-xs text-[#1A73E8] dark:text-[#8AB4F8] font-bold hover:underline"
             >
-              Re-query Permissions →
+              Check Permissions &rarr;
             </button>
           </div>
 
           {/* Screen Wake Lock API */}
-          <div className="p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-2">
+          <div className="p-4 rounded-2xl bg-[#F8F9FA] dark:bg-[#28292A] border border-[#E1E3E1] dark:border-[#303134] space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold flex items-center gap-1.5">
-                <Zap className="w-4 h-4 text-[#1A73E8]" />
-                Screen Wake Lock
+                <Zap className="w-4 h-4 text-[#1A73E8] dark:text-[#8AB4F8]" />
+                Screen Stay-Awake
               </span>
               <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
                   wakeLockState.isActive
-                    ? 'bg-[#E6F4EA] text-[#137333]'
-                    : 'bg-[#FCE8E6] text-[#D93025]'
+                    ? 'bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/20 dark:text-[#81C995]'
+                    : 'bg-[#FCE8E6] text-[#D93025] dark:bg-[#D93025]/20 dark:text-[#F28B82]'
                 }`}
               >
-                {wakeLockState.isActive ? 'ACTIVE' : 'INACTIVE'}
+                {wakeLockState.isActive ? 'Active' : 'Off'}
               </span>
             </div>
-            <p className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6]">
-              Prevents phone display from sleeping while plugged in.
+            <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6]">
+              Keeps phone screen on while plugged into charger.
             </p>
             <button
               onClick={onRequestWakeLock}
-              className="text-[11px] text-[#1A73E8] font-bold hover:underline"
+              className="text-xs text-[#1A73E8] dark:text-[#8AB4F8] font-bold hover:underline"
             >
-              Request Screen Lock →
+              Keep Screen Awake &rarr;
             </button>
           </div>
 
           {/* Web Audio API */}
-          <div className="p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-2">
+          <div className="p-4 rounded-2xl bg-[#F8F9FA] dark:bg-[#28292A] border border-[#E1E3E1] dark:border-[#303134] space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold flex items-center gap-1.5">
-                <Volume2 className="w-4 h-4 text-[#1A73E8]" />
-                Web Audio Siren
+                <Volume2 className="w-4 h-4 text-[#1A73E8] dark:text-[#8AB4F8]" />
+                Siren Speaker
               </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E6F4EA] text-[#137333]">
-                READY
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/20 dark:text-[#81C995]">
+                Ready
               </span>
             </div>
-            <p className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6]">
-              Oscillating frequency synthesizer with sawtooth &amp; square carrier LFO sweep.
+            <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6]">
+              Emergency warning sound synthesizer speaker.
             </p>
             <button
               onClick={onTestSiren}
-              className="text-[11px] text-[#1A73E8] font-bold hover:underline"
+              className="text-xs text-[#1A73E8] dark:text-[#8AB4F8] font-bold hover:underline"
             >
-              Play Siren Blast →
+              Play Siren Sound &rarr;
             </button>
           </div>
         </div>
