@@ -579,6 +579,7 @@ export default function App() {
           isFirebaseConnected={firebaseFloodService.getIsFirebaseConnected()}
           onOpenFirebaseModal={() => setIsFirebaseModalOpen(true)}
           currentUser={authState.user}
+          isAdmin={isAdmin}
           onOpenAuthModal={() => setIsAuthModalOpen(true)}
           onOpenVoiceSOS={handleOpenDirectVoiceSOS}
           activeAlertCount={activeAlertCount}
@@ -599,7 +600,6 @@ export default function App() {
               selectedVillage={selectedVillage}
               onSelectVillage={setSelectedVillage}
               onOpenCheckInModal={handleOpenNormalCheckIn}
-              onOpenDirectVoiceSOS={handleOpenDirectVoiceSOS}
             />
           )}
 
@@ -641,6 +641,8 @@ export default function App() {
               onOpenFirebaseModal={() => setIsFirebaseModalOpen(true)}
               isDarkMode={isDarkMode}
               isOnline={isOnline}
+              currentUser={authState.user}
+              isAdmin={isAdmin}
               onOpenVoiceSOS={handleOpenDirectVoiceSOS}
             />
           )}

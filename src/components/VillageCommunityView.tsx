@@ -16,7 +16,7 @@ import {
   Bell,
   HeartHandshake,
 } from 'lucide-react';
-import { UserProfile, FloodAlert, ResidentSafetyReport } from '../types';
+import { UserProfile, FloodAlert, ResidentSafetyReport, isAppAdmin } from '../types';
 
 interface VillageCommunityViewProps {
   currentUser: UserProfile | null;
@@ -275,12 +275,14 @@ const VILLAGES_DATA: VillageData[] = [
 
 export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
   currentUser,
+  safetyReports = [],
   selectedVillage = 'Dzenje Village',
   onSelectVillage,
   onOpenAuthModal,
   onOpenDirectVoiceSOS,
   onOpenCheckInModal,
 }) => {
+  const isAdmin = isAppAdmin(currentUser);
   const currentVillageName = selectedVillage || currentUser?.village || 'Dzenje Village';
 
   // Find active village data or fallback to Dzenje Village
@@ -290,6 +292,23 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
     ) || VILLAGES_DATA[0];
 
   const [activeTabSection, setActiveTabSection] = useState<'villages' | 'shelters' | 'contacts' | 'guide'>('villages');
+
+  // Real-time Firestore dynamic stats calculation
+  const allReports = safetyReports || [];
+  const activeVillageReports = allReports.filter(
+    (r) =>
+      r.village.toLowerCase().includes(activeVillageData.name.toLowerCase()) ||
+      activeVillageData.name.toLowerCase().includes(r.village.toLowerCase())
+  );
+
+  const realTotalReportsCount = activeVillageReports.length;
+  const realSafeCount = activeVillageReports.filter(
+    (r) => r.status === 'safe' || r.status === 'evacuated'
+  ).length;
+  const realHeadcountSum = activeVillageReports.reduce(
+    (sum, r) => sum + (r.peopleCount || 1),
+    0
+  );
 
   return (
     <div className="space-y-4 pb-24 select-none">
@@ -326,27 +345,26 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
           </button>
         </div>
 
-        {/* Quick Numbers Bar */}
+        {/* Dynamic Firestore Quick Numbers Bar */}
         <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-200/60">
           <div className="bg-white rounded-2xl p-2.5 text-center border border-slate-100">
-            <span className="text-[11px] text-[#49454F] font-medium block">Residents</span>
+            <span className="text-[11px] text-[#49454F] font-medium block">Check-Ins</span>
             <span className="text-base font-bold text-[#1C1B1F]">
-              {activeVillageData.residentCount}
+              {realTotalReportsCount}
             </span>
           </div>
 
           <div className="bg-white rounded-2xl p-2.5 text-center border border-slate-100">
             <span className="text-[11px] text-[#49454F] font-medium block">Safe Checked</span>
             <span className="text-base font-bold text-emerald-700">
-              {activeVillageData.safeCount}
+              {realSafeCount}
             </span>
           </div>
 
           <div className="bg-white rounded-2xl p-2.5 text-center border border-slate-100">
-            <span className="text-[11px] text-[#49454F] font-medium block">River Sensor</span>
-            <span className="text-xs font-bold text-blue-600 inline-flex items-center gap-1 mt-0.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              {activeVillageData.sensorStatus}
+            <span className="text-[11px] text-[#49454F] font-medium block">Headcount</span>
+            <span className="text-base font-bold text-blue-700">
+              {realHeadcountSum}
             </span>
           </div>
         </div>
@@ -364,7 +382,7 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
             </button>
           )}
 
-          {onOpenDirectVoiceSOS && (
+          {!isAdmin && onOpenDirectVoiceSOS && (
             <button
               type="button"
               onClick={onOpenDirectVoiceSOS}

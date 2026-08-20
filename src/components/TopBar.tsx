@@ -20,6 +20,7 @@ interface TopBarProps {
   isFirebaseConnected: boolean;
   onOpenFirebaseModal: () => void;
   currentUser: UserProfile | null;
+  isAdmin?: boolean;
   onOpenAuthModal: () => void;
   onOpenVoiceSOS?: () => void;
   activeAlertCount: number;
@@ -27,7 +28,9 @@ interface TopBarProps {
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
+  currentMode,
   currentUser,
+  isAdmin = false,
   onOpenAuthModal,
   onOpenVoiceSOS,
   selectedVillage = 'Dzenje Village',
@@ -43,6 +46,9 @@ export const TopBar: React.FC<TopBarProps> = ({
   };
 
   const villageName = currentUser?.village || selectedVillage || 'Dzenje Village';
+
+  // Voice Mic button is ONLY for villagers/users (not admins) on 'village' or 'receiver' (Alerts) screens
+  const showMicButton = !isAdmin && (currentMode === 'village' || currentMode === 'receiver');
 
   return (
     <header
@@ -62,7 +68,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             <span>Automatic Flood Alert App</span>
             <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block shrink-0" title="System Live & Active" />
           </div>
-          {/* Bottom Line: Dzenje CDSS ADDA STEM CLUB (Full name without cut) */}
+          {/* Bottom Line: Dzenje CDSS ADDA STEM CLUB */}
           <p className="text-[11px] sm:text-xs text-[#49454F] font-medium leading-tight mt-0.5 whitespace-nowrap">
             Dzenje CDSS ADDA STEM CLUB
           </p>
@@ -71,15 +77,17 @@ export const TopBar: React.FC<TopBarProps> = ({
 
       {/* Right: Voice Mic Button + User Profile Avatar */}
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          id="btn-topbar-voice-mic"
-          onClick={onOpenVoiceSOS}
-          className="w-9 h-9 rounded-full bg-[#F3EDF7] flex items-center justify-center text-[#49454F] hover:bg-[#E7E0EC] active:scale-95 transition cursor-pointer"
-          title="Open Voice SOS"
-        >
-          <Mic className="w-4.5 h-4.5 text-red-500" />
-        </button>
+        {showMicButton && (
+          <button
+            type="button"
+            id="btn-topbar-voice-mic"
+            onClick={onOpenVoiceSOS}
+            className="w-9 h-9 rounded-full bg-[#F3EDF7] flex items-center justify-center text-[#49454F] hover:bg-[#E7E0EC] active:scale-95 transition cursor-pointer"
+            title="Open Voice SOS"
+          >
+            <Mic className="w-4.5 h-4.5 text-red-500" />
+          </button>
+        )}
 
         <button
           type="button"

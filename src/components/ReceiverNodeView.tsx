@@ -14,7 +14,7 @@ import {
   Mic,
   Clock,
 } from 'lucide-react';
-import { FloodAlert } from '../types';
+import { FloodAlert, UserProfile, isAppAdmin } from '../types';
 import { sirenService } from '../services/audioSiren';
 
 interface ReceiverNodeViewProps {
@@ -27,6 +27,8 @@ interface ReceiverNodeViewProps {
   onOpenFirebaseModal?: () => void;
   isDarkMode?: boolean;
   isOnline?: boolean;
+  currentUser?: UserProfile | null;
+  isAdmin?: boolean;
   onOpenVoiceSOS?: () => void;
   onTriggerSiren?: () => void;
 }
@@ -35,8 +37,11 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
   alerts,
   onDismissAlert,
   onClearAlerts,
+  currentUser,
+  isAdmin: isAdminProp,
   onOpenVoiceSOS,
 }) => {
+  const isAdmin = isAdminProp ?? isAppAdmin(currentUser);
   const [isSirenActive, setIsSirenActive] = useState(false);
 
   const toggleEmergencySiren = () => {
@@ -91,7 +96,7 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
             <span>{isSirenActive ? 'Stop Emergency Siren' : 'Sound Emergency Siren'}</span>
           </button>
 
-          {onOpenVoiceSOS && (
+          {!isAdmin && onOpenVoiceSOS && (
             <button
               type="button"
               onClick={onOpenVoiceSOS}
