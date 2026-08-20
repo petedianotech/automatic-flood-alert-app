@@ -117,18 +117,18 @@ export const InstallAppPrompt: React.FC<InstallAppPromptProps> = ({ isDarkMode }
         className="fixed bottom-20 md:bottom-6 left-3 right-3 sm:left-auto sm:right-6 sm:max-w-md z-50 animate-in slide-in-from-bottom-5 duration-300"
       >
         <div
-          className={`p-4 rounded-3xl border shadow-xl backdrop-blur-lg ${
+          className={`p-4 rounded-[28px] border shadow-xl backdrop-blur-lg ${
             isDarkMode
-              ? 'bg-[#1E1F20]/95 border-[#303134] text-[#E3E3E3]'
-              : 'bg-white/95 border-[#E1E3E1] text-[#1F1F1F]'
+              ? 'bg-[#1E1F20]/95 border-[#444746] text-[#E3E3E3]'
+              : 'bg-white/95 border-[#E0E2EC] text-[#1C1B1F]'
           }`}
         >
           {installSuccess ? (
             <div className="flex items-center gap-3 py-1">
-              <CheckCircle2 className="w-7 h-7 text-[#137333] dark:text-[#81C995] shrink-0" />
+              <CheckCircle2 className="w-7 h-7 text-[#0D652D] dark:text-[#81C995] shrink-0" />
               <div>
-                <h4 className="font-bold text-sm">App Installed Successfully!</h4>
-                <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6]">
+                <h4 className="font-bold text-sm text-[#1C1B1F] dark:text-[#E3E3E3]">App Installed Successfully</h4>
+                <p className="text-xs text-[#49454F] dark:text-[#C4C7C5] font-medium">
                   Flood Alert App is now available on your home screen.
                 </p>
               </div>
@@ -140,20 +140,20 @@ export const InstallAppPrompt: React.FC<InstallAppPromptProps> = ({ isDarkMode }
                   <img
                     src="/icon.svg"
                     alt="App Icon"
-                    className="w-11 h-11 rounded-2xl shrink-0 shadow-xs border border-black/5"
+                    className="w-11 h-11 rounded-2xl shrink-0 shadow-xs border border-[#E0E2EC] dark:border-[#444746]"
                     referrerPolicy="no-referrer"
                   />
                   <div>
-                    <div className="flex items-center gap-1.5">
-                      <h4 className="font-extrabold text-sm tracking-tight">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h4 className="font-bold text-sm tracking-tight text-[#1C1B1F] dark:text-[#E3E3E3]">
                         Install Flood Alert App
                       </h4>
-                      <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-[#E8F0FE] text-[#1967D2] dark:bg-[#1A73E8]/30 dark:text-[#8AB4F8]">
-                        Free &bull; Offline
+                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#E0EFFF] text-[#0B57D0] dark:bg-[#1F71E8]/30 dark:text-[#A8C7FA]">
+                        Dzenje STEM
                       </span>
                     </div>
-                    <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] mt-0.5 leading-snug">
-                      Add to your home screen for instant flood sirens and easy offline access.
+                    <p className="text-xs text-[#49454F] dark:text-[#C4C7C5] mt-0.5 leading-snug font-medium">
+                      Add to your home screen for instant loud flood sirens and easy offline access.
                     </p>
                   </div>
                 </div>
@@ -162,7 +162,7 @@ export const InstallAppPrompt: React.FC<InstallAppPromptProps> = ({ isDarkMode }
                   type="button"
                   id="btn-dismiss-install-prompt"
                   onClick={handleDismiss}
-                  className="p-1 rounded-full text-[#5F6368] dark:text-[#9AA0A6] hover:bg-black/5 dark:hover:bg-white/5 transition-colors shrink-0"
+                  className="p-1.5 rounded-full text-[#49454F] dark:text-[#C4C7C5] hover:bg-black/5 dark:hover:bg-white/5 transition-colors shrink-0 cursor-pointer"
                   title="Dismiss for now"
                 >
                   <X className="w-4 h-4" />
@@ -174,9 +174,9 @@ export const InstallAppPrompt: React.FC<InstallAppPromptProps> = ({ isDarkMode }
                   type="button"
                   id="btn-install-app-now"
                   onClick={handleInstallClick}
-                  className="flex-1 py-2.5 px-4 rounded-2xl bg-[#1A73E8] hover:bg-[#1557B0] text-white text-xs font-bold shadow-xs flex items-center justify-center gap-2 transition-all active:scale-98"
+                  className="flex-1 py-2.5 px-4 rounded-full bg-[#1F71E8] hover:bg-[#1557B0] text-white text-xs font-bold shadow-xs flex items-center justify-center gap-2 transition-all active:scale-98 cursor-pointer"
                 >
-                  <Download className="w-3.5 h-3.5" />
+                  <Download className="w-4 h-4" />
                   <span>Install to Home Screen</span>
                 </button>
 
@@ -184,7 +184,7 @@ export const InstallAppPrompt: React.FC<InstallAppPromptProps> = ({ isDarkMode }
                   type="button"
                   id="btn-install-app-later"
                   onClick={handleDismiss}
-                  className="py-2.5 px-3 rounded-2xl bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] text-xs font-medium text-[#5F6368] dark:text-[#9AA0A6] transition-colors"
+                  className="py-2.5 px-4 rounded-full bg-[#F3F3FA] dark:bg-[#28292A] hover:bg-[#E0EFFF] text-xs font-bold text-[#49454F] dark:text-[#C4C7C5] transition-colors border border-[#E0E2EC] dark:border-[#444746] cursor-pointer"
                 >
                   Later
                 </button>
@@ -198,10 +198,10 @@ export const InstallAppPrompt: React.FC<InstallAppPromptProps> = ({ isDarkMode }
       {showIOSGuide && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div
-            className={`w-full max-w-sm p-5 rounded-3xl border shadow-2xl space-y-4 ${
+            className={`w-full max-w-sm p-5 rounded-[28px] border shadow-2xl space-y-4 ${
               isDarkMode
-                ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
-                : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
+                ? 'bg-[#1E1F20] border-[#444746] text-[#E3E3E3]'
+                : 'bg-[#FEF7FF] border-[#E0E2EC] text-[#1C1B1F]'
             }`}
           >
             <div className="flex items-center justify-between">
@@ -213,35 +213,35 @@ export const InstallAppPrompt: React.FC<InstallAppPromptProps> = ({ isDarkMode }
                   referrerPolicy="no-referrer"
                 />
                 <div>
-                  <h3 className="font-bold text-sm">Install on iPhone / iPad</h3>
-                  <p className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6]">2 quick steps</p>
+                  <h3 className="font-bold text-sm text-[#1C1B1F] dark:text-[#E3E3E3]">Install on iPhone or iPad</h3>
+                  <p className="text-[11px] text-[#49454F] dark:text-[#C4C7C5] font-medium">2 quick steps</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowIOSGuide(false)}
-                className="p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5"
+                className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4 text-[#49454F] dark:text-[#C4C7C5]" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs bg-black/[0.02] dark:bg-white/[0.03] p-3.5 rounded-2xl border border-black/5 dark:border-white/5">
+            <div className="space-y-3 text-xs bg-[#F3F3FA] dark:bg-[#28292A] p-4 rounded-[20px] border border-[#E0E2EC] dark:border-[#444746] text-[#49454F] dark:text-[#C4C7C5]">
               <div className="flex items-start gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-[#1A73E8] text-white flex items-center justify-center text-[11px] font-bold shrink-0">
+                <span className="w-5 h-5 rounded-full bg-[#1F71E8] text-white flex items-center justify-center text-[11px] font-bold shrink-0">
                   1
                 </span>
                 <p>
-                  Tap the <strong className="inline-flex items-center gap-1 font-bold text-[#1A73E8]"><Share className="w-3.5 h-3.5 inline" /> Share</strong> button at the bottom of Safari.
+                  Tap the <strong className="inline-flex items-center gap-1 font-bold text-[#1F71E8] dark:text-[#A8C7FA]"><Share className="w-3.5 h-3.5 inline" /> Share</strong> button at the bottom of Safari.
                 </p>
               </div>
 
               <div className="flex items-start gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-[#1A73E8] text-white flex items-center justify-center text-[11px] font-bold shrink-0">
+                <span className="w-5 h-5 rounded-full bg-[#1F71E8] text-white flex items-center justify-center text-[11px] font-bold shrink-0">
                   2
                 </span>
                 <p>
-                  Scroll down and tap <strong className="inline-flex items-center gap-1 font-bold text-[#1A73E8]"><PlusSquare className="w-3.5 h-3.5 inline" /> Add to Home Screen</strong>.
+                  Scroll down and tap <strong className="inline-flex items-center gap-1 font-bold text-[#1F71E8] dark:text-[#A8C7FA]"><PlusSquare className="w-3.5 h-3.5 inline" /> Add to Home Screen</strong>.
                 </p>
               </div>
             </div>
@@ -252,9 +252,9 @@ export const InstallAppPrompt: React.FC<InstallAppPromptProps> = ({ isDarkMode }
                 setShowIOSGuide(false);
                 setIsVisible(false);
               }}
-              className="w-full py-2.5 rounded-2xl bg-[#1A73E8] hover:bg-[#1557B0] text-white text-xs font-bold transition-all"
+              className="w-full py-2.5 rounded-full bg-[#1F71E8] hover:bg-[#1557B0] text-white text-xs font-bold transition-all cursor-pointer"
             >
-              Got it!
+              Got it
             </button>
           </div>
         </div>

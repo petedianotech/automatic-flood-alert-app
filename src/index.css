@@ -2,11 +2,60 @@
 
 @layer base {
   :root {
-    --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    --font-sans: 'Google Sans', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-mono: 'Roboto Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    --m3-surface: #FEF7FF;
+    --m3-surface-container: #F3F3FA;
+    --m3-primary: #1F71E8;
+    --m3-secondary-container: #E0EFFF;
+    --m3-on-surface: #1C1B1F;
+    --m3-on-surface-variant: #49454F;
+    --m3-outline: #9C9C9C;
   }
   
   html, body {
     font-family: var(--font-sans);
+    background-color: var(--m3-surface);
+    color: var(--m3-on-surface);
   }
 }
+
+/* Material 3 Card Elevation */
+.m3-card {
+  background-color: #F3F3FA;
+  border-radius: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(231, 224, 236, 0.6);
+}
+
+.dark .m3-card {
+  background-color: #1E1F20;
+  border-color: #303134;
+  box-shadow: none;
+}
+
+/* Material 3 Primary Pill Button */
+.m3-btn-primary {
+  background-color: #1F71E8;
+  color: #FFFFFF;
+  border-radius: 100px;
+  font-weight: 500;
+  transition: all 0.15s ease-in-out;
+}
+.m3-btn-primary:hover {
+  background-color: #1A63CC;
+}
+
+/* Material 3 Outlined Button */
+.m3-btn-outlined {
+  border: 1.5px solid #1F71E8;
+  color: #1F71E8;
+  border-radius: 100px;
+  font-weight: 500;
+  background-color: transparent;
+  transition: all 0.15s ease-in-out;
+}
+.m3-btn-outlined:hover {
+  background-color: #E0EFFF;
+}
+

@@ -75,58 +75,53 @@ const DEFAULT_CONFIG: SensorConfig = {
 const STORAGE_KEY_SETTINGS = 'flood_alert_settings_v1';
 
 export default function App() {
-  // Theme state: Toggleable Light / Dark Mode
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem('flood_alert_theme');
-      return saved ? saved === 'dark' : true; // Default to Dark Mode
-    } catch {
-      return true;
-    }
-  });
+  // Enforce Light Theme with Material 3 tokens
+  const isDarkMode = false;
 
-  // Dark mode class toggle
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    document.documentElement.classList.remove('dark');
     try {
-      localStorage.setItem('flood_alert_theme', isDarkMode ? 'dark' : 'light');
+      localStorage.setItem('flood_alert_theme', 'light');
     } catch {
       // ignore
     }
-  }, [isDarkMode]);
+  }, []);
 
-  const handleToggleTheme = () => {
-    setIsDarkMode((prev) => !prev);
+  // Auth state & First-Open Welcome logic
+  const [authState, setAuthState] = useState<AuthState>(() => firebaseFloodService.getAuthState());
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+
+  const isAdmin = isAppAdmin(authState.user);
+
+  // Villagers & unauthenticated users only see 'village' and 'receiver' (Alerts).
+  // Default to 'village' screen for residents and guests; 'admin' (Dashboard) for admin users.
+  const [currentMode, setCurrentMode] = useState<NodeMode>(() => {
+    const initialUser = firebaseFloodService.getAuthState().user;
+    return isAppAdmin(initialUser) ? 'admin' : 'village';
+  });
+
+  // Enforce role-based screen access: Villagers & guests are restricted to 'village' and 'receiver' (Alerts)
+  useEffect(() => {
+    if (!isAdmin && (currentMode === 'admin' || currentMode === 'sensor')) {
+      setCurrentMode('village');
+    }
+  }, [isAdmin, currentMode]);
+
+  const handleSelectMode = (mode: NodeMode) => {
+    if (!isAdmin && (mode === 'admin' || mode === 'sensor')) {
+      setCurrentMode('village');
+      setIsAuthModalOpen(true);
+      return;
+    }
+    setCurrentMode(mode);
   };
-  // Default to 'receiver' screen for residents / general users, and 'sensor' screen for admin
-  const [currentMode, setCurrentMode] = useState<NodeMode>(() =>
-    isAppAdmin(firebaseFloodService.getAuthState().user) ? 'sensor' : 'receiver'
-  );
+
+  // Selected village state
+  const [selectedVillage, setSelectedVillage] = useState<string>('Dzenje Village');
 
   // Network online/offline state
   const [isOnline, setIsOnline] = useState<boolean>(() => NotificationService.isOnline());
 
-  // Auth state & First-Open Welcome logic
-  const [authState, setAuthState] = useState<AuthState>(() => firebaseFloodService.getAuthState());
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(() => {
-    try {
-      const cached = firebaseFloodService.getCachedProfile();
-      const hasChosen = localStorage.getItem('flood_welcome_chosen');
-      // If user has not signed in and has never made a choice, display welcome choice modal on first open
-      if (!cached && !hasChosen) {
-        return true;
-      }
-    } catch {
-      // ignore
-    }
-    return false;
-  });
-
-  const isAdmin = isAppAdmin(authState.user);
 
   // Config state
   const [config, setConfig] = useState<SensorConfig>(() => {
@@ -226,11 +221,9 @@ export default function App() {
   useEffect(() => {
     const unsubAuth = firebaseFloodService.subscribeAuth((state) => {
       setAuthState(state);
-      // If user is admin upon login, direct to admin dashboard; regular users directed to village screen
-      if (isAppAdmin(state.user)) {
-        setCurrentMode('admin');
-      } else if (state.isAuthenticated) {
-        setCurrentMode((prev) => (prev === 'sensor' || prev === 'diagnostics' || prev === 'admin' ? 'village' : prev));
+      // Keep auth state synchronized
+      if (state.user?.village) {
+        setSelectedVillage(state.user.village);
       }
     });
     return () => {
@@ -238,12 +231,6 @@ export default function App() {
     };
   }, []);
 
-  // Mode access security: non-admins can only access receiver & village
-  useEffect(() => {
-    if (!isAdmin && (currentMode === 'sensor' || currentMode === 'diagnostics' || currentMode === 'admin')) {
-      setCurrentMode('village');
-    }
-  }, [isAdmin, currentMode]);
 
   // Sync config changes to storage & services
   useEffect(() => {
@@ -568,24 +555,23 @@ export default function App() {
     <div
       id="app-root-container"
       className={`h-[100dvh] overflow-hidden flex justify-center transition-colors duration-200 font-sans ${
-        isDarkMode ? 'bg-[#131314] text-[#E3E3E3]' : 'bg-[#F0F4F9] text-[#1F1F1F]'
+        isDarkMode ? 'bg-[#141218] text-[#E6E1E5]' : 'bg-[#FEF7FF] text-[#1C1B1F]'
       }`}
     >
       {/* Mobile Device Frame Container */}
       <div
         id="mobile-phone-frame"
-        className={`w-full max-w-md h-full sm:h-[96vh] sm:my-auto sm:rounded-[32px] sm:shadow-xl sm:border flex flex-col relative overflow-hidden transition-all ${
+        className={`w-full max-w-md h-full sm:h-[96vh] sm:my-auto sm:rounded-[32px] sm:shadow-lg sm:border flex flex-col relative overflow-hidden transition-all ${
           isDarkMode
-            ? 'bg-[#141414] sm:border-[#303134] text-[#E3E3E3]'
-            : 'bg-[#FFFFFF] sm:border-[#E1E3E1] text-[#1F1F1F]'
+            ? 'bg-[#1E1F20] sm:border-[#303134] text-[#E6E1E5]'
+            : 'bg-[#FEF7FF] sm:border-slate-200 text-[#1C1B1F]'
         }`}
       >
         {/* 1. Top App Bar */}
         <TopBar
           currentMode={currentMode}
-          onSelectMode={setCurrentMode}
+          onSelectMode={handleSelectMode}
           isDarkMode={isDarkMode}
-          onToggleTheme={handleToggleTheme}
           isArmed={isArmed}
           isPaused={isPaused}
           sensorState={sensorState}
@@ -596,25 +582,28 @@ export default function App() {
           onOpenAuthModal={() => setIsAuthModalOpen(true)}
           onOpenVoiceSOS={handleOpenDirectVoiceSOS}
           activeAlertCount={activeAlertCount}
+          selectedVillage={selectedVillage}
         />
 
         {/* 2. Fixed Mobile Content Screen (Smoothly scrollable, Bottom Nav stays fixed) */}
         <main
           id="mobile-main-scroll-area"
-          className="flex-1 w-full overflow-y-auto min-h-0 px-3.5 sm:px-4 py-4 overscroll-contain"
+          className="flex-1 w-full overflow-y-auto min-h-0 px-3.5 sm:px-4 py-3.5 overscroll-contain"
         >
-          {currentMode === 'admin' && isAdmin && (
+          {currentMode === 'admin' && (
             <AdminSafetyDashboardView
               safetyReports={safetyReports}
               alerts={alerts}
               currentUser={authState.user}
               isDarkMode={isDarkMode}
+              selectedVillage={selectedVillage}
+              onSelectVillage={setSelectedVillage}
               onOpenCheckInModal={handleOpenNormalCheckIn}
-              onGoToSensors={() => setCurrentMode('sensor')}
+              onOpenDirectVoiceSOS={handleOpenDirectVoiceSOS}
             />
           )}
 
-          {currentMode === 'sensor' && isAdmin && (
+          {currentMode === 'sensor' && (
             <SensorNodeView
               motion={motion}
               sensorState={sensorState}
@@ -636,12 +625,8 @@ export default function App() {
               onCalibrate={handleCalibrateBaseline}
               onSimulateTest={handleSimulateTest}
               onSimulateSoundTest={handleSimulateSoundTest}
-              onRequestWakeLock={handleRequestWakeLock}
-              onManualTriggerAlert={handleManualTriggerAlert}
-              onUpdateSoundConfig={handleUpdateSoundConfig}
-              onOpenAuthModal={() => setIsAuthModalOpen(true)}
-              onGoToReceiver={() => setCurrentMode('receiver')}
-              onGoToAdmin={() => setCurrentMode('admin')}
+              onGoToReceiver={() => handleSelectMode('receiver')}
+              onGoToAdmin={() => handleSelectMode('admin')}
             />
           )}
 
@@ -666,35 +651,26 @@ export default function App() {
               alerts={alerts}
               safetyReports={safetyReports}
               isDarkMode={isDarkMode}
+              selectedVillage={selectedVillage}
+              onSelectVillage={setSelectedVillage}
               onOpenAuthModal={() => setIsAuthModalOpen(true)}
               onOpenDirectVoiceSOS={handleOpenDirectVoiceSOS}
+              onOpenCheckInModal={handleOpenNormalCheckIn}
             />
           )}
         </main>
 
-        {/* Floating Fast Access Voice Button */}
-        <div className="absolute right-4 bottom-20 z-30">
-          <button
-            type="button"
-            id="floating-fast-voice-sos-btn"
-            onClick={handleOpenDirectVoiceSOS}
-            className="w-12 h-12 rounded-full bg-red-600 hover:bg-red-500 active:scale-90 text-white flex items-center justify-center shadow-xl shadow-red-950/60 border-2 border-red-400 transition-all group cursor-pointer"
-            title="Fast Direct Voice SOS"
-          >
-            <Mic className="w-5 h-5 group-hover:scale-110 transition-transform animate-pulse" />
-          </button>
-        </div>
-
         {/* 3. Native Mobile Bottom Navigation Dock */}
         <MobileBottomNav
           currentMode={currentMode}
-          onSelectMode={setCurrentMode}
+          onSelectMode={handleSelectMode}
           activeAlertCount={activeAlertCount}
           isArmed={isArmed}
           isPaused={isPaused}
           isDarkMode={isDarkMode}
           isAdmin={isAdmin}
         />
+
 
         {/* 4. Mobile Home Indicator Pill */}
         <div className="hidden sm:flex justify-center pb-2 select-none pointer-events-none">
@@ -708,6 +684,8 @@ export default function App() {
         onDismiss={handleDismissAlert}
         onTurnOffSensorAndDismiss={handleTurnOffSensorAndDismiss}
         isSoundEnabled={config.soundAlarmOnDevice}
+        onOpenCheckIn={handleOpenNormalCheckIn}
+        onOpenVoiceSOS={handleOpenDirectVoiceSOS}
       />
 
       {/* 6. Direct Fast Voice Emergency SOS Modal */}

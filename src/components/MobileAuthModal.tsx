@@ -1,51 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   User,
   MapPin,
   LogIn,
   LogOut,
-  Sparkles,
-  ShieldCheck,
   Building2,
   CheckCircle2,
   X,
   AlertCircle,
   Loader2,
-  ArrowRight,
-  UserPlus,
   Radio,
-  ArrowLeft,
+  Check,
+  Sparkles,
+  AlertTriangle,
+  ChevronDown,
 } from 'lucide-react';
-import { UserProfile, ADMIN_EMAIL, isAppAdmin } from '../types';
+import { UserProfile, isAppAdmin } from '../types';
 import { firebaseFloodService } from '../services/firebaseService';
 
 interface MobileAuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentUser: UserProfile | null;
-  isDarkMode: boolean;
+  isDarkMode?: boolean;
   onSignedIn?: (isAdmin: boolean) => void;
 }
 
-const EXAMPLE_NAMES = ['Peter Damiano', 'Mr Banda'];
+const EXAMPLE_NAMES = ['Peter Banda', 'Mr Banda', 'Grace Phiri', 'Chikondi Phiri', 'Hastings M. Skinner'];
 
-const VILLAGE_PRESETS = [
+const POPULAR_VILLAGES = [
   'Dzenje Village',
   'Mathambi',
   'Chinyama',
   'Nkhulambe',
   'Likabula',
   'Chitakale',
+  'Chikwawa South',
 ];
 
 export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
   isOpen,
   onClose,
   currentUser,
-  isDarkMode,
   onSignedIn,
 }) => {
-  const [viewStep, setViewStep] = useState<'choose' | 'form'>('choose');
   const [authMethod, setAuthMethod] = useState<'village' | 'google'>('village');
   const [name, setName] = useState(currentUser?.name || '');
   const [village, setVillage] = useState(currentUser?.village || 'Dzenje Village');
@@ -54,11 +52,19 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Periodically cycle through example names (Peter Damiano, Mr Banda)
-  React.useEffect(() => {
+  // Sync state if currentUser changes
+  useEffect(() => {
+    if (currentUser) {
+      if (currentUser.name) setName(currentUser.name);
+      if (currentUser.village) setVillage(currentUser.village);
+    }
+  }, [currentUser]);
+
+  // Cycle example names every few seconds
+  useEffect(() => {
     const interval = setInterval(() => {
       setExampleNameIndex((prev) => (prev + 1) % EXAMPLE_NAMES.length);
-    }, 2800);
+    }, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -72,6 +78,7 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
     } catch {
       // ignore
     }
+    onSignedIn?.(false);
     onClose();
   };
 
@@ -82,7 +89,7 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
       return;
     }
     if (!village.trim()) {
-      setError('Please enter or select your village name');
+      setError('Please enter or choose your village');
       return;
     }
 
@@ -94,18 +101,18 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
       } catch {
         // ignore
       }
-      const profile = await firebaseFloodService.signInWithNameAndVillage(name, village);
+      const profile = await firebaseFloodService.signInWithNameAndVillage(name.trim(), village.trim());
       const isUserAdmin = isAppAdmin(profile);
       if (isUserAdmin) {
-        setSuccessMsg(`Welcome, Administrator! Opening Admin Safety Dashboard...`);
+        setSuccessMsg(`Welcome Admin (${profile.name})! Opening Dashboard...`);
       } else {
-        setSuccessMsg(`Welcome, ${profile.name}! Directing to ${profile.village} screen...`);
+        setSuccessMsg(`Welcome, ${profile.name}! Opening Village & Alerts...`);
       }
       setTimeout(() => {
         onClose();
         onSignedIn?.(isUserAdmin);
         setSuccessMsg(null);
-      }, 800);
+      }, 700);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed');
     } finally {
@@ -126,15 +133,15 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
       const profile = await firebaseFloodService.signInWithGoogle(targetVillage);
       const isUserAdmin = isAppAdmin(profile);
       if (isUserAdmin) {
-        setSuccessMsg(`Welcome, Administrator! Opening Admin Safety Dashboard...`);
+        setSuccessMsg(`Welcome Admin (${profile.name})! Opening Dashboard...`);
       } else {
-        setSuccessMsg(`Welcome, ${profile.name}! Directing to ${profile.village} screen...`);
+        setSuccessMsg(`Welcome, ${profile.name}! Opening Village & Alerts...`);
       }
       setTimeout(() => {
         onClose();
         onSignedIn?.(isUserAdmin);
         setSuccessMsg(null);
-      }, 800);
+      }, 700);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Google sign in failed');
     } finally {
@@ -148,12 +155,12 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
       await firebaseFloodService.signOutUser();
       setName('');
       setVillage('Dzenje Village');
-      setViewStep('choose');
-      setSuccessMsg('Signed out successfully');
+      setSuccessMsg('Signed out. Returning to Village view...');
       setTimeout(() => {
         onClose();
+        onSignedIn?.(false);
         setSuccessMsg(null);
-      }, 800);
+      }, 600);
     } catch (err) {
       setError('Sign out failed');
     } finally {
@@ -167,253 +174,182 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
       try {
         await firebaseFloodService.updateProfileData({ village: newVillage });
         setSuccessMsg(`Village updated to ${newVillage}`);
-        setTimeout(() => setSuccessMsg(null), 2500);
+        setTimeout(() => setSuccessMsg(null), 1800);
       } catch (err) {
         // ignore
       }
     }
   };
 
+  const getInitials = (userName?: string) => {
+    if (!userName) return 'AS';
+    const parts = userName.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return userName.slice(0, 2).toUpperCase();
+  };
+
   return (
     <div
       id="mobile-auth-overlay"
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/65 backdrop-blur-xs animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200 select-none"
     >
       <div
         id="mobile-auth-sheet"
-        className={`w-full max-w-md rounded-t-3xl sm:rounded-3xl border shadow-xl transition-all max-h-[92vh] overflow-y-auto ${
-          isDarkMode
-            ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
-            : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
-        }`}
+        className="w-full max-w-md rounded-t-[28px] sm:rounded-[28px] border border-slate-200 bg-[#FEF7FF] text-[#1C1B1F] shadow-2xl transition-all max-h-[92vh] overflow-y-auto flex flex-col"
       >
-        {/* Mobile Drag Handle */}
+        {/* Drag handle for mobile */}
         <div className="flex justify-center pt-3 pb-1 sm:hidden">
-          <div className="w-10 h-1 rounded-full bg-[#5F6368]/30 dark:bg-[#9AA0A6]/30" />
+          <div className="w-10 h-1 rounded-full bg-slate-300" />
         </div>
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-4 pb-3 border-b border-[#E1E3E1] dark:border-[#303134]">
-          <div className="flex items-center gap-3">
-            {!currentUser && viewStep === 'form' ? (
-              <button
-                type="button"
-                onClick={() => setViewStep('choose')}
-                className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[#F1F3F4] dark:hover:bg-[#303134] text-[#5F6368] dark:text-[#9AA0A6] -ml-2 transition-colors"
-                title="Go Back"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-            ) : (
-              <div className="w-9 h-9 rounded-2xl bg-[#E8F0FE] dark:bg-[#1A73E8]/20 text-[#1A73E8] dark:text-[#8AB4F8] flex items-center justify-center shrink-0 shadow-2xs font-bold text-sm">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-            )}
+        {/* Top Header */}
+        <div className="flex items-center justify-between px-5 pt-3 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-xs shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
             <div>
-              <h3 className="font-bold text-base font-sans tracking-tight text-[#1F1F1F] dark:text-[#E3E3E3]">
-                {currentUser
-                  ? 'Your Village Profile'
-                  : viewStep === 'form'
-                  ? 'Sign In to Flood Alert'
-                  : 'Welcome to Flood Alert'}
+              <h3 className="font-bold text-sm leading-tight text-[#1C1B1F]">
+                {currentUser ? 'Your Village Profile' : 'Flood Alert App'}
               </h3>
-              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6]">
+              <p className="text-xs font-medium text-[#49454F] mt-0.5">
                 {currentUser
-                  ? 'Active Village Member'
-                  : viewStep === 'form'
-                  ? 'Enter your name and village'
-                  : 'Early flood warning for your community'}
+                  ? 'Connected to Safety Network \u2022 Dzenje STEM club'
+                  : 'Dzenje ADDA STEM club'}
               </p>
             </div>
           </div>
 
           <button
             id="btn-close-auth-modal"
+            type="button"
             onClick={handleContinueAsGuest}
-            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[#F1F3F4] dark:hover:bg-[#303134] text-[#5F6368] dark:text-[#9AA0A6] transition-colors"
+            className="w-9 h-9 rounded-full flex items-center justify-center bg-[#F3EDF7] hover:bg-[#E7E0EC] text-[#49454F] transition-colors cursor-pointer"
             title="Close"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4.5 h-4.5" />
           </button>
         </div>
 
-        {/* 1. Signed-In Profile View */}
+        {/* Content Area */}
         {currentUser ? (
-          <div className="p-6 space-y-5">
-            <div
-              className={`p-4 rounded-3xl border flex items-center gap-3.5 ${
-                isAdmin
-                  ? 'bg-[#FEF7E0] dark:bg-[#B06000]/20 border-[#FEEFC3] dark:border-[#B06000]/40'
-                  : 'bg-[#E8F0FE] dark:bg-[#1A73E8]/15 border-[#CEE0FD] dark:border-[#1A73E8]/30'
-              }`}
-            >
+          /* =========================================================================
+             VIEW 1: PROFILE MODAL
+             ========================================================================= */
+          <div className="p-5 space-y-4">
+            {/* User Profile Card */}
+            <div className="bg-[#F3F3FA] rounded-[24px] p-4 border border-slate-100 flex items-center gap-3.5 shadow-xs">
               {currentUser.photoURL ? (
                 <img
                   src={currentUser.photoURL}
                   alt={currentUser.name}
-                  className={`w-12 h-12 rounded-full border-2 object-cover ${
-                    isAdmin ? 'border-[#B06000]' : 'border-[#1A73E8]'
-                  }`}
+                  className="w-12 h-12 rounded-full object-cover border border-slate-200 shrink-0"
                 />
               ) : (
-                <div
-                  className={`w-12 h-12 rounded-full text-white font-bold text-lg flex items-center justify-center shadow-xs ${
-                    isAdmin ? 'bg-[#B06000]' : 'bg-[#1A73E8]'
-                  }`}
-                >
-                  {currentUser.name.charAt(0).toUpperCase()}
+                <div className="w-12 h-12 rounded-full bg-[#E8DEF8] text-[#1D192B] font-bold text-base flex items-center justify-center shrink-0 shadow-xs">
+                  {getInitials(currentUser.name)}
                 </div>
               )}
+
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <h4 className="font-bold text-base text-[#1F1F1F] dark:text-[#E3E3E3] truncate">
+                  <h4 className="font-bold text-base text-[#1C1B1F] truncate">
                     {currentUser.name}
                   </h4>
                   {isAdmin ? (
-                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#B06000] text-white">
+                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
                       Village Admin
                     </span>
                   ) : (
-                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/30 dark:text-[#81C995]">
+                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
                       Resident
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-1.5 text-xs text-[#5F6368] dark:text-[#9AA0A6] mt-0.5">
-                  <MapPin className="w-3.5 h-3.5 text-[#D93025] shrink-0" />
-                  <span className="truncate font-semibold">{currentUser.village}</span>
-                  {currentUser.email && (
-                    <span className="text-[11px] font-mono text-[#5F6368] dark:text-[#9AA0A6] truncate">
-                      • {currentUser.email}
-                    </span>
-                  )}
+                <div className="flex items-center gap-1.5 text-xs font-medium text-[#49454F] mt-0.5">
+                  <MapPin className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                  <span className="truncate font-semibold text-[#1F71E8]">{currentUser.village}</span>
                 </div>
               </div>
             </div>
 
             {/* Quick Village Switcher */}
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-[#5F6368] dark:text-[#9AA0A6] mb-2">
-                Your Village Location
-              </label>
+            <div className="bg-[#F3F3FA] rounded-[24px] p-4 border border-slate-100 space-y-2.5">
+              <span className="text-xs font-bold text-[#49454F] uppercase tracking-wider block">
+                Choose Your Village
+              </span>
               <div className="grid grid-cols-2 gap-2">
-                {VILLAGE_PRESETS.map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => handleUpdateVillageOnly(v)}
-                    className={`px-3 py-2.5 rounded-2xl text-xs font-bold text-left border transition-all flex items-center justify-between active:scale-98 ${
-                      currentUser.village === v
-                        ? 'bg-[#1A73E8] text-white border-[#1A73E8] shadow-xs'
-                        : 'bg-[#F8F9FA] dark:bg-[#28292A] border-[#E1E3E1] dark:border-[#303134] text-[#1F1F1F] dark:text-[#E3E3E3] hover:border-[#1A73E8]'
-                    }`}
-                  >
-                    <span className="truncate">{v}</span>
-                    {currentUser.village === v && <CheckCircle2 className="w-3.5 h-3.5 shrink-0 ml-1" />}
-                  </button>
-                ))}
+                {POPULAR_VILLAGES.map((v) => {
+                  const isSelected = currentUser.village === v;
+                  return (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => handleUpdateVillageOnly(v)}
+                      className={`px-3 py-2.5 rounded-2xl text-xs font-semibold text-left transition-all flex items-center justify-between cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#1F71E8] text-white shadow-xs'
+                          : 'bg-white text-[#1C1B1F] border border-slate-200 hover:border-[#1F71E8]'
+                      }`}
+                    >
+                      <span className="truncate">{v}</span>
+                      {isSelected && <Check className="w-4 h-4 shrink-0 ml-1" />}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             {successMsg && (
-              <div className="p-3 rounded-2xl bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/20 dark:text-[#81C995] text-xs font-bold flex items-center gap-2">
+              <div className="p-3 rounded-2xl bg-emerald-100 text-emerald-800 text-sm font-medium flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>{successMsg}</span>
               </div>
             )}
 
             {/* Sign Out & Done Buttons */}
-            <div className="pt-2 flex gap-2.5">
+            <div className="flex gap-2.5 pt-1">
               <button
                 id="btn-sign-out"
+                type="button"
                 onClick={handleSignOut}
                 disabled={loading}
-                className="flex-1 py-3 rounded-full font-bold text-xs bg-[#FCE8E6] text-[#D93025] hover:bg-[#FAD2CF] dark:bg-[#D93025]/20 dark:text-[#F28B82] border border-[#FAD2CF] dark:border-[#D93025]/40 flex items-center justify-center gap-2 transition-all active:scale-95"
+                className="flex-1 py-3 rounded-full font-bold text-sm bg-red-100 text-red-700 hover:bg-red-200 flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Sign Out</span>
               </button>
               <button
+                type="button"
                 onClick={onClose}
-                className="flex-1 py-3 rounded-full font-bold text-xs bg-[#1F1F1F] text-white dark:bg-white dark:text-[#1F1F1F] hover:opacity-90 transition-all active:scale-95 shadow-xs"
+                className="flex-1 py-3 rounded-full font-bold text-sm bg-[#1F71E8] hover:bg-blue-700 text-white shadow-xs transition active:scale-98 cursor-pointer"
               >
                 Done
               </button>
             </div>
           </div>
-        ) : viewStep === 'choose' ? (
-          /* 2. Welcome First Open: Choose Create Account OR Continue as Guest */
-          <div className="p-6 space-y-4">
-            <div className="text-center space-y-1.5 py-1">
-              <div className="w-14 h-14 rounded-3xl bg-[#E8F0FE] dark:bg-[#1A73E8]/20 text-[#1A73E8] dark:text-[#8AB4F8] mx-auto flex items-center justify-center border border-[#CEE0FD] dark:border-[#1A73E8]/30 shadow-xs">
-                <ShieldCheck className="w-7 h-7" />
+        ) : (
+          /* =========================================================================
+             VIEW 2: VILLAGE SIGN IN SHEET MODAL
+             ========================================================================= */
+          <div className="p-5 space-y-4">
+            {/* Top Explanation Banner */}
+            <div className="bg-[#F3F3FA] rounded-[24px] p-3.5 border border-slate-100 space-y-2">
+              <div className="flex items-center gap-2.5">
+                <img src="/icon.svg" alt="App Icon" className="w-8 h-8 rounded-xl border border-blue-100 shrink-0 object-cover" />
+                <p className="text-xs font-bold text-[#1C1B1F]">
+                  Dzenje Flood Warning Network
+                </p>
               </div>
-              <h4 className="font-bold text-lg font-sans tracking-tight text-[#1F1F1F] dark:text-white">
-                How would you like to start?
-              </h4>
-              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] max-w-xs mx-auto leading-relaxed">
-                Get river level warnings, loud sirens, and community flood safety alerts.
+              <p className="text-xs text-[#49454F] leading-relaxed">
+                Sign in to send voice SOS alerts and check in. Admins with STEM Club credentials get full access to sensor controls and dashboard.
               </p>
             </div>
 
-            {/* Option A: Create / Sign In Account */}
-            <button
-              id="btn-choice-create-account"
-              type="button"
-              onClick={() => {
-                setError(null);
-                setViewStep('form');
-              }}
-              className="w-full p-4 rounded-3xl bg-[#1A73E8] hover:bg-[#1557B0] text-white text-left shadow-xs active:scale-98 transition-all flex items-center justify-between gap-3 group"
-            >
-              <div className="flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
-                  <UserPlus className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <div className="font-bold text-sm leading-tight flex items-center gap-1.5">
-                    <span>Sign In or Create Account</span>
-                  </div>
-                  <p className="text-[11px] text-white/85 leading-snug mt-0.5">
-                    Save your name &amp; village for fast SOS voice notes and safety check-ins
-                  </p>
-                </div>
-              </div>
-              <ArrowRight className="w-5 h-5 text-white group-hover:translate-x-1 transition-transform shrink-0" />
-            </button>
-
-            {/* Option B: Continue without Account */}
-            <button
-              id="btn-choice-continue-guest"
-              type="button"
-              onClick={handleContinueAsGuest}
-              className="w-full p-4 rounded-3xl bg-[#F8F9FA] dark:bg-[#28292A] hover:bg-[#F1F3F4] dark:hover:bg-[#303134] text-left border border-[#E1E3E1] dark:border-[#303134] active:scale-98 transition-all flex items-center justify-between gap-3 group text-[#1F1F1F] dark:text-[#E3E3E3]"
-            >
-              <div className="flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-2xl bg-[#E6F4EA] dark:bg-[#137333]/20 text-[#137333] dark:text-[#81C995] flex items-center justify-center shrink-0">
-                  <Radio className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="font-bold text-sm leading-tight">
-                    Continue as Guest
-                  </div>
-                  <p className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6] leading-snug mt-0.5">
-                    Instant access to live river radar, loud flood sirens, and safety advice
-                  </p>
-                </div>
-              </div>
-              <ArrowRight className="w-5 h-5 text-[#5F6368] dark:text-[#9AA0A6] group-hover:translate-x-1 transition-transform shrink-0" />
-            </button>
-
-            <p className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6] text-center pt-1">
-              You can sign in or change your village anytime from the top bar.
-            </p>
-          </div>
-        ) : (
-          /* 3. Sign In Form (Name & Village or Google) */
-          <div className="p-6 space-y-4">
-            {/* Auth Method Segmented Tabs */}
-            <div className="grid grid-cols-2 gap-1 p-1 rounded-full bg-[#F1F3F4] dark:bg-[#28292A]">
+            {/* Segmented Mode Button (Name & Village vs Google) */}
+            <div className="bg-[#E7E0EC] p-1 rounded-full flex gap-1">
               <button
                 type="button"
                 id="tab-auth-village"
@@ -421,13 +357,13 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                   setAuthMethod('village');
                   setError(null);
                 }}
-                className={`py-2 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-2.5 px-3 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
                   authMethod === 'village'
-                    ? 'bg-white dark:bg-[#303134] text-[#1A73E8] dark:text-[#8AB4F8] shadow-xs'
-                    : 'text-[#5F6368] dark:text-[#9AA0A6]'
+                    ? 'bg-[#1F71E8] text-white shadow-xs'
+                    : 'text-[#49454F]'
                 }`}
               >
-                <Building2 className="w-3.5 h-3.5" />
+                <Building2 className="w-4 h-4" />
                 <span>Name &amp; Village</span>
               </button>
 
@@ -438,63 +374,39 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                   setAuthMethod('google');
                   setError(null);
                 }}
-                className={`py-2 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-2.5 px-3 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
                   authMethod === 'google'
-                    ? 'bg-white dark:bg-[#303134] text-[#1A73E8] dark:text-[#8AB4F8] shadow-xs'
-                    : 'text-[#5F6368] dark:text-[#9AA0A6]'
+                    ? 'bg-[#1F71E8] text-white shadow-xs'
+                    : 'text-[#49454F]'
                 }`}
               >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
-                  <path
-                    fill="#4285F4"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                  />
-                </svg>
                 <span>Google Sign-In</span>
               </button>
             </div>
 
             {error && (
-              <div className="p-3 rounded-2xl bg-[#FCE8E6] text-[#D93025] dark:bg-[#D93025]/20 dark:text-[#F28B82] text-xs font-semibold flex items-center gap-2 border border-[#FAD2CF] dark:border-[#D93025]/40">
+              <div className="p-3 rounded-2xl bg-red-100 text-red-700 text-sm font-medium flex items-center gap-2 border border-red-200">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
             {successMsg && (
-              <div className="p-3 rounded-2xl bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/20 dark:text-[#81C995] text-xs font-bold flex items-center gap-2 border border-[#CEEAD6] dark:border-[#137333]/40">
+              <div className="p-3 rounded-2xl bg-emerald-100 text-emerald-800 text-sm font-medium flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>{successMsg}</span>
               </div>
             )}
 
-            {/* Option 1: Name & Village Form */}
             {authMethod === 'village' ? (
               <form onSubmit={handleVillageSignIn} className="space-y-3.5">
-                {/* Full Name */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-bold text-[#3C4043] dark:text-[#BDC1C6]">
-                      Your Full Name
-                    </label>
-                    <span className="text-[11px] font-medium text-[#1A73E8] dark:text-[#8AB4F8]">
-                      e.g. {EXAMPLE_NAMES[exampleNameIndex]}
-                    </span>
-                  </div>
+                {/* Full Name Field */}
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-[#1C1B1F]">
+                    Your Full Name
+                  </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#5F6368] dark:text-[#9AA0A6]">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#49454F]">
                       <User className="w-4 h-4" />
                     </div>
                     <input
@@ -504,28 +416,19 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder={`e.g. ${EXAMPLE_NAMES[exampleNameIndex]}`}
-                      className={`w-full pl-9 pr-3 py-2.5 rounded-2xl border text-xs font-medium outline-none transition-all ${
-                        isDarkMode
-                          ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3] focus:border-[#1A73E8]'
-                          : 'bg-[#F8F9FA] border-[#E1E3E1] text-[#1F1F1F] focus:border-[#1A73E8]'
-                      }`}
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-2xl border border-slate-200 bg-white text-sm font-medium text-[#1C1B1F] outline-none focus:border-[#1F71E8]"
                     />
                   </div>
                 </div>
 
-                {/* Village / Sector */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-bold text-[#3C4043] dark:text-[#BDC1C6]">
-                      Your Village Name
-                    </label>
-                    <span className="text-[11px] font-medium text-[#137333] dark:text-[#81C995]">
-                      e.g. Dzenje
-                    </span>
-                  </div>
+                {/* Village Field & Presets */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-[#1C1B1F]">
+                    Your Village Name
+                  </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#5F6368] dark:text-[#9AA0A6]">
-                      <MapPin className="w-4 h-4 text-[#D93025]" />
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-red-500">
+                      <MapPin className="w-4 h-4" />
                     </div>
                     <input
                       id="input-auth-village"
@@ -534,30 +437,31 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                       value={village}
                       onChange={(e) => setVillage(e.target.value)}
                       placeholder="e.g. Dzenje Village"
-                      className={`w-full pl-9 pr-3 py-2.5 rounded-2xl border text-xs font-medium outline-none transition-all ${
-                        isDarkMode
-                          ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3] focus:border-[#1A73E8]'
-                          : 'bg-[#F8F9FA] border-[#E1E3E1] text-[#1F1F1F] focus:border-[#1A73E8]'
-                      }`}
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-2xl border border-slate-200 bg-white text-sm font-medium text-[#1C1B1F] outline-none focus:border-[#1F71E8]"
                     />
                   </div>
 
                   {/* Preset Pills */}
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {VILLAGE_PRESETS.map((p) => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => setVillage(p)}
-                        className={`text-xs font-bold px-3 py-1 rounded-full border transition-all active:scale-95 ${
-                          village === p
-                            ? 'bg-[#1A73E8] text-white border-[#1A73E8] shadow-xs'
-                            : 'bg-[#F8F9FA] dark:bg-[#28292A] text-[#5F6368] dark:text-[#9AA0A6] border-[#E1E3E1] dark:border-[#303134] hover:border-[#1A73E8]'
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    ))}
+                  <div className="space-y-1 pt-1">
+                    <span className="text-xs font-semibold text-[#49454F]">
+                      Popular Villages:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {POPULAR_VILLAGES.map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setVillage(p)}
+                          className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition active:scale-95 cursor-pointer ${
+                            village === p
+                              ? 'bg-[#1F71E8] text-white border-[#1F71E8]'
+                              : 'bg-white text-[#49454F] border-slate-200 hover:border-[#1F71E8]'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -566,7 +470,7 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                   id="btn-submit-village-auth"
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 mt-2 rounded-full font-bold text-xs bg-[#1A73E8] hover:bg-[#1557B0] text-white shadow-xs flex items-center justify-center gap-2 transition-all active:scale-95"
+                  className="w-full py-3 rounded-full font-bold text-sm bg-[#1F71E8] hover:bg-blue-700 text-white shadow-xs flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer mt-2"
                 >
                   {loading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -579,31 +483,26 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                 </button>
               </form>
             ) : (
-              /* Option 2: Google Sign In Option */
+              /* Google Sign In Option */
               <div className="space-y-3.5 py-1">
-                <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] leading-relaxed">
-                  Sign in with Google to sync river warnings and loud siren alerts across all your devices.
+                <p className="text-xs text-[#49454F] leading-relaxed font-medium">
+                  Sign in with Google to sync river warnings and loud siren alerts across your devices.
                 </p>
 
-                {/* Village Selection for Google Account */}
-                <div>
-                  <label className="block text-xs font-bold text-[#3C4043] dark:text-[#BDC1C6] mb-1">
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-[#1C1B1F]">
                     Your Village Community
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#5F6368] dark:text-[#9AA0A6]">
-                      <MapPin className="w-4 h-4 text-[#D93025]" />
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-red-500">
+                      <MapPin className="w-4 h-4" />
                     </div>
                     <input
                       type="text"
                       value={village}
                       onChange={(e) => setVillage(e.target.value)}
                       placeholder="e.g. Dzenje Village"
-                      className={`w-full pl-9 pr-3 py-2.5 rounded-2xl border text-xs font-medium outline-none transition-all ${
-                        isDarkMode
-                          ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3] focus:border-[#1A73E8]'
-                          : 'bg-[#F8F9FA] border-[#E1E3E1] text-[#1F1F1F] focus:border-[#1A73E8]'
-                      }`}
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-2xl border border-slate-200 bg-white text-sm font-medium text-[#1C1B1F] outline-none focus:border-[#1F71E8]"
                     />
                   </div>
                 </div>
@@ -613,10 +512,10 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                   type="button"
                   onClick={handleGoogleSignIn}
                   disabled={loading}
-                  className="w-full py-3.5 rounded-full font-bold text-xs bg-white dark:bg-[#28292A] text-[#1F1F1F] dark:text-[#E3E3E3] border border-[#E1E3E1] dark:border-[#303134] hover:bg-[#F8F9FA] dark:hover:bg-[#303134] shadow-xs flex items-center justify-center gap-3 transition-all active:scale-95"
+                  className="w-full py-3 rounded-full font-bold text-sm bg-white text-[#1C1B1F] border border-slate-200 hover:bg-slate-50 shadow-xs flex items-center justify-center gap-3 transition active:scale-98 cursor-pointer"
                 >
                   {loading ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-[#1A73E8]" />
+                    <Loader2 className="w-4 h-4 animate-spin text-[#1F71E8]" />
                   ) : (
                     <>
                       <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -644,14 +543,16 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
               </div>
             )}
 
-            {/* Link to Continue Without Account */}
-            <div className="pt-2 text-center">
+            {/* Guest Quick Access Link */}
+            <div className="pt-2 border-t border-slate-100 text-center">
               <button
                 type="button"
+                id="btn-choice-continue-guest"
                 onClick={handleContinueAsGuest}
-                className="text-xs text-[#5F6368] dark:text-[#9AA0A6] hover:text-[#1A73E8] dark:hover:text-[#8AB4F8] font-bold underline underline-offset-2 transition-colors"
+                className="w-full py-3 px-4 rounded-full bg-[#F3EDF7] hover:bg-[#E7E0EC] text-xs font-bold text-[#49454F] flex items-center justify-center gap-2 transition cursor-pointer"
               >
-                Skip and continue as guest →
+                <Radio className="w-4 h-4 text-emerald-600" />
+                <span>Continue as Guest (No Sign-In Required)</span>
               </button>
             </div>
           </div>

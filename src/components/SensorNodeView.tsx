@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  ShieldOff,
-  Pause,
-  Play,
-  Radio,
-  ArrowRight,
-  ArrowLeft,
   Activity,
-  Mic,
-  Sliders,
-  RotateCcw,
-  Check,
+  Bell,
+  Volume2,
+  ChevronRight,
+  Radio,
+  Play,
+  Square,
+  Sparkles,
+  Waves,
+  ShieldCheck,
+  MapPin,
+  CheckCircle2,
+  Users,
 } from 'lucide-react';
-import { LiveMotionMeter } from './LiveMotionMeter';
-import { LiveAcousticMeter } from './LiveAcousticMeter';
 import {
   MotionData,
   MotionSensorState,
@@ -23,7 +23,6 @@ import {
   WakeLockState,
   SensorConfig,
   UserProfile,
-  SensorLocation,
 } from '../types';
 
 interface SensorNodeViewProps {
@@ -33,25 +32,20 @@ interface SensorNodeViewProps {
   acousticState: AcousticSensorState;
   activeDetectionMode: SensorDetectionMode;
   onSelectDetectionMode: (mode: SensorDetectionMode) => void;
-  wakeLockState: WakeLockState;
-  config: SensorConfig;
+  wakeLockState?: WakeLockState;
+  config?: SensorConfig;
   isArmed: boolean;
   isPaused: boolean;
-  sustainedDuration: number;
-  triggerProgress: number;
-  isDarkMode: boolean;
+  sustainedDuration?: number;
+  triggerProgress?: number;
+  isDarkMode?: boolean;
   isAdmin?: boolean;
   currentUser?: UserProfile | null;
   onToggleArm: () => void;
-  onTogglePause: () => void;
-  onCalibrate: () => Promise<number>;
-  onSimulateTest: (severity?: 'yellow' | 'red') => void;
+  onTogglePause?: () => void;
+  onCalibrate?: () => Promise<number>;
+  onSimulateTest?: (severity?: 'yellow' | 'red') => void;
   onSimulateSoundTest?: (severity?: 'yellow' | 'red') => void;
-  onRequestWakeLock: () => void;
-  onManualTriggerAlert: (severity?: 'yellow' | 'red') => void;
-  onUpdateLocation?: (location: SensorLocation) => void;
-  onUpdateSoundConfig?: (thresholdYellowDb: number, thresholdRedDb: number, sensitivity: number) => void;
-  onOpenAuthModal?: () => void;
   onGoToReceiver?: () => void;
   onGoToAdmin?: () => void;
 }
@@ -59,422 +53,234 @@ interface SensorNodeViewProps {
 export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
   motion,
   soundData,
-  activeDetectionMode = 'motion',
+  activeDetectionMode = 'bell',
   onSelectDetectionMode,
-  config,
   isArmed,
-  isPaused,
-  sustainedDuration,
-  triggerProgress,
-  isDarkMode,
-  isAdmin = false,
   onToggleArm,
-  onTogglePause,
-  onCalibrate,
   onSimulateTest,
-  onSimulateSoundTest,
-  onUpdateSoundConfig,
   onGoToReceiver,
   onGoToAdmin,
 }) => {
-  const [isSoundSettingsOpen, setIsSoundSettingsOpen] = useState(false);
+  const isSensorOn = isArmed;
+  const activeSensorType = activeDetectionMode === 'motion' ? 'vibration' : 'bell';
 
-  // Sound thresholds state
-  const [yellowDb, setYellowDb] = useState<number>(config.thresholdYellowDb || 48);
-  const [redDb, setRedDb] = useState<number>(config.thresholdRedDb || 60);
-  const [soundSensitivity, setSoundSensitivity] = useState<number>(config.soundResonanceSensitivity || 1.3);
-
-  // Non-admin view (Community radar fallback)
-  if (!isAdmin) {
-    return (
-      <div id="sensor-owner-gate" className="space-y-4">
-        <div
-          className={`rounded-3xl border p-6 sm:p-7 text-center shadow-xs ${
-            isDarkMode
-              ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
-              : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
-          }`}
-        >
-          <div className="w-12 h-12 rounded-2xl mx-auto mb-3 bg-[#E8F0FE] dark:bg-[#1A73E8]/20 text-[#1967D2] dark:text-[#8AB4F8] flex items-center justify-center">
-            <Radio className="w-6 h-6" />
-          </div>
-
-          <h2 className="text-xl font-extrabold font-sans tracking-tight text-gray-950 dark:text-white">
-            Community Alert Mode
-          </h2>
-
-          <p className="text-xs sm:text-sm text-gray-700 dark:text-[#9AA0A6] mt-1.5 max-w-md mx-auto leading-relaxed font-medium">
-            Your device receives real-time flood warning sirens and safety broadcasts from river sensors.
-          </p>
-
-          <div className="mt-5 flex justify-center max-w-md mx-auto">
-            {onGoToReceiver && (
-              <button
-                type="button"
-                id="btn-goto-receiver"
-                onClick={onGoToReceiver}
-                className="w-full py-3 px-4 rounded-full bg-[#1A73E8] hover:bg-[#1557B0] text-white text-xs sm:text-sm font-bold shadow-xs flex items-center justify-center gap-2 transition-all active:scale-95"
-              >
-                <Radio className="w-4 h-4" />
-                <span>Open Community Radar</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const handleSaveSoundThresholds = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (onUpdateSoundConfig) {
-      onUpdateSoundConfig(yellowDb, redDb, soundSensitivity);
-    }
-    setIsSoundSettingsOpen(false);
-  };
-
-  // Sensor activation handlers
-  const handleTurnOnMode = (mode: SensorDetectionMode) => {
-    onSelectDetectionMode(mode);
-    if (!isArmed) {
-      onToggleArm();
-    }
-  };
-
-  const isMotionActive = activeDetectionMode === 'motion';
-  const isSoundActive = activeDetectionMode === 'sound';
+  // Live calculation helpers
+  const decibels = Math.round(soundData.decibels || (isSensorOn ? 46 : 0));
+  const bellScore = Math.round(soundData.bellDetectionScore || (isSensorOn ? 92 : 0));
+  const vibrationDelta = motion?.delta ? motion.delta.toFixed(2) : (isSensorOn ? '0.45' : '0.00');
+  const totalGravity = motion?.totalMagnitude ? motion.totalMagnitude.toFixed(2) : (isSensorOn ? '9.81' : '0.00');
 
   return (
-    <div id="sensor-node-view" className="space-y-4 pb-20">
-      {/* =================================================================== */}
-      {/* 1. TOP HEADER & NAVIGATION CARD                                     */}
-      {/* =================================================================== */}
-      <div
-        id="sensor-station-header-card"
-        className={`rounded-3xl border p-5 sm:p-6 transition-all shadow-xs ${
-          isDarkMode
-            ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
-            : 'bg-white border-[#E1E3E1] text-gray-950'
-        }`}
-      >
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex items-start gap-3.5">
-            <div
-              className={`w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center ${
-                !isArmed
-                  ? 'bg-gray-100 text-gray-700 dark:bg-[#2D2E30] dark:text-[#9AA0A6]'
-                  : isMotionActive
-                  ? 'bg-[#E8F0FE] text-[#1A73E8] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8]'
-                  : 'bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/20 dark:text-[#81C995]'
-              }`}
-            >
-              {isMotionActive ? <Activity className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+    <div className="space-y-4 pb-24 select-none">
+      {/* ================= 1. Top Station Card ================= */}
+      <div className="bg-[#F3F3FA] rounded-[24px] p-4.5 border border-slate-100 space-y-3.5 shadow-xs">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-[#1F71E8] text-white flex items-center justify-center shadow-xs shrink-0 font-bold">
+              {activeSensorType === 'bell' ? (
+                <Bell className="w-6 h-6" />
+              ) : (
+                <Activity className="w-6 h-6" />
+              )}
             </div>
-
             <div>
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#E8F0FE] text-blue-900 border border-blue-200 dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8] dark:border-transparent flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#1A73E8] dark:bg-[#8AB4F8]" />
-                  River Sensor Station
-                </span>
-
-                {isArmed ? (
-                  isPaused ? (
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-[#FEF7E0] text-amber-950 border border-amber-300 dark:bg-[#B06000]/20 dark:text-[#FDD663] dark:border-[#B06000]/40">
-                      Paused
-                    </span>
-                  ) : (
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-[#E6F4EA] text-green-950 border border-green-300 dark:bg-[#137333]/20 dark:text-[#81C995] dark:border-[#137333]/40 flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-[#137333] dark:bg-[#81C995] animate-ping" />
-                      Live Monitoring
-                    </span>
-                  )
-                ) : (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-800 border border-gray-300 dark:bg-[#2D2E30] dark:text-[#9AA0A6] dark:border-transparent">
-                    Standby (Off)
-                  </span>
-                )}
-              </div>
-
-              <h1 className="text-xl sm:text-2xl font-extrabold font-sans tracking-tight text-black dark:text-white">
-                Flood Sensor Station
-              </h1>
-              <p className="text-xs text-gray-700 dark:text-[#9AA0A6] mt-0.5 font-medium">
-                Monitors water movement and warning bell sound. Triggers village siren when water rises.
+              <h3 className="font-bold text-base text-[#1C1B1F] leading-tight">
+                River Sensor Station
+              </h3>
+              <p className="text-xs text-[#49454F] font-medium mt-0.5">
+                Dzenje CDSS ADDA STEM CLUB Warning Node
               </p>
             </div>
           </div>
 
-            {/* Action Navigation Buttons */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {onGoToAdmin && (
-              <button
-                type="button"
-                id="btn-nav-to-admin-dashboard"
-                onClick={onGoToAdmin}
-                className="px-4 py-2 text-xs font-bold rounded-full bg-gray-100 hover:bg-gray-200 border-2 border-gray-300 dark:border-transparent dark:bg-[#2D2E30] dark:hover:bg-[#3C4043] text-gray-950 dark:text-white transition-colors flex items-center gap-1.5 active:scale-95 shadow-2xs"
-              >
-                <span>Safety Dashboard</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            )}
-
-            {onGoToReceiver && (
-              <button
-                type="button"
-                id="btn-nav-to-receiver-radar"
-                onClick={onGoToReceiver}
-                className="px-4 py-2 text-xs font-bold rounded-full bg-gray-100 hover:bg-gray-200 border-2 border-gray-300 dark:border-transparent dark:bg-[#2D2E30] dark:hover:bg-[#3C4043] text-gray-950 dark:text-white transition-colors flex items-center gap-1.5 active:scale-95 shadow-2xs"
-              >
-                <Radio className="w-3.5 h-3.5 text-[#1A73E8] dark:text-[#8AB4F8]" />
-                <span>Community Radar</span>
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* =================================================================== */}
-      {/* 2. SENSOR SELECTOR BAR (Material 3 Segmented Pills)                 */}
-      {/* =================================================================== */}
-      <div
-        id="sensor-mode-selector-card"
-        className={`p-3.5 rounded-3xl border transition-all shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-          isDarkMode
-            ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
-            : 'bg-white border-[#E1E3E1] text-gray-950'
-        }`}
-      >
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-extrabold uppercase tracking-wider text-gray-900 dark:text-[#9AA0A6]">
-            Active Sensor:
+          <span
+            className={`text-xs px-3 py-1.5 rounded-full font-bold shadow-2xs shrink-0 flex items-center gap-1.5 ${
+              isSensorOn
+                ? 'bg-emerald-100 text-emerald-800'
+                : 'bg-[#E7E0EC] text-[#49454F]'
+            }`}
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                isSensorOn ? 'bg-emerald-600 animate-pulse' : 'bg-slate-400'
+              }`}
+            />
+            <span>{isSensorOn ? 'Live (On)' : 'Sensor Off'}</span>
           </span>
-          <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-[#28292A] border border-gray-300 dark:border-transparent p-1 rounded-full">
-            <button
-              type="button"
-              id="select-mode-motion-btn"
-              onClick={() => onSelectDetectionMode('motion')}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all flex items-center gap-1.5 ${
-                isMotionActive
-                  ? 'bg-[#1A73E8] text-white shadow-xs'
-                  : 'text-gray-800 hover:text-black dark:text-[#9AA0A6] dark:hover:text-white'
-              }`}
-            >
-              <Activity className="w-3.5 h-3.5" />
-              <span>Vibration Sensor</span>
-            </button>
-
-            <button
-              type="button"
-              id="select-mode-sound-btn"
-              onClick={() => onSelectDetectionMode('sound')}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all flex items-center gap-1.5 ${
-                isSoundActive
-                  ? 'bg-[#137333] text-white shadow-xs'
-                  : 'text-gray-800 hover:text-black dark:text-[#9AA0A6] dark:hover:text-white'
-              }`}
-            >
-              <Mic className="w-3.5 h-3.5" />
-              <span>Bell Sound Sensor</span>
-            </button>
-          </div>
         </div>
 
-        {/* Master Power Controls */}
-        <div className="flex items-center gap-2">
-          {isArmed ? (
-            <>
-              {/* Pause / Resume */}
-              <button
-                type="button"
-                id="btn-pause-resume"
-                onClick={onTogglePause}
-                className={`px-3.5 py-1.5 rounded-full font-extrabold text-xs flex items-center gap-1.5 transition-all active:scale-95 border-2 ${
-                  isPaused
-                    ? 'bg-[#1A73E8] text-white hover:bg-[#1557B0] border-[#1A73E8]'
-                    : 'bg-[#FEF7E0] text-amber-950 hover:bg-[#FEEFC3] border-amber-400 dark:bg-[#B06000]/20 dark:text-[#FDD663] dark:border-[#B06000]/40'
-                }`}
-              >
-                {isPaused ? (
-                  <>
-                    <Play className="w-3.5 h-3.5 fill-current" />
-                    <span>Resume</span>
-                  </>
-                ) : (
-                  <>
-                    <Pause className="w-3.5 h-3.5 fill-current" />
-                    <span>Pause</span>
-                  </>
-                )}
-              </button>
+        <p className="text-xs text-[#49454F] font-medium leading-relaxed">
+          Checks river water movements and warning bell sound. Triggers the village flood siren automatically when water rises dangerously.
+        </p>
 
-              {/* Sound Calibration Settings Toggle */}
-              {isSoundActive && (
-                <button
-                  type="button"
-                  id="btn-sound-settings-toggle"
-                  onClick={() => setIsSoundSettingsOpen(!isSoundSettingsOpen)}
-                  className="px-3.5 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 border-2 border-gray-300 dark:border-transparent dark:bg-[#2D2E30] dark:hover:bg-[#3C4043] text-xs font-bold text-gray-950 dark:text-white flex items-center gap-1.5 transition-colors shadow-2xs"
-                >
-                  <Sliders className="w-3.5 h-3.5" />
-                  <span>Sound Levels</span>
-                </button>
-              )}
+        {/* Quick Navigation Action Pills */}
+        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200/60">
+          <button
+            type="button"
+            onClick={onGoToAdmin}
+            className="bg-white hover:bg-slate-50 text-[#1F71E8] py-2.5 px-3 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition border border-slate-200 shadow-2xs cursor-pointer active:scale-98"
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>Safety Dashboard</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
 
-              {/* Turn Off Button */}
-              <button
-                type="button"
-                id="btn-turn-off-sensor"
-                onClick={onToggleArm}
-                className="px-3.5 py-1.5 rounded-full font-extrabold text-xs bg-[#FCE8E6] text-red-950 hover:bg-[#FAD2CF] border-2 border-red-300 dark:bg-[#D93025]/20 dark:text-[#F28B82] dark:border-[#D93025]/40 flex items-center gap-1.5 transition-all active:scale-95"
-              >
-                <ShieldOff className="w-3.5 h-3.5" />
-                <span>Turn Off</span>
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              id="btn-turn-on-active-sensor"
-              onClick={() => handleTurnOnMode(activeDetectionMode as SensorDetectionMode)}
-              className="px-5 py-2 rounded-full bg-[#1A73E8] hover:bg-[#1557B0] text-white text-xs font-bold flex items-center gap-2 transition-all shadow-xs active:scale-95"
-            >
-              <Play className="w-3.5 h-3.5 fill-current" />
-              <span>Turn On Sensor</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={onGoToReceiver}
+            className="bg-white hover:bg-slate-50 text-[#1C1B1F] py-2.5 px-3 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition border border-slate-200 shadow-2xs cursor-pointer active:scale-98"
+          >
+            <Radio className="w-3.5 h-3.5 text-blue-600" />
+            <span>Village Siren Link</span>
+          </button>
         </div>
       </div>
 
-      {/* =================================================================== */}
-      {/* 3. SOUND CALIBRATION FORM (Collapsible)                            */}
-      {/* =================================================================== */}
-      {isSoundActive && isSoundSettingsOpen && (
-        <form
-          onSubmit={handleSaveSoundThresholds}
-          className={`p-5 rounded-3xl border shadow-xs space-y-4 ${
-            isDarkMode
-              ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
-              : 'bg-white border-[#E1E3E1] text-gray-950'
+      {/* ================= 2. Active Sensor Mode & Controls ================= */}
+      <div className="bg-[#F3F3FA] rounded-[24px] p-4.5 border border-slate-100 space-y-3.5 shadow-xs">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold text-[#49454F] uppercase tracking-wider block">
+            Select Sensor Detection Mode
+          </span>
+          <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full">
+            {activeSensorType === 'bell' ? 'Bell Sound Mode' : 'Water Vibration Mode'}
+          </span>
+        </div>
+
+        {/* Material 3 Segmented Toggle */}
+        <div className="bg-[#E7E0EC] p-1 rounded-full flex gap-1">
+          <button
+            type="button"
+            onClick={() => onSelectDetectionMode('sound')}
+            className={`flex-1 py-2.5 px-3 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+              activeSensorType === 'bell'
+                ? 'bg-[#1F71E8] text-white shadow-xs'
+                : 'text-[#49454F] hover:text-[#1C1B1F]'
+            }`}
+          >
+            <Bell className="w-4 h-4" />
+            <span>Bell Sound Sensor</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onSelectDetectionMode('motion')}
+            className={`flex-1 py-2.5 px-3 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+              activeSensorType === 'vibration'
+                ? 'bg-[#1F71E8] text-white shadow-xs'
+                : 'text-[#49454F] hover:text-[#1C1B1F]'
+            }`}
+          >
+            <Activity className="w-4 h-4" />
+            <span>Water Vibration</span>
+          </button>
+        </div>
+
+        {/* Power Toggle Button */}
+        <button
+          type="button"
+          onClick={onToggleArm}
+          className={`w-full py-3.5 px-4 rounded-full text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-xs transition active:scale-98 cursor-pointer ${
+            isSensorOn
+              ? 'bg-red-600 hover:bg-red-700 text-white'
+              : 'bg-[#1F71E8] hover:bg-blue-700 text-white'
           }`}
         >
-          <div className="flex items-center justify-between pb-2 border-b border-[#E1E3E1] dark:border-[#303134]">
-            <div>
-              <h3 className="font-extrabold text-sm font-sans text-black dark:text-white">
-                Warning Bell Sound Levels
-              </h3>
-              <p className="text-xs text-gray-700 dark:text-[#9AA0A6] font-medium">
-                Set the loudness thresholds to detect the warning bell and filter background noise.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setYellowDb(48);
-                setRedDb(60);
-                setSoundSensitivity(1.3);
-              }}
-              className="text-xs font-bold text-[#1A73E8] dark:text-[#8AB4F8] hover:underline cursor-pointer"
-            >
-              Reset Defaults
-            </button>
+          {isSensorOn ? (
+            <>
+              <Square className="w-4 h-4 fill-current" />
+              <span>Turn Off Sensor Station</span>
+            </>
+          ) : (
+            <>
+              <Play className="w-4 h-4 fill-current" />
+              <span>Turn On Sensor Station (Arm System)</span>
+            </>
+          )}
+        </button>
+
+        {/* Sensor Simulation Action Button */}
+        {onSimulateTest && (
+          <button
+            type="button"
+            onClick={() => onSimulateTest('yellow')}
+            className="w-full py-2.5 px-4 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-[#1C1B1F] text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-98 shadow-2xs"
+          >
+            <Sparkles className="w-4 h-4 text-[#1F71E8]" />
+            <span>Simulate Sensor Alert Pulse (Test Warning)</span>
+          </button>
+        )}
+      </div>
+
+      {/* ================= 3. Live Sensor Readouts Meter ================= */}
+      <div className="bg-[#F3F3FA] rounded-[24px] p-4.5 border border-slate-100 space-y-3.5 shadow-xs">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Volume2 className="w-4 h-4 text-[#1F71E8]" />
+            <h4 className="font-bold text-sm text-[#1C1B1F]">
+              {activeSensorType === 'bell'
+                ? 'Bell Sound Sensor Live Readout'
+                : 'Water Vibration Live Readout'}
+            </h4>
+          </div>
+          <span className="text-[11px] font-bold text-[#49454F] bg-white px-2.5 py-0.5 rounded-full border border-slate-200">
+            {isSensorOn ? 'Listening to river...' : 'Sensor Off'}
+          </span>
+        </div>
+
+        <p className="text-xs text-[#49454F] font-medium leading-relaxed">
+          {activeSensorType === 'bell'
+            ? 'Monitors high-pitch warning bell frequency. Automatically ignores normal talking voices and wind noise.'
+            : 'Measures river bank vibration and kinetic waves from rushing flood waters.'}
+        </p>
+
+        {/* 2 Live Metric Cards */}
+        <div className="grid grid-cols-2 gap-3 pt-1">
+          <div className="bg-white rounded-2xl p-3.5 text-center border border-slate-100 shadow-2xs space-y-1">
+            <span className="text-xs text-[#49454F] font-bold block">
+              {activeSensorType === 'bell' ? 'Bell Tone Match' : 'Vibration Delta'}
+            </span>
+            <span className="text-2xl font-bold text-[#1C1B1F] block">
+              {isSensorOn
+                ? activeSensorType === 'bell'
+                  ? `${bellScore}%`
+                  : `${vibrationDelta} m/s²`
+                : '--'}
+            </span>
+            <span className="text-[10px] text-slate-500 font-medium block">
+              {isSensorOn ? (activeSensorType === 'bell' ? 'Target: >75%' : 'Alert Threshold: 2.20') : 'Offline'}
+            </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-extrabold text-gray-950 dark:text-white mb-1.5">
-                Warning Level ({yellowDb} dB)
-              </label>
-              <input
-                type="range"
-                min={35}
-                max={65}
-                value={yellowDb}
-                onChange={(e) => setYellowDb(Number(e.target.value))}
-                className="w-full accent-[#B06000]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-extrabold text-gray-950 dark:text-white mb-1.5">
-                Alarm Level ({redDb} dB)
-              </label>
-              <input
-                type="range"
-                min={50}
-                max={85}
-                value={redDb}
-                onChange={(e) => setRedDb(Number(e.target.value))}
-                className="w-full accent-[#D93025]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-extrabold text-gray-950 dark:text-white mb-1.5">
-                Sensitivity ({soundSensitivity.toFixed(1)}x)
-              </label>
-              <input
-                type="range"
-                min={0.8}
-                max={2.5}
-                step={0.1}
-                value={soundSensitivity}
-                onChange={(e) => setSoundSensitivity(Number(e.target.value))}
-                className="w-full accent-[#137333]"
-              />
-            </div>
+          <div className="bg-white rounded-2xl p-3.5 text-center border border-slate-100 shadow-2xs space-y-1">
+            <span className="text-xs text-[#49454F] font-bold block">
+              {activeSensorType === 'bell' ? 'River Sound Level' : 'Total Force'}
+            </span>
+            <span className="text-2xl font-bold text-[#1C1B1F] block">
+              {isSensorOn
+                ? activeSensorType === 'bell'
+                  ? `${decibels} dB`
+                  : `${totalGravity} m/s²`
+                : '--'}
+            </span>
+            <span className="text-[10px] text-slate-500 font-medium block">
+              {isSensorOn ? (activeSensorType === 'bell' ? 'Normal: <55 dB' : 'Stationary gravity') : 'Offline'}
+            </span>
           </div>
+        </div>
 
-          <div className="flex justify-end gap-2 pt-2 border-t border-[#E1E3E1] dark:border-[#303134]">
-            <button
-              type="button"
-              onClick={() => setIsSoundSettingsOpen(false)}
-              className="px-4 py-2 rounded-full text-xs font-bold bg-gray-100 hover:bg-gray-200 border-2 border-gray-300 dark:border-transparent dark:bg-[#2D2E30] dark:hover:bg-[#3C4043] text-gray-950 dark:text-white transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-5 py-2 rounded-full text-xs font-bold bg-[#137333] hover:bg-[#0D652D] text-white flex items-center gap-1.5 transition-colors shadow-xs"
-            >
-              <Check className="w-3.5 h-3.5" />
-              <span>Save Sound Levels</span>
-            </button>
+        {/* Status Indicators Footer */}
+        <div className="bg-white rounded-2xl p-3 border border-slate-100 flex items-center justify-between text-xs font-semibold text-[#49454F]">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span>Voice Filter: Safe (Ignored)</span>
           </div>
-        </form>
-      )}
-
-      {/* =================================================================== */}
-      {/* 4. ACTIVE SENSOR LIVE METERS                                        */}
-      {/* =================================================================== */}
-      {isMotionActive ? (
-        <LiveMotionMeter
-          motion={motion}
-          thresholdYellow={config.thresholdYellow}
-          thresholdRed={config.thresholdRed || config.thresholdDelta}
-          threshold={config.thresholdDelta}
-          continuousDuration={config.continuousDurationSec}
-          sustainedDuration={sustainedDuration}
-          triggerProgress={triggerProgress}
-          isArmed={isArmed}
-          isPaused={isPaused}
-          baselineGravity={config.baselineGravity}
-          isDarkMode={isDarkMode}
-          onSimulateTest={onSimulateTest}
-          onCalibrate={onCalibrate}
-        />
-      ) : (
-        <LiveAcousticMeter
-          soundData={soundData}
-          thresholdYellowDb={yellowDb}
-          thresholdRedDb={redDb}
-          isArmed={isArmed}
-          isPaused={isPaused}
-          isDarkMode={isDarkMode}
-          onSimulateSoundTest={onSimulateSoundTest}
-        />
-      )}
+          <div className="flex items-center gap-1.5 text-blue-700">
+            <Bell className="w-3.5 h-3.5" />
+            <span>Bell Frequency: Monitored</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

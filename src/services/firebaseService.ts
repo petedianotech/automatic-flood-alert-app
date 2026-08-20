@@ -767,43 +767,7 @@ class FirebaseFloodService {
     } catch {
       // ignore
     }
-    const now = Date.now();
-    return [
-      {
-        id: 'alert-seed-1',
-        timestamp: now - 1000 * 60 * 30,
-        formattedTime: new Date(now - 1000 * 60 * 30).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        peakDelta: 1.85,
-        durationSeconds: 4,
-        nodeId: 'ruo-station-01',
-        nodeName: 'Ruo River Bridge Sensor',
-        village: 'Dzenje Village',
-        locationLabel: 'Ruo River, Dzenje Village, T/A Mabuka, Mulanje',
-        riverName: 'Ruo River',
-        traditionalAuthority: 'T/A Mabuka',
-        district: 'Mulanje',
-        status: 'active',
-        severity: 'red',
-        source: 'hardware_sensor',
-      },
-      {
-        id: 'alert-seed-2',
-        timestamp: now - 1000 * 60 * 180,
-        formattedTime: new Date(now - 1000 * 60 * 180).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        peakDelta: 0.95,
-        durationSeconds: 3,
-        nodeId: 'likhubula-station-02',
-        nodeName: 'Likhubula River Sensor',
-        village: 'Mabuka Village',
-        locationLabel: 'Likhubula River, Mabuka Village, T/A Mabuka, Mulanje',
-        riverName: 'Likhubula River',
-        traditionalAuthority: 'T/A Mabuka',
-        district: 'Mulanje',
-        status: 'resolved',
-        severity: 'yellow',
-        source: 'acoustic_sound_sensor',
-      },
-    ];
+    return [];
   }
 
   private saveLocalAlerts(alerts: FloodAlert[]) {
@@ -967,48 +931,7 @@ class FirebaseFloodService {
     } catch {
       // ignore
     }
-    // Default seed sample data if empty so UI looks alive
-    return [
-      {
-        id: 'seed-1',
-        userId: 'seed-user-1',
-        userName: 'Peter Damiano',
-        village: 'Dzenje Village',
-        status: 'safe',
-        statusLabel: 'Safe at Home (Flood Waters Receded)',
-        peopleCount: 4,
-        phone: '+265 999 123 456',
-        message: 'Ruo River banks receded. Family is safe, water clear.',
-        timestamp: Date.now() - 1000 * 60 * 15,
-        formattedTime: '15 mins ago',
-      },
-      {
-        id: 'seed-2',
-        userId: 'seed-user-2',
-        userName: 'Chikondi Phiri',
-        village: 'Dzenje Village',
-        status: 'evacuated',
-        statusLabel: 'Evacuated to High Ground',
-        peopleCount: 6,
-        phone: '+265 888 234 567',
-        message: 'Moved to Dzenje Primary School shelter.',
-        timestamp: Date.now() - 1000 * 60 * 45,
-        formattedTime: '45 mins ago',
-      },
-      {
-        id: 'seed-3',
-        userId: 'seed-user-3',
-        userName: 'Mary Banda',
-        village: 'Mabuka Village',
-        status: 'in_flooding',
-        statusLabel: 'In Flooding (Compound Flooded)',
-        peopleCount: 3,
-        phone: '+265 991 345 678',
-        message: 'Water entering front porch, observing river level.',
-        timestamp: Date.now() - 1000 * 60 * 60,
-        formattedTime: '1 hour ago',
-      },
-    ];
+    return [];
   }
 
   public async deleteSafetyReport(reportId: string): Promise<void> {

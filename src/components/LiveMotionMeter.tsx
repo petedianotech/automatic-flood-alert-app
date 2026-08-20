@@ -167,33 +167,33 @@ export const LiveMotionMeter: React.FC<LiveMotionMeterProps> = ({
   return (
     <div
       id="live-motion-meter"
-      className={`rounded-3xl border transition-all p-4 sm:p-5 shadow-xs space-y-4 ${
+      className={`rounded-[24px] border transition-all p-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] space-y-4 ${
         isDarkMode
-          ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
-          : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
+          ? 'bg-[#1E1F20] border-[#303134] text-[#E6E1E5]'
+          : 'bg-[#F3F3FA] border-[#E7E0EC]/80 text-[#1C1B1F]'
       }`}
     >
       {/* 1. Header Row */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <div
-            className={`w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
+            className={`w-10 h-10 rounded-[18px] flex items-center justify-center shrink-0 transition-colors shadow-xs ${
               isRed
-                ? 'bg-[#FCE8E6] text-[#D93025] dark:bg-[#D93025]/20 dark:text-[#F28B82]'
+                ? 'bg-[#FCE8E6] text-[#BA1A1A] dark:bg-[#BA1A1A]/20 dark:text-[#F28B82]'
                 : isYellow
                 ? 'bg-[#FEF7E0] text-[#934D00] dark:bg-[#B06000]/20 dark:text-[#FDD663]'
                 : isPaused
-                ? 'bg-[#F1F3F4] text-[#3C4043] dark:bg-[#2D2E30] dark:text-[#9AA0A6]'
-                : 'bg-[#E8F0FE] text-[#1A73E8] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8]'
+                ? 'bg-[#E7E0EC] text-[#49454F] dark:bg-[#2D2E30] dark:text-[#CAC4D0]'
+                : 'bg-[#E0EFFF] text-[#1F71E8] dark:bg-[#1F71E8]/20 dark:text-[#A8C7FA]'
             }`}
           >
             <Activity className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-extrabold text-sm sm:text-base tracking-tight font-sans text-black dark:text-white">
+            <h3 className="font-bold text-sm sm:text-base tracking-tight font-sans text-[#1C1B1F] dark:text-white">
               Vibration Sensor Meter
             </h3>
-            <p className="text-xs text-gray-700 dark:text-[#9AA0A6] font-medium">
+            <p className="text-xs text-[#49454F] dark:text-[#CAC4D0] font-normal">
               Warning at {yellowLimit.toFixed(1)} m/s² &bull; Alarm at {redLimit.toFixed(1)} m/s²
             </p>
           </div>
@@ -201,23 +201,23 @@ export const LiveMotionMeter: React.FC<LiveMotionMeterProps> = ({
 
         {/* Status Badge */}
         {isRed ? (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#FCE8E6] border-2 border-red-300 text-red-950 dark:bg-[#D93025]/20 dark:text-[#F28B82] dark:border-[#D93025]/40 font-extrabold text-xs">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#FCE8E6] border border-[#FAD2CF] text-[#BA1A1A] dark:bg-[#BA1A1A]/20 dark:text-[#F28B82] dark:border-[#BA1A1A]/40 font-medium text-xs">
             <AlertOctagon className="w-3.5 h-3.5" />
             Alarm Active
           </span>
         ) : isYellow ? (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#FEF7E0] border-2 border-amber-300 text-amber-950 dark:bg-[#B06000]/20 dark:text-[#FDD663] dark:border-[#B06000]/40 font-extrabold text-xs">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#FEF7E0] border border-[#FEEFC3] text-[#934D00] dark:bg-[#B06000]/20 dark:text-[#FDD663] dark:border-[#B06000]/40 font-medium text-xs">
             <AlertTriangle className="w-3.5 h-3.5" />
             Warning Active
           </span>
         ) : (
           <span
-            className={`text-xs font-extrabold px-3 py-1 rounded-full flex items-center gap-1.5 border-2 ${
+            className={`text-xs font-medium px-3 py-1 rounded-full flex items-center gap-1.5 border ${
               isPaused
-                ? 'bg-[#FEF7E0] text-amber-950 border-amber-300 dark:bg-[#B06000]/20 dark:text-[#FDD663] dark:border-[#B06000]/40'
+                ? 'bg-[#FEF7E0] text-[#934D00] border-[#FEEFC3] dark:bg-[#B06000]/20 dark:text-[#FDD663] dark:border-[#B06000]/40'
                 : !isArmed
-                ? 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-[#2D2E30] dark:text-[#9AA0A6] dark:border-transparent'
-                : 'bg-[#E6F4EA] text-green-950 border-green-300 dark:bg-[#137333]/20 dark:text-[#81C995] dark:border-[#137333]/40'
+                ? 'bg-[#E7E0EC] text-[#49454F] border-transparent dark:bg-[#2D2E30] dark:text-[#CAC4D0]'
+                : 'bg-[#E6F4EA] text-[#137333] border-[#CEEAD6] dark:bg-[#137333]/20 dark:text-[#81C995] dark:border-[#137333]/40'
             }`}
           >
             {isArmed && !isPaused && <span className="w-2 h-2 rounded-full bg-[#137333] dark:bg-[#81C995] animate-ping" />}
@@ -227,19 +227,19 @@ export const LiveMotionMeter: React.FC<LiveMotionMeterProps> = ({
       </div>
 
       {/* 2. Main Live Vibration Reading */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-gray-50 dark:bg-[#28292A] border-2 border-gray-200 dark:border-[#303134] gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-[20px] bg-white dark:bg-[#28292A] border border-[#E7E0EC]/80 dark:border-[#303134] gap-3 shadow-xs">
         <div>
-          <span className="text-xs font-extrabold uppercase tracking-wider text-gray-900 dark:text-[#9AA0A6] block">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#49454F] dark:text-[#CAC4D0] block">
             Water Movement Vibration
           </span>
           <div className="flex items-baseline gap-1.5 mt-0.5">
             <span
               id="motion-delta-value"
-              className={`text-3xl sm:text-4xl font-extrabold font-mono tracking-tight transition-colors ${deltaColorClass}`}
+              className={`text-3xl sm:text-4xl font-bold font-mono tracking-tight transition-colors ${deltaColorClass}`}
             >
               {isPaused || !isArmed ? '0.00' : motion.delta.toFixed(2)}
             </span>
-            <span className="text-xs font-extrabold text-gray-900 dark:text-[#9AA0A6]">
+            <span className="text-xs font-semibold text-[#49454F] dark:text-[#CAC4D0]">
               m/s²
             </span>
           </div>
@@ -248,10 +248,10 @@ export const LiveMotionMeter: React.FC<LiveMotionMeterProps> = ({
         {/* Baseline Rest Level & Calibration Button */}
         <div className="flex items-center gap-2">
           <div className="text-left sm:text-right">
-            <span className="text-xs text-black dark:text-white block font-extrabold">
+            <span className="text-xs text-[#1C1B1F] dark:text-white block font-bold">
               Rest Level: {baselineGravity.toFixed(2)} m/s²
             </span>
-            <span className="text-[11px] text-gray-700 dark:text-[#9AA0A6] font-medium">
+            <span className="text-xs text-[#49454F] dark:text-[#CAC4D0] font-medium">
               Gravity calibrated
             </span>
           </div>
@@ -262,10 +262,10 @@ export const LiveMotionMeter: React.FC<LiveMotionMeterProps> = ({
               id="btn-calibrate-motion"
               onClick={handleCalibrateClick}
               disabled={isCalibrating}
-              className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-[#1E1F20] border-2 border-gray-300 dark:border-[#303134] hover:bg-gray-100 text-xs font-bold text-gray-950 dark:text-white flex items-center gap-1.5 transition-colors shadow-2xs active:scale-95 cursor-pointer"
+              className="px-3.5 py-1.5 rounded-full bg-[#E0EFFF] hover:bg-[#D2E7FC] dark:bg-[#1F71E8]/20 dark:hover:bg-[#1F71E8]/30 border border-[#C2E7FF] dark:border-[#1F71E8]/40 text-xs font-bold text-[#1F71E8] dark:text-[#A8C7FA] flex items-center gap-1.5 transition-colors shadow-xs active:scale-95 cursor-pointer"
               title="Calibrate still rest position"
             >
-              <RotateCcw className={`w-3.5 h-3.5 text-[#1A73E8] ${isCalibrating ? 'animate-spin' : ''}`} />
+              <RotateCcw className={`w-3.5 h-3.5 text-[#1F71E8] ${isCalibrating ? 'animate-spin' : ''}`} />
               <span>{isCalibrating ? 'Calibrating...' : 'Calibrate'}</span>
             </button>
           )}
@@ -274,31 +274,31 @@ export const LiveMotionMeter: React.FC<LiveMotionMeterProps> = ({
 
       {/* 3. Horizontal Level Bar with Markers */}
       <div className="space-y-1.5">
-        <div className="flex justify-between text-xs font-bold text-gray-800 dark:text-[#9AA0A6]">
-          <span className="font-extrabold text-gray-950 dark:text-white">0.0 (Still)</span>
-          <span className="text-amber-950 dark:text-[#FDD663] font-extrabold">Warning: {yellowLimit.toFixed(1)}</span>
-          <span className="text-red-950 dark:text-[#F28B82] font-extrabold">Alarm: {redLimit.toFixed(1)}</span>
+        <div className="flex justify-between text-xs font-semibold text-[#49454F] dark:text-[#CAC4D0]">
+          <span className="text-[#1C1B1F] dark:text-white font-bold">0.0 (Still)</span>
+          <span className="text-[#934D00] dark:text-[#FDD663] font-bold">Warning: {yellowLimit.toFixed(1)}</span>
+          <span className="text-[#BA1A1A] dark:text-[#F28B82] font-bold">Alarm: {redLimit.toFixed(1)}</span>
         </div>
 
-        <div className="w-full h-3.5 bg-gray-200 dark:bg-[#303134] rounded-full overflow-hidden relative">
+        <div className="w-full h-3 bg-[#E7E0EC] dark:bg-[#303134] rounded-full overflow-hidden relative">
           {/* Yellow marker */}
           <div
-            className="absolute top-0 bottom-0 w-0.5 bg-[#B06000] dark:bg-[#FDD663] z-10"
+            className="absolute top-0 bottom-0 w-0.5 bg-[#934D00] dark:bg-[#FDD663] z-10"
             style={{ left: `${yellowMarkerPos}%` }}
           />
           {/* Red marker */}
           <div
-            className="absolute top-0 bottom-0 w-0.5 bg-[#D93025] dark:bg-[#F28B82] z-10"
+            className="absolute top-0 bottom-0 w-0.5 bg-[#BA1A1A] dark:bg-[#F28B82] z-10"
             style={{ left: `${redMarkerPos}%` }}
           />
           {/* Level Fill */}
           <div
             className={`h-full rounded-full transition-all duration-75 ${
               isRed
-                ? 'bg-[#D93025]'
+                ? 'bg-[#BA1A1A]'
                 : isYellow
-                ? 'bg-[#B06000]'
-                : 'bg-[#1A73E8]'
+                ? 'bg-[#934D00]'
+                : 'bg-[#1F71E8]'
             }`}
             style={{ width: `${gaugePercent}%` }}
           />
@@ -307,14 +307,14 @@ export const LiveMotionMeter: React.FC<LiveMotionMeterProps> = ({
 
       {/* 4. Real-time Oscilloscope Waveform */}
       <div className="space-y-1.5">
-        <div className="flex items-center justify-between text-xs text-gray-900 dark:text-[#9AA0A6]">
-          <span className="font-extrabold text-gray-950 dark:text-white">Live Waveform</span>
-          <span className="font-mono text-[11px] font-bold text-gray-800 dark:text-[#9AA0A6]">
+        <div className="flex items-center justify-between text-xs text-[#49454F] dark:text-[#CAC4D0]">
+          <span className="font-bold text-[#1C1B1F] dark:text-white">Live Waveform</span>
+          <span className="font-mono text-xs font-semibold text-[#49454F] dark:text-[#CAC4D0]">
             X: {motion.x.toFixed(1)} &bull; Y: {motion.y.toFixed(1)} &bull; Z: {motion.z.toFixed(1)}
           </span>
         </div>
 
-        <div className="relative rounded-2xl overflow-hidden border-2 border-gray-200 dark:border-[#303134] bg-gray-50 dark:bg-[#121316] p-2">
+        <div className="relative rounded-[20px] overflow-hidden border border-[#E7E0EC]/80 dark:border-[#303134] bg-white dark:bg-[#121316] p-2 shadow-xs">
           <canvas
             ref={canvasRef}
             width={400}
@@ -326,27 +326,27 @@ export const LiveMotionMeter: React.FC<LiveMotionMeterProps> = ({
 
       {/* 5. 3-Axis & Total Vector Cards */}
       <div className="grid grid-cols-4 gap-2 text-center">
-        <div className="py-2 px-1 rounded-2xl bg-gray-50 dark:bg-[#28292A] border-2 border-gray-200 dark:border-[#303134]">
-          <span className="block text-[10px] font-extrabold text-gray-800 dark:text-[#9AA0A6]">X Axis</span>
-          <span className="font-mono text-xs sm:text-sm font-extrabold text-black dark:text-white">
+        <div className="py-2.5 px-1 rounded-[16px] bg-white dark:bg-[#28292A] border border-[#E7E0EC]/80 dark:border-[#303134] shadow-xs">
+          <span className="block text-xs font-semibold text-[#49454F] dark:text-[#CAC4D0]">X Axis</span>
+          <span className="font-mono text-xs sm:text-sm font-bold text-[#1C1B1F] dark:text-white">
             {motion.x.toFixed(1)}
           </span>
         </div>
-        <div className="py-2 px-1 rounded-2xl bg-gray-50 dark:bg-[#28292A] border-2 border-gray-200 dark:border-[#303134]">
-          <span className="block text-[10px] font-extrabold text-gray-800 dark:text-[#9AA0A6]">Y Axis</span>
-          <span className="font-mono text-xs sm:text-sm font-extrabold text-black dark:text-white">
+        <div className="py-2.5 px-1 rounded-[16px] bg-white dark:bg-[#28292A] border border-[#E7E0EC]/80 dark:border-[#303134] shadow-xs">
+          <span className="block text-xs font-semibold text-[#49454F] dark:text-[#CAC4D0]">Y Axis</span>
+          <span className="font-mono text-xs sm:text-sm font-bold text-[#1C1B1F] dark:text-white">
             {motion.y.toFixed(1)}
           </span>
         </div>
-        <div className="py-2 px-1 rounded-2xl bg-gray-50 dark:bg-[#28292A] border-2 border-gray-200 dark:border-[#303134]">
-          <span className="block text-[10px] font-extrabold text-gray-800 dark:text-[#9AA0A6]">Z Axis</span>
-          <span className="font-mono text-xs sm:text-sm font-extrabold text-black dark:text-white">
+        <div className="py-2.5 px-1 rounded-[16px] bg-white dark:bg-[#28292A] border border-[#E7E0EC]/80 dark:border-[#303134] shadow-xs">
+          <span className="block text-xs font-semibold text-[#49454F] dark:text-[#CAC4D0]">Z Axis</span>
+          <span className="font-mono text-xs sm:text-sm font-bold text-[#1C1B1F] dark:text-white">
             {motion.z.toFixed(1)}
           </span>
         </div>
-        <div className="py-2 px-1 rounded-2xl bg-[#E8F0FE] dark:bg-[#1A73E8]/20 border-2 border-blue-200 dark:border-[#1A73E8]/40">
-          <span className="block text-[10px] font-extrabold text-blue-950 dark:text-[#8AB4F8]">Total Vector</span>
-          <span className="font-mono text-xs sm:text-sm font-extrabold text-blue-950 dark:text-[#8AB4F8]">
+        <div className="py-2.5 px-1 rounded-[16px] bg-[#E0EFFF] dark:bg-[#1F71E8]/20 border border-[#C2E7FF] dark:border-[#1F71E8]/40 shadow-xs">
+          <span className="block text-xs font-semibold text-[#1F71E8] dark:text-[#A8C7FA]">Total</span>
+          <span className="font-mono text-xs sm:text-sm font-bold text-[#1F71E8] dark:text-[#A8C7FA]">
             {motion.totalMagnitude.toFixed(1)}
           </span>
         </div>
@@ -354,24 +354,24 @@ export const LiveMotionMeter: React.FC<LiveMotionMeterProps> = ({
 
       {/* 6. Quick Simulation Test Buttons */}
       {onSimulateTest && (
-        <div className="pt-2 border-t-2 border-gray-200 dark:border-[#303134] flex items-center justify-between gap-2 flex-wrap">
-          <span className="text-xs font-extrabold text-black dark:text-white">
+        <div className="pt-3 border-t border-[#E7E0EC] dark:border-[#303134] flex items-center justify-between gap-2 flex-wrap">
+          <span className="text-xs font-semibold text-[#1C1B1F] dark:text-white">
             Test Alarm System:
           </span>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => onSimulateTest('yellow')}
-              className="px-3.5 py-1.5 rounded-full text-xs font-extrabold bg-[#FEF7E0] hover:bg-[#FEEFC3] text-amber-950 border-2 border-amber-400 dark:bg-[#B06000]/20 dark:text-[#FDD663] dark:border-[#B06000]/40 transition-colors active:scale-95 shadow-2xs cursor-pointer"
+              className="px-4 py-1.5 rounded-full text-xs font-medium bg-[#FEF7E0] hover:bg-[#FEEFC3] text-[#934D00] border border-[#FEEFC3] dark:bg-[#B06000]/20 dark:text-[#FDD663] dark:border-[#B06000]/40 transition-colors active:scale-95 shadow-xs cursor-pointer"
             >
-              Test Warning (Yellow)
+              Test Warning
             </button>
             <button
               type="button"
               onClick={() => onSimulateTest('red')}
-              className="px-3.5 py-1.5 rounded-full text-xs font-extrabold bg-[#FCE8E6] hover:bg-[#FAD2CF] text-red-950 border-2 border-red-400 dark:bg-[#D93025]/20 dark:text-[#F28B82] dark:border-[#D93025]/40 transition-colors active:scale-95 shadow-2xs cursor-pointer"
+              className="px-4 py-1.5 rounded-full text-xs font-medium bg-[#FCE8E6] hover:bg-[#FAD2CF] text-[#BA1A1A] border border-[#FAD2CF] dark:bg-[#BA1A1A]/20 dark:text-[#F28B82] dark:border-[#BA1A1A]/40 transition-colors active:scale-95 shadow-xs cursor-pointer"
             >
-              Test Danger (Red)
+              Test Alarm
             </button>
           </div>
         </div>

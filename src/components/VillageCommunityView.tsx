@@ -2,460 +2,748 @@ import React, { useState } from 'react';
 import {
   MapPin,
   Users,
+  Check,
   ShieldCheck,
   AlertTriangle,
-  Radio,
-  Building2,
-  PhoneCall,
-  BellRing,
-  Sparkles,
-  ExternalLink,
-  LifeBuoy,
   Home,
-  CheckCircle2,
-  PlusCircle,
-  Mic,
   Phone,
-  Volume2,
-  Clock,
-  User,
+  Radio,
+  Mic,
+  Compass,
+  Building,
+  Info,
+  CheckCircle2,
+  Bell,
+  HeartHandshake,
 } from 'lucide-react';
-import { UserProfile, FloodAlert, ResidentSafetyReport, SafetyStatusType } from '../types';
-import { SafetyCheckInModal } from './SafetyCheckInModal';
+import { UserProfile, FloodAlert, ResidentSafetyReport } from '../types';
 
 interface VillageCommunityViewProps {
   currentUser: UserProfile | null;
   alerts: FloodAlert[];
   safetyReports?: ResidentSafetyReport[];
-  isDarkMode: boolean;
-  onOpenAuthModal: () => void;
+  isDarkMode?: boolean;
+  selectedVillage?: string;
+  onSelectVillage?: (village: string) => void;
+  onOpenAuthModal?: () => void;
   onOpenDirectVoiceSOS?: () => void;
+  onOpenCheckInModal?: () => void;
 }
+
+interface VillageData {
+  id: string;
+  name: string;
+  subArea: string;
+  status: 'Safe' | 'River Warning' | 'Monitoring';
+  statusColor: string;
+  badgeBg: string;
+  badgeText: string;
+  residentCount: number;
+  safeCount: number;
+  shelterName: string;
+  sensorStatus: 'Active' | 'Standby';
+  shelters: {
+    name: string;
+    type: string;
+    capacity: number;
+    occupancy: number;
+    highGround: string;
+    amenities: string[];
+    contactPerson: string;
+    contactPhone: string;
+  }[];
+  contacts: {
+    role: string;
+    name: string;
+    phone: string;
+  }[];
+}
+
+const VILLAGES_DATA: VillageData[] = [
+  {
+    id: 'dzenje',
+    name: 'Dzenje Village',
+    subArea: 'Dzenje ADDA STEM Club Early Warning Hub',
+    status: 'Safe',
+    statusColor: 'bg-emerald-500',
+    badgeBg: 'bg-emerald-100',
+    badgeText: 'text-emerald-800',
+    residentCount: 142,
+    safeCount: 128,
+    shelterName: 'Dzenje CDSS High School Hall',
+    sensorStatus: 'Active',
+    shelters: [
+      {
+        name: 'Dzenje CDSS High School Hall',
+        type: 'Main Community Evacuation Center',
+        capacity: 250,
+        occupancy: 34,
+        highGround: '12m Above River Level (Safe Hilltop)',
+        amenities: ['Clean Borehole Water', 'Solar Emergency Lights', 'First Aid Station'],
+        contactPerson: 'Mr. Banda (Shelter Manager)',
+        contactPhone: '+265 999 123 456',
+      },
+      {
+        name: 'St. Peter Catholic Church Ground',
+        type: 'Secondary Evacuation Point',
+        capacity: 180,
+        occupancy: 12,
+        highGround: '10m Above River Level',
+        amenities: ['Covered Hall', 'Sanitation Facilities'],
+        contactPerson: 'Village Elder Phiri',
+        contactPhone: '+265 888 234 567',
+      },
+    ],
+    contacts: [
+      { role: 'Village Chief / Disaster Head', name: 'Chief Dzenje', phone: '+265 999 123 456' },
+      { role: 'ADDA STEM Early Warning Team', name: 'Peter / Hastings', phone: '+265 888 234 567' },
+      { role: 'Red Cross First Aid Volunteer', name: 'Grace Phiri', phone: '+265 991 345 678' },
+    ],
+  },
+  {
+    id: 'mathambi',
+    name: 'Mathambi',
+    subArea: 'Lower Basin Sensor Post',
+    status: 'Safe',
+    statusColor: 'bg-emerald-500',
+    badgeBg: 'bg-emerald-100',
+    badgeText: 'text-emerald-800',
+    residentCount: 98,
+    safeCount: 89,
+    shelterName: 'Mathambi Primary School',
+    sensorStatus: 'Active',
+    shelters: [
+      {
+        name: 'Mathambi Primary School Brick Block',
+        type: 'Primary Safe Shelter',
+        capacity: 200,
+        occupancy: 15,
+        highGround: '9m Above River Level',
+        amenities: ['Borehole Water', 'Spacious Classrooms'],
+        contactPerson: 'Headteacher Mwale',
+        contactPhone: '+265 882 111 222',
+      },
+    ],
+    contacts: [
+      { role: 'Village Headman', name: 'Group Headman Mathambi', phone: '+265 993 456 789' },
+      { role: 'Community Disaster Committee', name: 'Chikondi Phiri', phone: '+265 884 567 890' },
+    ],
+  },
+  {
+    id: 'chinyama',
+    name: 'Chinyama',
+    subArea: 'River Bend Watch Zone',
+    status: 'Monitoring',
+    statusColor: 'bg-blue-500',
+    badgeBg: 'bg-blue-100',
+    badgeText: 'text-blue-800',
+    residentCount: 115,
+    safeCount: 96,
+    shelterName: 'Chinyama CCAP Church Center',
+    sensorStatus: 'Active',
+    shelters: [
+      {
+        name: 'Chinyama CCAP Hall',
+        type: 'High-Ground Community Shelter',
+        capacity: 160,
+        occupancy: 8,
+        highGround: '11m Above River Level',
+        amenities: ['Drinking Water Tap', 'Dry Food Storage'],
+        contactPerson: 'Elder Jonathan',
+        contactPhone: '+265 994 333 444',
+      },
+    ],
+    contacts: [
+      { role: 'Village Leader', name: 'Headman Chinyama', phone: '+265 881 222 333' },
+      { role: 'Rescue Boat Coordinator', name: 'Kondwani Banda', phone: '+265 995 666 777' },
+    ],
+  },
+  {
+    id: 'nkhulambe',
+    name: 'Nkhulambe',
+    subArea: 'Mountain Slopes Catchment',
+    status: 'Safe',
+    statusColor: 'bg-emerald-500',
+    badgeBg: 'bg-emerald-100',
+    badgeText: 'text-emerald-800',
+    residentCount: 86,
+    safeCount: 78,
+    shelterName: 'Nkhulambe Community Hall',
+    sensorStatus: 'Active',
+    shelters: [
+      {
+        name: 'Nkhulambe Community Hall',
+        type: 'Mountain Safe Evacuation Center',
+        capacity: 220,
+        occupancy: 5,
+        highGround: '15m High Elevated Ground',
+        amenities: ['Clean Spring Water', 'First Aid Room'],
+        contactPerson: 'Mrs. Gondwe',
+        contactPhone: '+265 887 999 000',
+      },
+    ],
+    contacts: [
+      { role: 'Disaster Committee Secretary', name: 'Patrick Banda', phone: '+265 992 123 789' },
+    ],
+  },
+  {
+    id: 'likabula',
+    name: 'Likabula',
+    subArea: 'Upper Stream River Station',
+    status: 'Safe',
+    statusColor: 'bg-emerald-500',
+    badgeBg: 'bg-emerald-100',
+    badgeText: 'text-emerald-800',
+    residentCount: 64,
+    safeCount: 60,
+    shelterName: 'Likabula Forestry Center',
+    sensorStatus: 'Active',
+    shelters: [
+      {
+        name: 'Likabula Center Hall',
+        type: 'Safe Evacuation Shelter',
+        capacity: 140,
+        occupancy: 0,
+        highGround: '14m Above River Basin',
+        amenities: ['Electricity', 'Water Supply'],
+        contactPerson: 'Ranger Tembo',
+        contactPhone: '+265 889 444 555',
+      },
+    ],
+    contacts: [
+      { role: 'Area Coordinator', name: 'Mr. Tembo', phone: '+265 889 444 555' },
+    ],
+  },
+  {
+    id: 'chitakale',
+    name: 'Chitakale',
+    subArea: 'Commercial & Trading Hub',
+    status: 'Safe',
+    statusColor: 'bg-emerald-500',
+    badgeBg: 'bg-emerald-100',
+    badgeText: 'text-emerald-800',
+    residentCount: 175,
+    safeCount: 160,
+    shelterName: 'Chitakale Youth Center',
+    sensorStatus: 'Active',
+    shelters: [
+      {
+        name: 'Chitakale Youth Center',
+        type: 'Town Safe Shelter',
+        capacity: 300,
+        occupancy: 18,
+        highGround: '10m Safe Zone',
+        amenities: ['Solar Power', 'Piped Water', 'Medical Volunteer Team'],
+        contactPerson: 'Youth Leader Joseph',
+        contactPhone: '+265 998 777 888',
+      },
+    ],
+    contacts: [
+      { role: 'Town Disaster Liaison', name: 'Mary Chirwa', phone: '+265 998 777 888' },
+    ],
+  },
+  {
+    id: 'chikwawa',
+    name: 'Chikwawa South',
+    subArea: 'Lower Shire Flood Plain',
+    status: 'River Warning',
+    statusColor: 'bg-amber-500',
+    badgeBg: 'bg-amber-100',
+    badgeText: 'text-amber-800',
+    residentCount: 315,
+    safeCount: 240,
+    shelterName: 'Chikwawa Community Camp',
+    sensorStatus: 'Active',
+    shelters: [
+      {
+        name: 'Chikwawa High School Camp',
+        type: 'Main District Flood Camp',
+        capacity: 450,
+        occupancy: 82,
+        highGround: '13m Elevated Ridge',
+        amenities: ['Water Tanks', 'Mobile Clinic', 'Solar Power Stations'],
+        contactPerson: 'Camp Officer Nyirenda',
+        contactPhone: '+265 888 555 444',
+      },
+    ],
+    contacts: [
+      { role: 'District Emergency Officer', name: 'Officer Nyirenda', phone: '+265 888 555 444' },
+      { role: 'Boat Rescue Team Leader', name: 'Captain Phiri', phone: '+265 993 111 222' },
+    ],
+  },
+];
 
 export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
   currentUser,
-  alerts,
-  safetyReports = [],
-  isDarkMode,
+  selectedVillage = 'Dzenje Village',
+  onSelectVillage,
   onOpenAuthModal,
   onOpenDirectVoiceSOS,
+  onOpenCheckInModal,
 }) => {
-  const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
-  const [selectedInitialStatus, setSelectedInitialStatus] = useState<SafetyStatusType>('safe');
-  const [autoStartVoice, setAutoStartVoice] = useState(false);
-  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const currentVillageName = selectedVillage || currentUser?.village || 'Dzenje Village';
 
-  const currentVillage = currentUser?.village || 'Dzenje Village';
-  const villageAlerts = alerts.filter(
-    (a) =>
-      !a.village ||
-      a.village.toLowerCase().includes(currentVillage.toLowerCase()) ||
-      currentVillage.toLowerCase().includes(a.village.toLowerCase())
-  );
-  const activeVillageAlerts = villageAlerts.filter((a) => a.status === 'active');
+  // Find active village data or fallback to Dzenje Village
+  const activeVillageData =
+    VILLAGES_DATA.find(
+      (v) => v.name.toLowerCase() === currentVillageName.toLowerCase()
+    ) || VILLAGES_DATA[0];
 
-  // Village specific safety reports
-  const villageReports = safetyReports.filter(
-    (r) =>
-      !r.village ||
-      r.village.toLowerCase().includes(currentVillage.toLowerCase()) ||
-      currentVillage.toLowerCase().includes(r.village.toLowerCase())
-  );
-
-  const safeCount = villageReports.filter((r) => r.status === 'safe').length;
-  const evacuatedCount = villageReports.filter((r) => r.status === 'evacuated').length;
-  const inFloodingCount = villageReports.filter((r) => r.status === 'in_flooding').length;
-  const needsHelpCount = villageReports.filter((r) => r.status === 'needs_help').length;
-
-  const handleOpenCheckIn = (status: SafetyStatusType, startVoice = false) => {
-    setSelectedInitialStatus(status);
-    setAutoStartVoice(startVoice);
-    setIsCheckInModalOpen(true);
-  };
-
-  const handlePlayVoice = (reportId: string, audioUrl?: string) => {
-    if (!audioUrl) return;
-    if (playingAudioId === reportId) {
-      setPlayingAudioId(null);
-      return;
-    }
-    const audio = new Audio(audioUrl);
-    audio.onended = () => setPlayingAudioId(null);
-    audio.onerror = () => setPlayingAudioId(null);
-    setPlayingAudioId(reportId);
-    audio.play().catch(() => setPlayingAudioId(null));
-  };
+  const [activeTabSection, setActiveTabSection] = useState<'villages' | 'shelters' | 'contacts' | 'guide'>('villages');
 
   return (
-    <div id="village-community-view" className="space-y-4 pb-24">
-      {/* 1. Village Location & River Status Banner */}
-      <div
-        id="village-header-card"
-        className={`rounded-3xl border p-5 sm:p-6 transition-all shadow-xs ${
-          isDarkMode
-            ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
-            : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
-        }`}
-      >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-[#E8F0FE] text-[#1A73E8] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8] flex items-center justify-center shrink-0">
-              <MapPin className="w-6 h-6 text-[#D93025]" />
+    <div className="space-y-4 pb-24 select-none">
+      {/* ================= 1. TOP COMMUNITY BANNER ================= */}
+      <div className="bg-[#F3F3FA] rounded-[24px] p-4.5 border border-slate-100 space-y-3.5 shadow-xs">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
+              <Building className="w-6 h-6" />
             </div>
-
             <div>
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#E8F0FE] text-[#1A73E8] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8]">
-                  Village Safety Hub
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-base text-[#1C1B1F] leading-tight">
+                  {activeVillageData.name}
+                </h3>
+                <span
+                  className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${activeVillageData.badgeBg} ${activeVillageData.badgeText}`}
+                >
+                  {activeVillageData.status}
                 </span>
-                {activeVillageAlerts.length > 0 ? (
-                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#FCE8E6] text-[#D93025] dark:bg-[#D93025]/20 dark:text-[#F28B82] border border-[#FAD2CF] dark:border-[#D93025]/40 flex items-center gap-1 animate-pulse">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#D93025]" />
-                    Flood Warning Active
-                  </span>
-                ) : (
-                  <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/20 dark:text-[#81C995] flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#137333] dark:bg-[#81C995]" />
-                    River Normal
-                  </span>
-                )}
               </div>
-
-              <h2 className="text-xl font-bold font-sans tracking-tight">
-                {currentVillage}
-              </h2>
-              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] mt-0.5">
-                Ruo River Area &bull; T/A Mabuka &bull; Mulanje District
+              <p className="text-xs text-[#49454F] font-medium mt-0.5">
+                Dzenje ADDA STEM club flood safety network
               </p>
             </div>
           </div>
 
           <button
             type="button"
-            id="btn-switch-village"
             onClick={onOpenAuthModal}
-            className="px-4 py-2 rounded-full text-xs font-bold bg-[#F1F3F4] hover:bg-[#E8EAED] dark:bg-[#28292A] dark:hover:bg-[#303134] text-[#1F1F1F] dark:text-[#E3E3E3] transition-all self-start sm:self-auto flex items-center gap-1.5 shadow-xs active:scale-95"
+            className="text-xs font-bold text-[#1F71E8] bg-white px-3 py-1.5 rounded-full border border-slate-200 hover:border-[#1F71E8] transition cursor-pointer shadow-2xs shrink-0"
           >
-            <MapPin className="w-3.5 h-3.5 text-[#D93025]" />
-            <span>Change Village</span>
+            {currentUser ? 'My Profile' : 'Sign In'}
           </button>
+        </div>
+
+        {/* Quick Numbers Bar */}
+        <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-200/60">
+          <div className="bg-white rounded-2xl p-2.5 text-center border border-slate-100">
+            <span className="text-[11px] text-[#49454F] font-medium block">Residents</span>
+            <span className="text-base font-bold text-[#1C1B1F]">
+              {activeVillageData.residentCount}
+            </span>
+          </div>
+
+          <div className="bg-white rounded-2xl p-2.5 text-center border border-slate-100">
+            <span className="text-[11px] text-[#49454F] font-medium block">Safe Checked</span>
+            <span className="text-base font-bold text-emerald-700">
+              {activeVillageData.safeCount}
+            </span>
+          </div>
+
+          <div className="bg-white rounded-2xl p-2.5 text-center border border-slate-100">
+            <span className="text-[11px] text-[#49454F] font-medium block">River Sensor</span>
+            <span className="text-xs font-bold text-blue-600 inline-flex items-center gap-1 mt-0.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              {activeVillageData.sensorStatus}
+            </span>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2 pt-1">
+          {onOpenCheckInModal && (
+            <button
+              type="button"
+              onClick={onOpenCheckInModal}
+              className="flex-1 py-2.5 px-3 rounded-full bg-[#1F71E8] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs hover:bg-blue-700 active:scale-98 transition cursor-pointer"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Mark I Am Safe</span>
+            </button>
+          )}
+
+          {onOpenDirectVoiceSOS && (
+            <button
+              type="button"
+              onClick={onOpenDirectVoiceSOS}
+              className="py-2.5 px-4 rounded-full bg-red-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs hover:bg-red-700 active:scale-98 transition cursor-pointer shrink-0"
+              title="Record Voice SOS"
+            >
+              <Mic className="w-4 h-4" />
+              <span>Voice SOS</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* 2. Fast Safety Status Check-In Card */}
-      <div
-        id="safety-status-action-card"
-        className={`rounded-3xl border p-5 transition-all shadow-xs ${
-          isDarkMode
-            ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
-            : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
-        }`}
-      >
-        <div className="flex items-center justify-between mb-3.5">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/20 dark:text-[#81C995] flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-bold text-sm sm:text-base leading-tight font-sans">
-                Tell Village Your Safety Status
-              </h3>
-              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6]">
-                Tap a button below to let neighbors and rescue teams know if you are safe
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            id="btn-custom-status-update"
-            onClick={() => handleOpenCheckIn('safe')}
-            className="text-xs font-bold text-[#1A73E8] dark:text-[#8AB4F8] hover:underline flex items-center gap-1 shrink-0"
-          >
-            <PlusCircle className="w-3.5 h-3.5" />
-            <span>Details</span>
-          </button>
-        </div>
-
-        {/* Emergency Voice SOS Button */}
-        <div className="space-y-3 mb-4">
-          <button
-            type="button"
-            id="quick-voice-sos-village-btn"
-            onClick={() => {
-              if (onOpenDirectVoiceSOS) {
-                onOpenDirectVoiceSOS();
-              } else {
-                handleOpenCheckIn('needs_help', true);
-              }
-            }}
-            className="w-full p-3.5 rounded-2xl bg-[#D93025] hover:bg-[#B3261E] text-white flex items-center justify-between shadow-xs transition-all cursor-pointer active:scale-98"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-                <Mic className="w-5 h-5 text-white animate-pulse" />
-              </div>
-              <div className="text-left">
-                <div className="text-xs font-bold tracking-wide flex items-center gap-1.5">
-                  <span>Fast Voice Note SOS</span>
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-white/25 uppercase">
-                    SOS
-                  </span>
-                </div>
-                <div className="text-[11px] text-white/90 font-normal">
-                  Record a quick voice message for village rescue teams
-                </div>
-              </div>
-            </div>
-            <span className="text-xs font-bold bg-black/20 px-3 py-1.5 rounded-full shrink-0">
-              Record SOS &rarr;
-            </span>
-          </button>
-
-          {/* 4 1-Tap Status Options */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            <button
-              type="button"
-              id="quick-btn-mark-safe"
-              onClick={() => handleOpenCheckIn('safe', false)}
-              className="p-3.5 rounded-2xl border bg-[#E6F4EA] border-[#CEEAD6] dark:bg-[#137333]/20 dark:border-[#137333]/40 text-[#137333] dark:text-[#81C995] flex flex-col items-center text-center gap-1.5 transition-all shadow-2xs hover:bg-[#D7EEDF] active:scale-95 cursor-pointer"
-            >
-              <div className="w-8 h-8 rounded-full bg-[#137333] text-white flex items-center justify-center">
-                <ShieldCheck className="w-4 h-4" />
-              </div>
-              <span className="text-xs font-bold leading-tight">I Am Safe</span>
-              <span className="text-[10px] text-[#137333] dark:text-[#81C995] font-medium">
-                Safe at home
-              </span>
-            </button>
-
-            <button
-              type="button"
-              id="quick-btn-evacuated"
-              onClick={() => handleOpenCheckIn('evacuated', false)}
-              className="p-3.5 rounded-2xl border bg-[#E8F0FE] border-[#D2E3FC] dark:bg-[#1A73E8]/20 dark:border-[#1A73E8]/40 text-[#1A73E8] dark:text-[#8AB4F8] flex flex-col items-center text-center gap-1.5 transition-all shadow-2xs hover:bg-[#D3E3FD] active:scale-95 cursor-pointer"
-            >
-              <div className="w-8 h-8 rounded-full bg-[#1A73E8] text-white flex items-center justify-center">
-                <Home className="w-4 h-4" />
-              </div>
-              <span className="text-xs font-bold leading-tight">At Shelter</span>
-              <span className="text-[10px] text-[#1A73E8] dark:text-[#8AB4F8] font-medium">
-                At school / hill
-              </span>
-            </button>
-
-            <button
-              type="button"
-              id="quick-btn-in-flooding"
-              onClick={() => handleOpenCheckIn('in_flooding', false)}
-              className="p-3.5 rounded-2xl border bg-[#FEF7E0] border-[#FEEFC3] dark:bg-[#B06000]/20 dark:border-[#B06000]/40 text-[#B06000] dark:text-[#FDD663] flex flex-col items-center text-center gap-1.5 transition-all shadow-2xs hover:bg-[#FCEBB8] active:scale-95 cursor-pointer"
-            >
-              <div className="w-8 h-8 rounded-full bg-[#B06000] text-white flex items-center justify-center">
-                <AlertTriangle className="w-4 h-4" />
-              </div>
-              <span className="text-xs font-bold leading-tight">Water Rising</span>
-              <span className="text-[10px] text-[#B06000] dark:text-[#FDD663] font-medium">
-                Moving now
-              </span>
-            </button>
-
-            <button
-              type="button"
-              id="quick-btn-needs-help"
-              onClick={() => handleOpenCheckIn('needs_help', false)}
-              className="p-3.5 rounded-2xl border bg-[#FCE8E6] border-[#FAD2CF] dark:bg-[#D93025]/20 dark:border-[#D93025]/40 text-[#D93025] dark:text-[#F28B82] flex flex-col items-center text-center gap-1.5 transition-all shadow-2xs hover:bg-[#FAD2CF] active:scale-95 cursor-pointer"
-            >
-              <div className="w-8 h-8 rounded-full bg-[#D93025] text-white flex items-center justify-center">
-                <LifeBuoy className="w-4 h-4" />
-              </div>
-              <span className="text-xs font-bold leading-tight">Need Help</span>
-              <span className="text-[10px] text-[#D93025] dark:text-[#F28B82] font-medium">
-                Rescue needed
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {/* Safety Counts Tonal Bar */}
-        <div
-          id="village-safety-summary-counts"
-          className={`p-3.5 rounded-2xl border grid grid-cols-4 gap-2 text-center ${
-            isDarkMode ? 'bg-[#28292A] border-[#303134]' : 'bg-[#F8F9FA] border-[#E1E3E1]'
+      {/* ================= 2. SECTION TABS (VILLAGES, SHELTERS, CONTACTS, GUIDE) ================= */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        <button
+          type="button"
+          onClick={() => setActiveTabSection('villages')}
+          className={`py-2 px-3.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+            activeTabSection === 'villages'
+              ? 'bg-[#1F71E8] text-white shadow-xs'
+              : 'bg-[#F3EDF7] text-[#49454F] hover:bg-[#E7E0EC]'
           }`}
         >
-          <div>
-            <div className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6] font-medium">Safe</div>
-            <div className="text-base font-bold text-[#137333] dark:text-[#81C995]">{safeCount}</div>
-          </div>
-          <div>
-            <div className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6] font-medium">At Shelter</div>
-            <div className="text-base font-bold text-[#1A73E8] dark:text-[#8AB4F8]">{evacuatedCount}</div>
-          </div>
-          <div>
-            <div className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6] font-medium">Water Rising</div>
-            <div className="text-base font-bold text-[#B06000] dark:text-[#FDD663]">{inFloodingCount}</div>
-          </div>
-          <div>
-            <div className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6] font-medium">Need Help</div>
-            <div className="text-base font-bold text-[#D93025] dark:text-[#F28B82]">{needsHelpCount}</div>
-          </div>
-        </div>
+          <MapPin className="w-3.5 h-3.5" />
+          <span>Villages ({VILLAGES_DATA.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTabSection('shelters')}
+          className={`py-2 px-3.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+            activeTabSection === 'shelters'
+              ? 'bg-[#1F71E8] text-white shadow-xs'
+              : 'bg-[#F3EDF7] text-[#49454F] hover:bg-[#E7E0EC]'
+          }`}
+        >
+          <Home className="w-3.5 h-3.5" />
+          <span>Safe Shelters ({activeVillageData.shelters.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTabSection('contacts')}
+          className={`py-2 px-3.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+            activeTabSection === 'contacts'
+              ? 'bg-[#1F71E8] text-white shadow-xs'
+              : 'bg-[#F3EDF7] text-[#49454F] hover:bg-[#E7E0EC]'
+          }`}
+        >
+          <Phone className="w-3.5 h-3.5" />
+          <span>Emergency Contacts</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTabSection('guide')}
+          className={`py-2 px-3.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+            activeTabSection === 'guide'
+              ? 'bg-[#1F71E8] text-white shadow-xs'
+              : 'bg-[#F3EDF7] text-[#49454F] hover:bg-[#E7E0EC]'
+          }`}
+        >
+          <Info className="w-3.5 h-3.5" />
+          <span>Safety Guide</span>
+        </button>
       </div>
 
-      {/* 3. Community Safety Status List */}
-      <div
-        id="community-safety-list-card"
-        className={`rounded-3xl border p-5 transition-all shadow-xs ${
-          isDarkMode
-            ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
-            : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
-        }`}
-      >
-        <div className="flex items-center justify-between mb-3.5">
-          <div>
-            <h3 className="font-bold text-sm sm:text-base font-sans">
-              Recent Village Status Reports
-            </h3>
-            <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6]">
-              {villageReports.length} {villageReports.length === 1 ? 'person has' : 'people have'} checked in
-            </p>
+      {/* ================= 3. TAB CONTENT: VILLAGES LIST ================= */}
+      {activeTabSection === 'villages' && (
+        <div className="bg-[#F3F3FA] rounded-[24px] p-4 border border-slate-100 space-y-3 shadow-xs">
+          <div className="flex items-center justify-between pb-1">
+            <span className="text-xs font-bold text-[#49454F] uppercase tracking-wider block">
+              Choose Your Community Village
+            </span>
+            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full">
+              Tap to Switch
+            </span>
           </div>
 
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#F1F3F4] dark:bg-[#28292A] text-[#5F6368] dark:text-[#9AA0A6]">
-            {currentVillage}
-          </span>
-        </div>
-
-        {villageReports.length === 0 ? (
-          <div className="text-center py-8 px-4 rounded-2xl bg-[#F8F9FA] dark:bg-[#28292A] border border-[#E1E3E1] dark:border-[#303134]">
-            <Users className="w-8 h-8 text-[#5F6368] dark:text-[#9AA0A6] mx-auto mb-1.5 opacity-60" />
-            <h4 className="font-bold text-xs text-[#1F1F1F] dark:text-[#E3E3E3]">
-              No Status Updates Yet
-            </h4>
-            <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] mt-0.5">
-              Be the first to tap "I Am Safe" or record a voice note for your village.
-            </p>
-          </div>
-        ) : (
           <div className="space-y-2.5">
-            {villageReports.map((report) => {
-              const isSafe = report.status === 'safe';
-              const isEvacuated = report.status === 'evacuated';
-              const isInFlooding = report.status === 'in_flooding';
-              const isNeedsHelp = report.status === 'needs_help';
+            {VILLAGES_DATA.map((v) => {
+              const isSelected =
+                activeVillageData.name.toLowerCase() === v.name.toLowerCase();
 
               return (
                 <div
-                  key={report.id}
-                  id={`safety-report-${report.id}`}
-                  className={`p-4 rounded-2xl border-2 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs ${
-                    isNeedsHelp
-                      ? 'bg-[#FCE8E6] dark:bg-[#D93025]/20 border-red-300 dark:border-[#D93025]/40 text-red-950 dark:text-[#F28B82]'
-                      : isInFlooding
-                      ? 'bg-[#FEF7E0] dark:bg-[#B06000]/20 border-amber-300 dark:border-[#B06000]/40 text-amber-950 dark:text-[#FDD663]'
-                      : isEvacuated
-                      ? 'bg-[#E8F0FE] dark:bg-[#1A73E8]/20 border-blue-300 dark:border-[#1A73E8]/40 text-blue-950 dark:text-[#8AB4F8]'
-                      : 'bg-[#E6F4EA] dark:bg-[#137333]/20 border-green-300 dark:border-[#137333]/40 text-green-950 dark:text-[#81C995]'
+                  key={v.id}
+                  onClick={() => onSelectVillage && onSelectVillage(v.name)}
+                  className={`bg-white rounded-2xl p-3.5 border transition cursor-pointer active:scale-99 shadow-xs ${
+                    isSelected
+                      ? 'border-[#1F71E8] ring-2 ring-blue-200'
+                      : 'border-slate-100 hover:border-slate-300'
                   }`}
                 >
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 mt-0.5 shadow-xs ${
-                        isNeedsHelp
-                          ? 'bg-[#D93025] text-white'
-                          : isInFlooding
-                          ? 'bg-[#B06000] text-white'
-                          : isEvacuated
-                          ? 'bg-[#1A73E8] text-white'
-                          : 'bg-[#137333] text-white'
-                      }`}
-                    >
-                      {isNeedsHelp && <LifeBuoy className="w-5 h-5" />}
-                      {isInFlooding && <AlertTriangle className="w-5 h-5" />}
-                      {isEvacuated && <Home className="w-5 h-5" />}
-                      {isSafe && <ShieldCheck className="w-5 h-5" />}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-3">
+                      <div className={`w-3.5 h-3.5 rounded-full ${v.statusColor} mt-1 shrink-0`} />
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="font-bold text-sm text-[#1C1B1F] leading-tight">
+                            {v.name}
+                          </h4>
+                          {isSelected && (
+                            <span className="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.2 rounded-full">
+                              Active
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-[#49454F] font-medium mt-0.5">{v.subArea}</p>
+                      </div>
                     </div>
 
-                    <div className="space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-black text-sm text-black dark:text-white">
-                          {report.userName || 'Resident'}
-                        </span>
-
-                        <span
-                          className={`text-xs px-2.5 py-0.5 rounded-full font-black ${
-                            isNeedsHelp
-                              ? 'bg-[#D93025] text-white shadow-2xs'
-                              : isInFlooding
-                              ? 'bg-[#B06000] text-white shadow-2xs'
-                              : isEvacuated
-                              ? 'bg-[#1A73E8] text-white shadow-2xs'
-                              : 'bg-[#137333] text-white shadow-2xs'
-                          }`}
-                        >
-                          {isNeedsHelp
-                            ? '🚨 Needs Rescue'
-                            : isInFlooding
-                            ? '⚠️ In Flooding'
-                            : isEvacuated
-                            ? '🏫 At Shelter'
-                            : '✓ Safe'}
-                        </span>
-
-                        <span className="text-xs font-bold text-gray-800 dark:text-[#9AA0A6]">
-                          ({report.peopleCount || 1} {report.peopleCount === 1 ? 'person' : 'people'})
-                        </span>
-                      </div>
-
-                      {report.message && (
-                        <p className="text-xs font-bold text-gray-950 dark:text-[#E3E3E3] leading-snug">
-                          "{report.message}"
-                        </p>
-                      )}
-
-                      <div className="flex items-center gap-3 text-xs font-bold text-gray-800 dark:text-[#9AA0A6]">
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5 text-[#1A73E8] dark:text-[#8AB4F8]" />
-                          {report.formattedTime || 'Recently'}
-                        </span>
-                        {report.phone && (
-                          <span className="flex items-center gap-1 font-mono font-bold text-gray-900 dark:text-[#81C995]">
-                            <Phone className="w-3.5 h-3.5 text-[#137333]" />
-                            {report.phone}
-                          </span>
-                        )}
-                      </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span
+                        className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${v.badgeBg} ${v.badgeText}`}
+                      >
+                        {v.status}
+                      </span>
+                      {isSelected ? (
+                        <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-2xs">
+                          <Check className="w-3.5 h-3.5" />
+                        </div>
+                      ) : null}
                     </div>
                   </div>
 
-                  {/* Voice Note audio playback button if attached */}
-                  {report.voiceAudioUrl && (
-                    <button
-                      type="button"
-                      id={`btn-play-voice-${report.id}`}
-                      onClick={() => handlePlayVoice(report.id, report.voiceAudioUrl)}
-                      className="px-3.5 py-2 rounded-full bg-white dark:bg-[#1E1F20] hover:bg-gray-100 dark:hover:bg-[#303134] text-xs font-extrabold text-[#D93025] dark:text-[#F28B82] border-2 border-red-300 dark:border-[#D93025]/40 transition-all flex items-center gap-1.5 shadow-xs self-start sm:self-center shrink-0 cursor-pointer"
-                    >
-                      <Volume2 className="w-4 h-4" />
-                      <span>{playingAudioId === report.id ? 'Playing Voice...' : 'Play Voice Note'}</span>
-                    </button>
-                  )}
+                  {/* Village details footer */}
+                  <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-[#49454F]">
+                    <div className="flex items-center gap-1">
+                      <Home className="w-3.5 h-3.5 text-blue-600" />
+                      <span className="truncate max-w-[170px] sm:max-w-xs">{v.shelterName}</span>
+                    </div>
+                    <div className="flex items-center gap-1 font-semibold text-slate-700">
+                      <Users className="w-3.5 h-3.5 text-slate-500" />
+                      <span>{v.residentCount} people</span>
+                    </div>
+                  </div>
                 </div>
               );
             })}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Safety Check-In Modal */}
-      <SafetyCheckInModal
-        isOpen={isCheckInModalOpen}
-        onClose={() => setIsCheckInModalOpen(false)}
-        currentUser={currentUser}
-        isDarkMode={isDarkMode}
-        initialStatus={selectedInitialStatus}
-        autoStartVoice={autoStartVoice}
-      />
+      {/* ================= 4. TAB CONTENT: SAFE SHELTERS ================= */}
+      {activeTabSection === 'shelters' && (
+        <div className="bg-[#F3F3FA] rounded-[24px] p-4 border border-slate-100 space-y-3 shadow-xs">
+          <div className="flex items-center justify-between pb-1">
+            <div>
+              <h4 className="text-xs font-bold text-[#49454F] uppercase tracking-wider">
+                High-Ground Flood Shelters
+              </h4>
+              <p className="text-xs text-[#49454F] font-medium mt-0.5">
+                Safe evacuation locations for {activeVillageData.name}
+              </p>
+            </div>
+            <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-full">
+              Safe Zones
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {activeVillageData.shelters.map((shelter, idx) => (
+              <div
+                key={idx}
+                className="bg-white rounded-2xl p-4 border border-slate-100 space-y-3 shadow-xs"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                      <Home className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h5 className="font-bold text-sm text-[#1C1B1F] leading-tight">
+                        {shelter.name}
+                      </h5>
+                      <span className="text-xs text-blue-700 font-semibold inline-block mt-0.5">
+                        {shelter.type}
+                      </span>
+                    </div>
+                  </div>
+
+                  <span className="text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
+                    {shelter.highGround}
+                  </span>
+                </div>
+
+                {/* Capacity Progress */}
+                <div className="space-y-1 bg-[#F8F9FA] p-2.5 rounded-xl border border-slate-100">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[#49454F] font-medium">Shelter Capacity</span>
+                    <span className="font-bold text-[#1C1B1F]">
+                      {shelter.occupancy} / {shelter.capacity} people
+                    </span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+                    <div
+                      className="h-full bg-[#1F71E8] rounded-full transition-all"
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          Math.round((shelter.occupancy / shelter.capacity) * 100)
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Amenities */}
+                <div className="space-y-1">
+                  <span className="text-[11px] font-bold text-[#49454F] uppercase tracking-wider block">
+                    Available at this safe shelter:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {shelter.amenities.map((amenity, i) => (
+                      <span
+                        key={i}
+                        className="text-xs bg-[#F3EDF7] text-[#1D192B] px-2.5 py-1 rounded-full font-medium flex items-center gap-1"
+                      >
+                        <Check className="w-3 h-3 text-emerald-600" />
+                        <span>{amenity}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Contact Line */}
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-[#49454F] block text-[11px]">Shelter Leader:</span>
+                    <span className="font-bold text-[#1C1B1F]">{shelter.contactPerson}</span>
+                  </div>
+
+                  <a
+                    href={`tel:${shelter.contactPhone.replace(/\s+/g, '')}`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    <span>Call Shelter</span>
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ================= 5. TAB CONTENT: EMERGENCY CONTACTS ================= */}
+      {activeTabSection === 'contacts' && (
+        <div className="bg-[#F3F3FA] rounded-[24px] p-4 border border-slate-100 space-y-3 shadow-xs">
+          <div className="flex items-center justify-between pb-1">
+            <div>
+              <h4 className="text-xs font-bold text-[#49454F] uppercase tracking-wider">
+                Emergency & Rescue Contacts
+              </h4>
+              <p className="text-xs text-[#49454F] font-medium mt-0.5">
+                Direct phone lines for {activeVillageData.name} safety team
+              </p>
+            </div>
+            <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
+              <Phone className="w-4 h-4" />
+            </div>
+          </div>
+
+          <div className="space-y-2.5">
+            {/* National Toll-free Emergency */}
+            <div className="bg-red-50 rounded-2xl p-3.5 border border-red-200 flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-bold text-red-800 uppercase tracking-wider block">
+                  National Toll-Free Line
+                </span>
+                <h5 className="font-bold text-sm text-red-950">Police & Disaster Rescue: 999 / 112</h5>
+                <p className="text-xs text-red-800 font-medium">Free call from any phone network</p>
+              </div>
+              <a
+                href="tel:999"
+                className="px-4 py-2 rounded-full bg-red-600 text-white text-xs font-bold hover:bg-red-700 shadow-xs flex items-center gap-1.5"
+              >
+                <Phone className="w-3.5 h-3.5" />
+                <span>Call 999</span>
+              </a>
+            </div>
+
+            {/* Village Specific Leaders */}
+            {activeVillageData.contacts.map((contact, idx) => (
+              <div
+                key={idx}
+                className="bg-white rounded-2xl p-3.5 border border-slate-100 flex items-center justify-between shadow-xs"
+              >
+                <div className="space-y-0.5">
+                  <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wider block">
+                    {contact.role}
+                  </span>
+                  <h5 className="font-bold text-sm text-[#1C1B1F]">{contact.name}</h5>
+                  <p className="text-xs text-[#49454F] font-medium">{contact.phone}</p>
+                </div>
+
+                <a
+                  href={`tel:${contact.phone.replace(/\s+/g, '')}`}
+                  className="px-3.5 py-2 rounded-full bg-[#1F71E8] text-white text-xs font-bold hover:bg-blue-700 shadow-xs flex items-center gap-1.5 transition active:scale-95"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>Call</span>
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ================= 6. TAB CONTENT: SIMPLE SAFETY GUIDE ================= */}
+      {activeTabSection === 'guide' && (
+        <div className="bg-[#F3F3FA] rounded-[24px] p-4 border border-slate-100 space-y-3 shadow-xs">
+          <div className="flex items-center justify-between pb-1">
+            <div>
+              <h4 className="text-xs font-bold text-[#49454F] uppercase tracking-wider">
+                What To Do When Flood Warning Sounds
+              </h4>
+              <p className="text-xs text-[#49454F] font-medium mt-0.5">
+                Simple steps for all family and village members
+              </p>
+            </div>
+            <span className="text-xs bg-blue-100 text-blue-800 font-bold px-2.5 py-1 rounded-full">
+              4 Steps
+            </span>
+          </div>
+
+          <div className="space-y-2.5">
+            <div className="bg-white rounded-2xl p-3.5 border border-slate-100 flex items-start gap-3 shadow-xs">
+              <div className="w-7 h-7 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                1
+              </div>
+              <div>
+                <h5 className="font-bold text-xs text-[#1C1B1F]">Move to High Ground Immediately</h5>
+                <p className="text-xs text-[#49454F] mt-0.5 leading-relaxed">
+                  Do not wait for water to reach your house. Move your family to your designated safe shelter.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-3.5 border border-slate-100 flex items-start gap-3 shadow-xs">
+              <div className="w-7 h-7 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                2
+              </div>
+              <div>
+                <h5 className="font-bold text-xs text-[#1C1B1F]">Never Cross Moving River Water</h5>
+                <p className="text-xs text-[#49454F] mt-0.5 leading-relaxed">
+                  Fast flood water can sweep away people and vehicles even if it looks shallow. Stay on dry elevated land.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-3.5 border border-slate-100 flex items-start gap-3 shadow-xs">
+              <div className="w-7 h-7 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                3
+              </div>
+              <div>
+                <h5 className="font-bold text-xs text-[#1C1B1F]">Help Elderly and Children</h5>
+                <p className="text-xs text-[#49454F] mt-0.5 leading-relaxed">
+                  Assist neighbors who need support walking or carrying emergency items like dry blankets and clean water.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-3.5 border border-slate-100 flex items-start gap-3 shadow-xs">
+              <div className="w-7 h-7 rounded-full bg-red-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                4
+              </div>
+              <div>
+                <h5 className="font-bold text-xs text-[#1C1B1F]">Send Voice SOS If Trapped</h5>
+                <p className="text-xs text-[#49454F] mt-0.5 leading-relaxed">
+                  Tap the red microphone button in this app to record where you are. Your location is automatically sent to the rescue team.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

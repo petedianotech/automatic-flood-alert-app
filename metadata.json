@@ -1,6 +1,7 @@
 {
-  "name": "Flood Alert App , Dzenje CDSS ADDA STEM club",
-  "description": "Mobile flood alert application with Offline PWA Service Worker, Background Push Notifications, Firebase Auth, Village Community Networks, Screen Wake Lock, Device Motion API, and emergency sirens.",
+  "name": "Automatic Flood Alert App,  Dzenje CDSS ADDA STEM CLUB",
+  "description": "Mobile flood alert application by Dzenje CDSS ADDA STEM CLUB with Offline PWA Service Worker, Background Push Notifications, Firebase Auth, Village Community Networks, Screen Wake Lock, Device Motion API, and emergency sirens.",
   "requestFramePermissions": ["geolocation", "microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
+
