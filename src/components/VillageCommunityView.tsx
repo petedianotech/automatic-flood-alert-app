@@ -348,19 +348,19 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
                 <div
                   key={report.id}
                   id={`safety-report-${report.id}`}
-                  className={`p-3.5 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                  className={`p-4 rounded-2xl border-2 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs ${
                     isNeedsHelp
-                      ? 'bg-[#FCE8E6] dark:bg-[#D93025]/20 border-[#FAD2CF] dark:border-[#D93025]/40'
+                      ? 'bg-[#FCE8E6] dark:bg-[#D93025]/20 border-red-300 dark:border-[#D93025]/40 text-red-950 dark:text-[#F28B82]'
                       : isInFlooding
-                      ? 'bg-[#FEF7E0] dark:bg-[#B06000]/20 border-[#FEEFC3] dark:border-[#B06000]/40'
+                      ? 'bg-[#FEF7E0] dark:bg-[#B06000]/20 border-amber-300 dark:border-[#B06000]/40 text-amber-950 dark:text-[#FDD663]'
                       : isEvacuated
-                      ? 'bg-[#E8F0FE] dark:bg-[#1A73E8]/20 border-[#D2E3FC] dark:border-[#1A73E8]/40'
-                      : 'bg-[#F8F9FA] dark:bg-[#28292A] border-[#E1E3E1] dark:border-[#303134]'
+                      ? 'bg-[#E8F0FE] dark:bg-[#1A73E8]/20 border-blue-300 dark:border-[#1A73E8]/40 text-blue-950 dark:text-[#8AB4F8]'
+                      : 'bg-[#E6F4EA] dark:bg-[#137333]/20 border-green-300 dark:border-[#137333]/40 text-green-950 dark:text-[#81C995]'
                   }`}
                 >
                   <div className="flex items-start gap-3">
                     <div
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                      className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 mt-0.5 shadow-xs ${
                         isNeedsHelp
                           ? 'bg-[#D93025] text-white'
                           : isInFlooding
@@ -370,27 +370,27 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
                           : 'bg-[#137333] text-white'
                       }`}
                     >
-                      {isNeedsHelp && <LifeBuoy className="w-4 h-4" />}
-                      {isInFlooding && <AlertTriangle className="w-4 h-4" />}
-                      {isEvacuated && <Home className="w-4 h-4" />}
-                      {isSafe && <ShieldCheck className="w-4 h-4" />}
+                      {isNeedsHelp && <LifeBuoy className="w-5 h-5" />}
+                      {isInFlooding && <AlertTriangle className="w-5 h-5" />}
+                      {isEvacuated && <Home className="w-5 h-5" />}
+                      {isSafe && <ShieldCheck className="w-5 h-5" />}
                     </div>
 
                     <div className="space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-bold text-xs text-[#1F1F1F] dark:text-[#E3E3E3]">
+                        <span className="font-black text-sm text-black dark:text-white">
                           {report.userName || 'Resident'}
                         </span>
 
                         <span
-                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                          className={`text-xs px-2.5 py-0.5 rounded-full font-black ${
                             isNeedsHelp
-                              ? 'bg-[#D93025] text-white'
+                              ? 'bg-[#D93025] text-white shadow-2xs'
                               : isInFlooding
-                              ? 'bg-[#FEF7E0] text-[#B06000] dark:bg-[#B06000]/30 dark:text-[#FDD663]'
+                              ? 'bg-[#B06000] text-white shadow-2xs'
                               : isEvacuated
-                              ? 'bg-[#E8F0FE] text-[#1A73E8] dark:bg-[#1A73E8]/30 dark:text-[#8AB4F8]'
-                              : 'bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/30 dark:text-[#81C995]'
+                              ? 'bg-[#1A73E8] text-white shadow-2xs'
+                              : 'bg-[#137333] text-white shadow-2xs'
                           }`}
                         >
                           {isNeedsHelp
@@ -402,25 +402,25 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
                             : '✓ Safe'}
                         </span>
 
-                        <span className="text-[10px] text-[#5F6368] dark:text-[#9AA0A6]">
+                        <span className="text-xs font-bold text-gray-800 dark:text-[#9AA0A6]">
                           ({report.peopleCount || 1} {report.peopleCount === 1 ? 'person' : 'people'})
                         </span>
                       </div>
 
                       {report.message && (
-                        <p className="text-xs text-[#3C4043] dark:text-[#C4C7C5] leading-snug">
+                        <p className="text-xs font-bold text-gray-950 dark:text-[#E3E3E3] leading-snug">
                           "{report.message}"
                         </p>
                       )}
 
-                      <div className="flex items-center gap-3 text-[10px] text-[#5F6368] dark:text-[#9AA0A6]">
+                      <div className="flex items-center gap-3 text-xs font-bold text-gray-800 dark:text-[#9AA0A6]">
                         <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-[#1A73E8] dark:text-[#8AB4F8]" />
+                          <Clock className="w-3.5 h-3.5 text-[#1A73E8] dark:text-[#8AB4F8]" />
                           {report.formattedTime || 'Recently'}
                         </span>
                         {report.phone && (
-                          <span className="flex items-center gap-1 font-mono">
-                            <Phone className="w-3 h-3 text-[#137333] dark:text-[#81C995]" />
+                          <span className="flex items-center gap-1 font-mono font-bold text-gray-900 dark:text-[#81C995]">
+                            <Phone className="w-3.5 h-3.5 text-[#137333]" />
                             {report.phone}
                           </span>
                         )}
@@ -434,9 +434,9 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
                       type="button"
                       id={`btn-play-voice-${report.id}`}
                       onClick={() => handlePlayVoice(report.id, report.voiceAudioUrl)}
-                      className="px-3 py-1.5 rounded-full bg-white dark:bg-[#1E1F20] hover:bg-[#F1F3F4] dark:hover:bg-[#303134] text-xs font-bold text-[#D93025] dark:text-[#F28B82] border border-[#FAD2CF] dark:border-[#D93025]/40 transition-all flex items-center gap-1.5 shadow-2xs self-start sm:self-center shrink-0"
+                      className="px-3.5 py-2 rounded-full bg-white dark:bg-[#1E1F20] hover:bg-gray-100 dark:hover:bg-[#303134] text-xs font-extrabold text-[#D93025] dark:text-[#F28B82] border-2 border-red-300 dark:border-[#D93025]/40 transition-all flex items-center gap-1.5 shadow-xs self-start sm:self-center shrink-0 cursor-pointer"
                     >
-                      <Volume2 className="w-3.5 h-3.5" />
+                      <Volume2 className="w-4 h-4" />
                       <span>{playingAudioId === report.id ? 'Playing Voice...' : 'Play Voice Note'}</span>
                     </button>
                   )}

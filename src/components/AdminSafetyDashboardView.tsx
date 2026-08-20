@@ -412,7 +412,7 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
               ? 'bg-[#FCE8E6] border-[#D93025] ring-2 ring-[#D93025]/30'
               : isDarkMode
               ? 'bg-[#1E1F20] border-[#303134]'
-              : 'bg-white border-[#E1E3E1]'
+              : 'bg-[#FCE8E6] border-[#FAD2CF]'
           }`}
         >
           <div className="flex items-center justify-between">
@@ -610,7 +610,7 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
               className={`w-full pl-10 pr-9 py-2.5 text-xs rounded-2xl border outline-none transition-all font-medium ${
                 isDarkMode
                   ? 'bg-[#121316] border-[#303134] text-white placeholder:text-[#5F6368] focus:border-[#8AB4F8]'
-                  : 'bg-[#F8F9FA] border-[#E1E3E1] text-[#1F1F1F] placeholder:text-[#5F6368] focus:border-[#1A73E8] focus:bg-white'
+                  : 'bg-[#F1F3F4] hover:bg-[#E8EAED] border-[#E1E3E1] text-[#1F1F1F] placeholder:text-[#5F6368] focus:border-[#1A73E8] focus:bg-white'
               }`}
             />
             {searchQuery && (
@@ -635,7 +635,7 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                 className={`px-3.5 py-2 text-xs rounded-2xl border outline-none font-medium transition-colors ${
                   isDarkMode
                     ? 'bg-[#121316] border-[#303134] text-white'
-                    : 'bg-[#F8F9FA] border-[#E1E3E1] text-[#1F1F1F]'
+                    : 'bg-[#F1F3F4] hover:bg-[#E8EAED] border-[#E1E3E1] text-[#1F1F1F]'
                 }`}
               >
                 <option value="all">All Villages ({totalReports})</option>
@@ -756,12 +756,12 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
         </div>
 
         {filteredReports.length === 0 ? (
-          <div className="p-10 text-center text-[#5F6368] dark:text-[#9AA0A6] text-xs space-y-1">
-            <p className="font-semibold text-sm">No records found.</p>
-            <p>Try changing your filter or search words.</p>
+          <div className="p-10 text-center text-gray-800 dark:text-[#9AA0A6] text-xs space-y-1">
+            <p className="font-extrabold text-sm text-black dark:text-white">No records found.</p>
+            <p className="font-medium">Try changing your filter or search words.</p>
           </div>
         ) : (
-          <div className="divide-y divide-[#E1E3E1] dark:divide-[#303134]">
+          <div className="divide-y-2 divide-[#E1E3E1] dark:divide-[#303134]">
             {filteredReports.map((report) => {
               const isSafe = report.status === 'safe';
               const isEvacuated = report.status === 'evacuated';
@@ -776,20 +776,20 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                 >
                   <div className="space-y-1.5 flex-1">
                     <div className="flex items-center gap-2.5 flex-wrap">
-                      <span className="font-bold text-sm sm:text-base text-[#1F1F1F] dark:text-[#E3E3E3]">
+                      <span className="font-black text-base text-black dark:text-white">
                         {report.userName}
                       </span>
 
                       {/* Status Badge */}
                       <span
-                        className={`px-3 py-0.5 rounded-full text-xs font-bold flex items-center gap-1 ${
+                        className={`px-3 py-1 rounded-full text-xs font-black flex items-center gap-1.5 shadow-2xs ${
                           isSafe
-                            ? 'bg-[#E6F4EA] text-[#0D652D] border border-[#CEEAD6]'
+                            ? 'bg-[#137333] text-white'
                             : isEvacuated
-                            ? 'bg-[#E8F0FE] text-[#1557B0] border border-[#D2E3FC]'
+                            ? 'bg-[#1A73E8] text-white'
                             : isInFlooding
-                            ? 'bg-[#FEF7E0] text-[#B06000] border border-[#FEEFC3]'
-                            : 'bg-[#FCE8E6] text-[#C5221F] border border-[#FAD2CF]'
+                            ? 'bg-[#B06000] text-white'
+                            : 'bg-[#D93025] text-white'
                         }`}
                       >
                         {isSafe && <ShieldCheck className="w-3.5 h-3.5" />}
@@ -800,47 +800,47 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                           {isSafe
                             ? 'Safe'
                             : isEvacuated
-                            ? 'Evacuated'
+                            ? 'At Shelter'
                             : isInFlooding
-                            ? 'In Flooding'
+                            ? 'Water Rising'
                             : 'Needs Help'}
                         </span>
                       </span>
 
                       {/* Headcount */}
-                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#F1F3F4] dark:bg-[#2D2E30] text-[#3C4043] dark:text-[#E3E3E3] font-medium">
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-gray-200 dark:bg-[#2D2E30] text-gray-900 dark:text-[#E3E3E3] font-bold">
                         {report.peopleCount || 1} {report.peopleCount === 1 ? 'person' : 'people'}
                       </span>
 
                       {report.voiceAudioBase64 && (
-                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#E8F0FE] text-[#1A73E8] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8] border border-[#D2E3FC] dark:border-[#1A73E8]/40 flex items-center gap-1 font-semibold">
-                          <Mic className="w-3 h-3" />
+                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#E8F0FE] text-[#0B57D0] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8] border-2 border-[#A8C7FA] dark:border-[#1A73E8]/40 flex items-center gap-1 font-bold">
+                          <Mic className="w-3.5 h-3.5 text-[#0B57D0]" />
                           <span>Voice Attached</span>
                         </span>
                       )}
                     </div>
 
-                    <div className="text-xs text-[#5F6368] dark:text-[#9AA0A6] flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
+                    <div className="text-xs text-gray-800 dark:text-[#9AA0A6] flex flex-wrap items-center gap-x-3.5 gap-y-1 font-bold">
                       <span className="flex items-center gap-1">
                         <MapPin className="w-3.5 h-3.5 text-[#D93025]" />
                         <span>{report.village}</span>
                       </span>
 
                       {report.phone && (
-                        <span className="flex items-center gap-1 text-[#3C4043] dark:text-[#E3E3E3]">
-                          <Phone className="w-3.5 h-3.5 text-[#1A73E8]" />
+                        <span className="flex items-center gap-1 text-gray-900 dark:text-[#E3E3E3] font-mono">
+                          <Phone className="w-3.5 h-3.5 text-[#137333]" />
                           <span>{report.phone}</span>
                         </span>
                       )}
 
-                      <span className="flex items-center gap-1 text-[#5F6368] dark:text-[#9AA0A6]">
+                      <span className="flex items-center gap-1 text-gray-700 dark:text-[#9AA0A6]">
                         <Clock className="w-3.5 h-3.5" />
                         <span>{report.formattedTime}</span>
                       </span>
                     </div>
 
                     {report.message && (
-                      <p className="text-xs text-[#1F1F1F] dark:text-[#E3E3E3] pt-0.5 max-w-xl font-medium">
+                      <p className="text-xs text-gray-950 dark:text-[#E3E3E3] pt-0.5 max-w-xl font-bold">
                         "{report.message}"
                       </p>
                     )}
@@ -851,22 +851,22 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                         <button
                           type="button"
                           onClick={() => handleTogglePlayVoice(report.id, report.voiceAudioBase64)}
-                          className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
+                          className={`px-3.5 py-1.5 rounded-xl border-2 text-xs font-black flex items-center gap-2 transition-all cursor-pointer shadow-xs ${
                             isPlayingThis
-                              ? 'bg-[#1A73E8] text-white border-[#1A73E8] shadow-xs'
+                              ? 'bg-[#1A73E8] text-white border-[#1A73E8]'
                               : isDarkMode
                               ? 'bg-[#2D2E30] border-[#303134] text-[#8AB4F8] hover:bg-[#3C4043]'
-                              : 'bg-[#E8F0FE] border-[#D2E3FC] text-[#1A73E8] hover:bg-[#D2E3FC]'
+                              : 'bg-[#E8F0FE] border-[#A8C7FA] text-[#0B57D0] hover:bg-[#D2E3FC]'
                           }`}
                         >
                           {isPlayingThis ? (
-                            <Pause className="w-3.5 h-3.5" />
+                            <Pause className="w-4 h-4" />
                           ) : (
-                            <Play className="w-3.5 h-3.5 fill-current" />
+                            <Play className="w-4 h-4 fill-current" />
                           )}
                           <span>{isPlayingThis ? 'Playing Voice Clip...' : 'Listen to Voice Message'}</span>
                           {report.voiceDurationSec ? (
-                            <span className="text-[10px] opacity-80">({report.voiceDurationSec}s)</span>
+                            <span className="text-[10px] opacity-90">({report.voiceDurationSec}s)</span>
                           ) : null}
                         </button>
                       </div>
@@ -878,10 +878,10 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                     {report.phone && (
                       <a
                         href={`tel:${report.phone}`}
-                        className="py-1.5 px-3 rounded-xl bg-[#F1F3F4] hover:bg-[#E8EAED] dark:bg-[#2D2E30] dark:hover:bg-[#3C4043] text-[#137333] dark:text-[#81C995] text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                        className="py-1.5 px-3.5 rounded-xl bg-[#E6F4EA] hover:bg-[#CEEAD6] border-2 border-green-300 dark:bg-[#2D2E30] dark:hover:bg-[#3C4043] text-green-950 dark:text-[#81C995] text-xs font-black flex items-center gap-1.5 transition-colors"
                         title="Call Resident"
                       >
-                        <Phone className="w-3.5 h-3.5" />
+                        <Phone className="w-3.5 h-3.5 text-[#137333]" />
                         <span>Call</span>
                       </a>
                     )}
@@ -891,11 +891,11 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                         href={report.mapsUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="py-1.5 px-3 rounded-xl bg-[#F1F3F4] hover:bg-[#E8EAED] dark:bg-[#2D2E30] dark:hover:bg-[#3C4043] text-[#1A73E8] dark:text-[#8AB4F8] text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                        className="py-1.5 px-3.5 rounded-xl bg-[#E8F0FE] hover:bg-[#D2E3FC] border-2 border-blue-300 dark:bg-[#2D2E30] dark:hover:bg-[#3C4043] text-blue-950 dark:text-[#8AB4F8] text-xs font-black flex items-center gap-1.5 transition-colors"
                         title="View Location on Map"
                       >
                         <MapPin className="w-3.5 h-3.5 text-[#D93025]" />
-                        <span>Location</span>
+                        <span>Map</span>
                       </a>
                     )}
 

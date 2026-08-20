@@ -50,10 +50,10 @@ export const WakeLockIndicator: React.FC<WakeLockIndicatorProps> = ({
   return (
     <div
       id="wake-lock-card"
-      className={`rounded-3xl border p-5 transition-all shadow-xs ${
+      className={`rounded-3xl border-2 p-5 transition-all shadow-xs ${
         isDarkMode
           ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
-          : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
+          : 'bg-white border-[#E1E3E1] text-gray-950'
       }`}
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -75,13 +75,13 @@ export const WakeLockIndicator: React.FC<WakeLockIndicatorProps> = ({
 
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-bold text-sm sm:text-base font-sans">
+              <h3 className="font-extrabold text-sm sm:text-base font-sans text-black dark:text-white">
                 Screen Wake Lock
               </h3>
               {wakeLockState.isActive ? (
                 <span
                   id="badge-wake-lock-active"
-                  className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#E6F4EA] text-[#137333] border border-[#CEEAD6] flex items-center gap-1"
+                  className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-[#E6F4EA] text-green-950 border-2 border-green-300 flex items-center gap-1"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-[#1E8E3E]" />
                   Screen Lock Active
@@ -89,7 +89,7 @@ export const WakeLockIndicator: React.FC<WakeLockIndicatorProps> = ({
               ) : (
                 <span
                   id="badge-wake-lock-inactive"
-                  className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FCE8E6] text-[#C5221F] border border-[#FAD2CF] flex items-center gap-1"
+                  className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-[#FCE8E6] text-red-950 border-2 border-red-300 flex items-center gap-1"
                 >
                   <AlertCircle className="w-3 h-3" />
                   Screen Lock Inactive
@@ -97,7 +97,7 @@ export const WakeLockIndicator: React.FC<WakeLockIndicatorProps> = ({
               )}
             </div>
 
-            <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] mt-0.5 max-w-xl">
+            <p className="text-xs text-gray-700 dark:text-[#9AA0A6] mt-0.5 max-w-xl font-medium">
               {wakeLockState.isActive
                 ? 'Device screen will remain continuously awake 24/7 while plugged into external water-sensor power.'
                 : wakeLockState.error ||
@@ -111,10 +111,10 @@ export const WakeLockIndicator: React.FC<WakeLockIndicatorProps> = ({
           {/* Battery / Charging Info */}
           {battery.isSupported && (
             <div
-              className={`px-3 py-1.5 rounded-2xl text-xs font-medium flex items-center gap-1.5 border ${
+              className={`px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-1.5 border-2 ${
                 battery.charging
-                  ? 'bg-[#E6F4EA] text-[#137333] border-[#CEEAD6]'
-                  : 'bg-[#FEF7E0] text-[#B06000] border-[#FEEFC3]'
+                  ? 'bg-[#E6F4EA] text-green-950 border-green-300'
+                  : 'bg-[#FEF7E0] text-amber-950 border-amber-300'
               }`}
             >
               {battery.charging ? (

@@ -96,6 +96,12 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
   const hasActiveDanger = alerts.some((a) => a.status === 'active' && a.severity !== 'yellow');
   const hasActiveWarning = alerts.some((a) => a.status === 'active' && a.severity === 'yellow');
 
+  // Safety Guide Tab: user can switch between 'normal', 'yellow', and 'red'
+  // If not explicitly selected by user, automatically reflects active danger (red) or warning (yellow) or normal
+  const [userGuideTab, setUserGuideTab] = useState<'normal' | 'yellow' | 'red' | null>(null);
+  const currentGuideTab: 'normal' | 'yellow' | 'red' =
+    userGuideTab || (hasActiveDanger ? 'red' : hasActiveWarning ? 'yellow' : 'normal');
+
   const handleSendTestPush = async () => {
     setTestSent(true);
     await NotificationService.sendFloodPushNotification(
@@ -248,156 +254,265 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
         </div>
       )}
 
-      {/* 3. Safety Action Guide (Solid Material 3 Surfaces, strictly no gradients) */}
+      {/* 3. Safety Action Guide (Material 3 Segmented Navigation & Action Cards) */}
       <div
         id="card-what-to-do-right-now"
         className={`shrink-0 rounded-3xl border p-5 transition-all shadow-xs ${
-          activeCount > 0
-            ? hasActiveDanger
-              ? 'bg-[#B3261E] text-white border-[#D93025]'
-              : 'bg-[#B06000] text-white border-[#FDD663]'
+          currentGuideTab === 'red'
+            ? 'bg-[#FCE8E6] border-[#FAD2CF] text-[#1F1F1F] dark:bg-[#D93025]/20 dark:border-[#D93025]/40 dark:text-[#E3E3E3]'
+            : currentGuideTab === 'yellow'
+            ? 'bg-[#FEF7E0] border-[#FEEFC3] text-[#1F1F1F] dark:bg-[#B06000]/20 dark:border-[#B06000]/40 dark:text-[#E3E3E3]'
             : isDarkMode
             ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
             : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
         }`}
       >
-        <div className="flex items-center justify-between gap-3 mb-3.5">
-          <div className="flex items-center gap-2.5">
+        {/* Header & Status Indicator */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-3">
             <div
-              className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${
-                activeCount > 0
-                  ? 'bg-white text-[#B3261E]'
-                  : 'bg-[#E8F0FE] text-[#1A73E8] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8]'
+              className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-xs ${
+                currentGuideTab === 'red'
+                  ? 'bg-[#D93025] text-white'
+                  : currentGuideTab === 'yellow'
+                  ? 'bg-[#B06000] text-white'
+                  : 'bg-[#1A73E8] text-white'
               }`}
             >
-              {activeCount > 0 ? (
-                <ShieldAlert className="w-5 h-5 animate-bounce" />
+              {currentGuideTab === 'red' ? (
+                <ShieldAlert className="w-5 h-5 animate-pulse" />
+              ) : currentGuideTab === 'yellow' ? (
+                <AlertTriangle className="w-5 h-5" />
               ) : (
                 <LifeBuoy className="w-5 h-5" />
               )}
             </div>
+
             <div>
-              <h3 className="font-bold text-sm sm:text-base font-sans tracking-tight">
-                {activeCount > 0 ? 'Urgent Safety Actions' : 'What to do right now'}
-              </h3>
-              <p
-                className={`text-xs ${
-                  activeCount > 0 ? 'text-white/90' : 'text-[#5F6368] dark:text-[#9AA0A6]'
-                }`}
-              >
-                {activeCount > 0
-                  ? 'Follow these immediate steps to stay safe'
-                  : 'Simple flood safety rules and steps'}
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-sm sm:text-base font-sans tracking-tight">
+                  {currentGuideTab === 'red'
+                    ? 'Red Alert: What to do right now'
+                    : currentGuideTab === 'yellow'
+                    ? 'Yellow Warning: What to do right now'
+                    : 'How to Prepare Before Floods'}
+                </h3>
+              </div>
+              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] mt-0.5">
+                {currentGuideTab === 'red'
+                  ? 'Dangerous rushing water detected. Evacuate immediately!'
+                  : currentGuideTab === 'yellow'
+                  ? 'Water level is rising. Get ready before roads flood.'
+                  : 'Simple steps to protect your family and home before floods start.'}
               </p>
             </div>
           </div>
 
-          <span
-            className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 ${
-              activeCount > 0
-                ? 'bg-white text-[#B3261E] shadow-xs'
-                : 'bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/20 dark:text-[#81C995]'
-            }`}
-          >
-            {activeCount > 0 ? 'Flood Danger Active' : 'Normal Conditions'}
-          </span>
+          {/* Segmented Mode Selector Pills */}
+          <div className="flex items-center gap-1 bg-[#F1F3F4] dark:bg-[#28292A] p-1 rounded-full self-start sm:self-center shrink-0">
+            <button
+              type="button"
+              id="guide-tab-normal-btn"
+              onClick={() => setUserGuideTab('normal')}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                currentGuideTab === 'normal'
+                  ? 'bg-white dark:bg-[#303134] text-[#137333] dark:text-[#81C995] shadow-xs'
+                  : 'text-[#5F6368] dark:text-[#9AA0A6]'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-[#137333]" />
+              <span>Normal</span>
+            </button>
+
+            <button
+              type="button"
+              id="guide-tab-yellow-btn"
+              onClick={() => setUserGuideTab('yellow')}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                currentGuideTab === 'yellow'
+                  ? 'bg-[#B06000] text-white shadow-xs'
+                  : 'text-[#5F6368] dark:text-[#9AA0A6]'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-[#B06000] dark:bg-[#FDD663]" />
+              <span>Yellow Warning</span>
+            </button>
+
+            <button
+              type="button"
+              id="guide-tab-red-btn"
+              onClick={() => setUserGuideTab('red')}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                currentGuideTab === 'red'
+                  ? 'bg-[#D93025] text-white shadow-xs'
+                  : 'text-[#5F6368] dark:text-[#9AA0A6]'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-[#D93025] dark:bg-[#F28B82]" />
+              <span>Red Danger</span>
+            </button>
+          </div>
         </div>
 
-        {activeCount > 0 ? (
-          /* Active Flood Alert - Simple 4 steps with solid container cards */
-          <div className="space-y-2 pt-1 text-xs sm:text-sm">
-            <div className="p-3 rounded-2xl bg-black/30 border border-white/20 flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-white text-[#B3261E] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+        {/* Action Content according to state */}
+        {currentGuideTab === 'red' && (
+          /* RED DANGER: 4 Clear Urgent Actions */
+          <div className="space-y-2.5">
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-[#28292A] border border-[#FAD2CF] dark:border-[#D93025]/40 flex items-start gap-3 shadow-2xs">
+              <span className="w-6 h-6 rounded-full bg-[#D93025] text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
                 1
               </span>
               <div>
-                <strong className="text-white block font-bold text-sm">
+                <strong className="text-sm font-bold text-[#D93025] dark:text-[#F28B82] block">
                   Move to high ground immediately
                 </strong>
-                <span className="text-white/90 text-xs leading-relaxed">
-                  Walk quickly to the nearest village hill, church, or primary school shelter.
+                <span className="text-xs text-[#3C4043] dark:text-[#C4C7C5] leading-relaxed">
+                  Walk or run quickly to the nearest village hill, church, or primary school shelter. Do not wait.
                 </span>
               </div>
             </div>
 
-            <div className="p-3 rounded-2xl bg-black/30 border border-white/20 flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-white text-[#B3261E] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-[#28292A] border border-[#FAD2CF] dark:border-[#D93025]/40 flex items-start gap-3 shadow-2xs">
+              <span className="w-6 h-6 rounded-full bg-[#D93025] text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
                 2
               </span>
               <div>
-                <strong className="text-white block font-bold text-sm">
-                  Help children and elderly neighbors
+                <strong className="text-sm font-bold text-[#D93025] dark:text-[#F28B82] block">
+                  Help children, elders, and neighbors
                 </strong>
-                <span className="text-white/90 text-xs leading-relaxed">
-                  Bring all family members together and move livestock away from river banks.
+                <span className="text-xs text-[#3C4043] dark:text-[#C4C7C5] leading-relaxed">
+                  Gather all family members together and assist older people and neighbors who need walking help.
                 </span>
               </div>
             </div>
 
-            <div className="p-3 rounded-2xl bg-black/30 border border-white/20 flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-white text-[#B3261E] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-[#28292A] border border-[#FAD2CF] dark:border-[#D93025]/40 flex items-start gap-3 shadow-2xs">
+              <span className="w-6 h-6 rounded-full bg-[#D93025] text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
                 3
               </span>
               <div>
-                <strong className="text-white block font-bold text-sm">
-                  Do not cross moving water or bridges
+                <strong className="text-sm font-bold text-[#D93025] dark:text-[#F28B82] block">
+                  Do NOT walk or drive in flood water
                 </strong>
-                <span className="text-white/90 text-xs leading-relaxed">
-                  Fast flood water can sweep away people and vehicles in seconds.
+                <span className="text-xs text-[#3C4043] dark:text-[#C4C7C5] leading-relaxed">
+                  Fast moving river current can sweep away people and vehicles in seconds. Never cross submerged bridges.
                 </span>
               </div>
             </div>
 
-            <div className="p-3 rounded-2xl bg-black/30 border border-white/20 flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-white text-[#B3261E] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-[#28292A] border border-[#FAD2CF] dark:border-[#D93025]/40 flex items-start gap-3 shadow-2xs">
+              <span className="w-6 h-6 rounded-full bg-[#D93025] text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
                 4
               </span>
               <div>
-                <strong className="text-white block font-bold text-sm">
-                  Keep phones and lights dry
+                <strong className="text-sm font-bold text-[#D93025] dark:text-[#F28B82] block">
+                  Keep phones in dry plastic bags
                 </strong>
-                <span className="text-white/90 text-xs leading-relaxed">
-                  Put your mobile phone and torch in a plastic bag to keep them dry and working.
+                <span className="text-xs text-[#3C4043] dark:text-[#C4C7C5] leading-relaxed">
+                  Protect torches and mobile phones from getting wet so you can send SOS voice notes or call for rescue.
                 </span>
               </div>
             </div>
           </div>
-        ) : (
-          /* Normal Condition - Simple Preparedness Cards */
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-            <div className="p-3.5 rounded-2xl bg-[#F8F9FA] dark:bg-[#28292A] border border-[#E1E3E1] dark:border-[#303134] space-y-1">
-              <div className="flex items-center gap-1.5 font-bold text-xs text-[#1F1F1F] dark:text-[#E3E3E3]">
-                <span className="w-4 h-4 rounded-full bg-[#1A73E8] text-white text-[10px] flex items-center justify-center font-bold">
+        )}
+
+        {currentGuideTab === 'yellow' && (
+          /* YELLOW WARNING: 4 Preparedness Steps */
+          <div className="space-y-2.5">
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-[#28292A] border border-[#FEEFC3] dark:border-[#B06000]/40 flex items-start gap-3 shadow-2xs">
+              <span className="w-6 h-6 rounded-full bg-[#B06000] text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                1
+              </span>
+              <div>
+                <strong className="text-sm font-bold text-[#B06000] dark:text-[#FDD663] block">
+                  Get emergency bags ready by the door
+                </strong>
+                <span className="text-xs text-[#3C4043] dark:text-[#C4C7C5] leading-relaxed">
+                  Pack torch, dry clothes, clean drinking water, medicines, and ID cards in a plastic bag.
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-[#28292A] border border-[#FEEFC3] dark:border-[#B06000]/40 flex items-start gap-3 shadow-2xs">
+              <span className="w-6 h-6 rounded-full bg-[#B06000] text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                2
+              </span>
+              <div>
+                <strong className="text-sm font-bold text-[#B06000] dark:text-[#FDD663] block">
+                  Move animals away from the river bank
+                </strong>
+                <span className="text-xs text-[#3C4043] dark:text-[#C4C7C5] leading-relaxed">
+                  Untie cows, goats, and chickens and guide them to high pens before paths become muddy.
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-[#28292A] border border-[#FEEFC3] dark:border-[#B06000]/40 flex items-start gap-3 shadow-2xs">
+              <span className="w-6 h-6 rounded-full bg-[#B06000] text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                3
+              </span>
+              <div>
+                <strong className="text-sm font-bold text-[#B06000] dark:text-[#FDD663] block">
+                  Charge mobile phones and torches
+                </strong>
+                <span className="text-xs text-[#3C4043] dark:text-[#C4C7C5] leading-relaxed">
+                  Charge phone batteries now so you have light and communication if village power cuts off.
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-[#28292A] border border-[#FEEFC3] dark:border-[#B06000]/40 flex items-start gap-3 shadow-2xs">
+              <span className="w-6 h-6 rounded-full bg-[#B06000] text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                4
+              </span>
+              <div>
+                <strong className="text-sm font-bold text-[#B06000] dark:text-[#FDD663] block">
+                  Warn family members and neighbors
+                </strong>
+                <span className="text-xs text-[#3C4043] dark:text-[#C4C7C5] leading-relaxed">
+                  Tell neighbors living in low ground to stay awake and listen for village warning sirens.
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {currentGuideTab === 'normal' && (
+          /* NORMAL / PREPARATION BEFORE FLOODS */
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div className="p-3.5 rounded-2xl bg-[#F8F9FA] dark:bg-[#28292A] border border-[#E1E3E1] dark:border-[#303134] space-y-1.5">
+              <div className="flex items-center gap-2 font-bold text-xs text-[#1F1F1F] dark:text-[#E3E3E3]">
+                <span className="w-5 h-5 rounded-full bg-[#1A73E8] text-white text-xs flex items-center justify-center font-bold">
                   1
                 </span>
-                <span>Know Your High Ground</span>
+                <span>Know Your Safe Shelter</span>
               </div>
               <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] leading-relaxed">
-                Know the quickest path from your house to high ground or the village school.
+                Know the quickest walking route from your home to the nearest hill, church, or primary school.
               </p>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-[#F8F9FA] dark:bg-[#28292A] border border-[#E1E3E1] dark:border-[#303134] space-y-1">
-              <div className="flex items-center gap-1.5 font-bold text-xs text-[#1F1F1F] dark:text-[#E3E3E3]">
-                <span className="w-4 h-4 rounded-full bg-[#1A73E8] text-white text-[10px] flex items-center justify-center font-bold">
+            <div className="p-3.5 rounded-2xl bg-[#F8F9FA] dark:bg-[#28292A] border border-[#E1E3E1] dark:border-[#303134] space-y-1.5">
+              <div className="flex items-center gap-2 font-bold text-xs text-[#1F1F1F] dark:text-[#E3E3E3]">
+                <span className="w-5 h-5 rounded-full bg-[#1A73E8] text-white text-xs flex items-center justify-center font-bold">
                   2
                 </span>
                 <span>Keep Essentials Ready</span>
               </div>
               <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] leading-relaxed">
-                Keep ID papers, medicine, torch, and charged phone in a clean plastic bag.
+                Store ID cards, medicines, torch batteries, clean water, and food in plastic bags.
               </p>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-[#F8F9FA] dark:bg-[#28292A] border border-[#E1E3E1] dark:border-[#303134] space-y-1">
-              <div className="flex items-center gap-1.5 font-bold text-xs text-[#1F1F1F] dark:text-[#E3E3E3]">
-                <span className="w-4 h-4 rounded-full bg-[#1A73E8] text-white text-[10px] flex items-center justify-center font-bold">
+            <div className="p-3.5 rounded-2xl bg-[#F8F9FA] dark:bg-[#28292A] border border-[#E1E3E1] dark:border-[#303134] space-y-1.5">
+              <div className="flex items-center gap-2 font-bold text-xs text-[#1F1F1F] dark:text-[#E3E3E3]">
+                <span className="w-5 h-5 rounded-full bg-[#1A73E8] text-white text-xs flex items-center justify-center font-bold">
                   3
                 </span>
-                <span>Listen for Siren Sound</span>
+                <span>Keep Loud Sirens On</span>
               </div>
               <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] leading-relaxed">
-                When the bell sensor sounds, move right away before water blocks the road.
+                Allow notifications on your phone so this app can sound loud alarms and vibrate at night.
               </p>
             </div>
           </div>

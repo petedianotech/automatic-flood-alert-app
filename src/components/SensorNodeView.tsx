@@ -99,11 +99,11 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
             <Radio className="w-6 h-6" />
           </div>
 
-          <h2 className="text-xl font-bold font-sans tracking-tight">
+          <h2 className="text-xl font-extrabold font-sans tracking-tight text-gray-950 dark:text-white">
             Community Alert Mode
           </h2>
 
-          <p className="text-xs sm:text-sm text-[#5F6368] dark:text-[#9AA0A6] mt-1.5 max-w-md mx-auto leading-relaxed">
+          <p className="text-xs sm:text-sm text-gray-700 dark:text-[#9AA0A6] mt-1.5 max-w-md mx-auto leading-relaxed font-medium">
             Your device receives real-time flood warning sirens and safety broadcasts from river sensors.
           </p>
 
@@ -155,7 +155,7 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
         className={`rounded-3xl border p-5 sm:p-6 transition-all shadow-xs ${
           isDarkMode
             ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
-            : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
+            : 'bg-white border-[#E1E3E1] text-gray-950'
         }`}
       >
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -163,7 +163,7 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
             <div
               className={`w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center ${
                 !isArmed
-                  ? 'bg-[#F1F3F4] text-[#5F6368] dark:bg-[#2D2E30] dark:text-[#9AA0A6]'
+                  ? 'bg-gray-100 text-gray-700 dark:bg-[#2D2E30] dark:text-[#9AA0A6]'
                   : isMotionActive
                   ? 'bg-[#E8F0FE] text-[#1A73E8] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8]'
                   : 'bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/20 dark:text-[#81C995]'
@@ -174,46 +174,46 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
 
             <div>
               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#E8F0FE] text-[#1A73E8] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8] flex items-center gap-1.5">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#E8F0FE] text-blue-900 border border-blue-200 dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8] dark:border-transparent flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-[#1A73E8] dark:bg-[#8AB4F8]" />
                   River Sensor Station
                 </span>
 
                 {isArmed ? (
                   isPaused ? (
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FEF7E0] text-[#B06000] dark:bg-[#B06000]/20 dark:text-[#FDD663]">
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-[#FEF7E0] text-amber-950 border border-amber-300 dark:bg-[#B06000]/20 dark:text-[#FDD663] dark:border-[#B06000]/40">
                       Paused
                     </span>
                   ) : (
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/20 dark:text-[#81C995] flex items-center gap-1.5">
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-[#E6F4EA] text-green-950 border border-green-300 dark:bg-[#137333]/20 dark:text-[#81C995] dark:border-[#137333]/40 flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-[#137333] dark:bg-[#81C995] animate-ping" />
                       Live Monitoring
                     </span>
                   )
                 ) : (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#F1F3F4] text-[#5F6368] dark:bg-[#2D2E30] dark:text-[#9AA0A6]">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-800 border border-gray-300 dark:bg-[#2D2E30] dark:text-[#9AA0A6] dark:border-transparent">
                     Standby (Off)
                   </span>
                 )}
               </div>
 
-              <h1 className="text-xl sm:text-2xl font-bold font-sans tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-extrabold font-sans tracking-tight text-black dark:text-white">
                 Flood Sensor Station
               </h1>
-              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] mt-0.5">
+              <p className="text-xs text-gray-700 dark:text-[#9AA0A6] mt-0.5 font-medium">
                 Monitors water movement and warning bell sound. Triggers village siren when water rises.
               </p>
             </div>
           </div>
 
-          {/* Action Navigation Buttons */}
+            {/* Action Navigation Buttons */}
           <div className="flex items-center gap-2 flex-wrap">
             {onGoToAdmin && (
               <button
                 type="button"
                 id="btn-nav-to-admin-dashboard"
                 onClick={onGoToAdmin}
-                className="px-4 py-2 text-xs font-semibold rounded-full bg-[#F1F3F4] hover:bg-[#E8EAED] dark:bg-[#2D2E30] dark:hover:bg-[#3C4043] text-[#1F1F1F] dark:text-[#E3E3E3] transition-colors flex items-center gap-1.5 active:scale-95"
+                className="px-4 py-2 text-xs font-bold rounded-full bg-gray-100 hover:bg-gray-200 border-2 border-gray-300 dark:border-transparent dark:bg-[#2D2E30] dark:hover:bg-[#3C4043] text-gray-950 dark:text-white transition-colors flex items-center gap-1.5 active:scale-95 shadow-2xs"
               >
                 <span>Safety Dashboard</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -225,7 +225,7 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
                 type="button"
                 id="btn-nav-to-receiver-radar"
                 onClick={onGoToReceiver}
-                className="px-4 py-2 text-xs font-semibold rounded-full bg-[#F1F3F4] hover:bg-[#E8EAED] dark:bg-[#2D2E30] dark:hover:bg-[#3C4043] text-[#1F1F1F] dark:text-[#E3E3E3] transition-colors flex items-center gap-1.5 active:scale-95"
+                className="px-4 py-2 text-xs font-bold rounded-full bg-gray-100 hover:bg-gray-200 border-2 border-gray-300 dark:border-transparent dark:bg-[#2D2E30] dark:hover:bg-[#3C4043] text-gray-950 dark:text-white transition-colors flex items-center gap-1.5 active:scale-95 shadow-2xs"
               >
                 <Radio className="w-3.5 h-3.5 text-[#1A73E8] dark:text-[#8AB4F8]" />
                 <span>Community Radar</span>
@@ -243,22 +243,22 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
         className={`p-3.5 rounded-3xl border transition-all shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
           isDarkMode
             ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
-            : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
+            : 'bg-white border-[#E1E3E1] text-gray-950'
         }`}
       >
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-[#5F6368] dark:text-[#9AA0A6]">
+          <span className="text-xs font-extrabold uppercase tracking-wider text-gray-900 dark:text-[#9AA0A6]">
             Active Sensor:
           </span>
-          <div className="flex items-center gap-1.5 bg-[#F1F3F4] dark:bg-[#28292A] p-1 rounded-full">
+          <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-[#28292A] border border-gray-300 dark:border-transparent p-1 rounded-full">
             <button
               type="button"
               id="select-mode-motion-btn"
               onClick={() => onSelectDetectionMode('motion')}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all flex items-center gap-1.5 ${
                 isMotionActive
                   ? 'bg-[#1A73E8] text-white shadow-xs'
-                  : 'text-[#5F6368] dark:text-[#9AA0A6] hover:text-[#1F1F1F] dark:hover:text-white'
+                  : 'text-gray-800 hover:text-black dark:text-[#9AA0A6] dark:hover:text-white'
               }`}
             >
               <Activity className="w-3.5 h-3.5" />
@@ -269,10 +269,10 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
               type="button"
               id="select-mode-sound-btn"
               onClick={() => onSelectDetectionMode('sound')}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all flex items-center gap-1.5 ${
                 isSoundActive
                   ? 'bg-[#137333] text-white shadow-xs'
-                  : 'text-[#5F6368] dark:text-[#9AA0A6] hover:text-[#1F1F1F] dark:hover:text-white'
+                  : 'text-gray-800 hover:text-black dark:text-[#9AA0A6] dark:hover:text-white'
               }`}
             >
               <Mic className="w-3.5 h-3.5" />
@@ -290,10 +290,10 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
                 type="button"
                 id="btn-pause-resume"
                 onClick={onTogglePause}
-                className={`px-3.5 py-1.5 rounded-full font-bold text-xs flex items-center gap-1.5 transition-all active:scale-95 ${
+                className={`px-3.5 py-1.5 rounded-full font-extrabold text-xs flex items-center gap-1.5 transition-all active:scale-95 border-2 ${
                   isPaused
-                    ? 'bg-[#1A73E8] text-white hover:bg-[#1557B0]'
-                    : 'bg-[#FEF7E0] text-[#B06000] hover:bg-[#FEEFC3] dark:bg-[#B06000]/20 dark:text-[#FDD663]'
+                    ? 'bg-[#1A73E8] text-white hover:bg-[#1557B0] border-[#1A73E8]'
+                    : 'bg-[#FEF7E0] text-amber-950 hover:bg-[#FEEFC3] border-amber-400 dark:bg-[#B06000]/20 dark:text-[#FDD663] dark:border-[#B06000]/40'
                 }`}
               >
                 {isPaused ? (
@@ -315,7 +315,7 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
                   type="button"
                   id="btn-sound-settings-toggle"
                   onClick={() => setIsSoundSettingsOpen(!isSoundSettingsOpen)}
-                  className="px-3.5 py-1.5 rounded-full bg-[#F1F3F4] hover:bg-[#E8EAED] dark:bg-[#2D2E30] dark:hover:bg-[#3C4043] text-xs font-semibold text-[#1F1F1F] dark:text-[#E3E3E3] flex items-center gap-1.5 transition-colors"
+                  className="px-3.5 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 border-2 border-gray-300 dark:border-transparent dark:bg-[#2D2E30] dark:hover:bg-[#3C4043] text-xs font-bold text-gray-950 dark:text-white flex items-center gap-1.5 transition-colors shadow-2xs"
                 >
                   <Sliders className="w-3.5 h-3.5" />
                   <span>Sound Levels</span>
@@ -327,7 +327,7 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
                 type="button"
                 id="btn-turn-off-sensor"
                 onClick={onToggleArm}
-                className="px-3.5 py-1.5 rounded-full font-bold text-xs bg-[#FCE8E6] text-[#D93025] hover:bg-[#FAD2CF] dark:bg-[#D93025]/20 dark:text-[#F28B82] flex items-center gap-1.5 transition-all active:scale-95"
+                className="px-3.5 py-1.5 rounded-full font-extrabold text-xs bg-[#FCE8E6] text-red-950 hover:bg-[#FAD2CF] border-2 border-red-300 dark:bg-[#D93025]/20 dark:text-[#F28B82] dark:border-[#D93025]/40 flex items-center gap-1.5 transition-all active:scale-95"
               >
                 <ShieldOff className="w-3.5 h-3.5" />
                 <span>Turn Off</span>
@@ -356,15 +356,15 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
           className={`p-5 rounded-3xl border shadow-xs space-y-4 ${
             isDarkMode
               ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
-              : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
+              : 'bg-white border-[#E1E3E1] text-gray-950'
           }`}
         >
           <div className="flex items-center justify-between pb-2 border-b border-[#E1E3E1] dark:border-[#303134]">
             <div>
-              <h3 className="font-bold text-sm font-sans">
+              <h3 className="font-extrabold text-sm font-sans text-black dark:text-white">
                 Warning Bell Sound Levels
               </h3>
-              <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6]">
+              <p className="text-xs text-gray-700 dark:text-[#9AA0A6] font-medium">
                 Set the loudness thresholds to detect the warning bell and filter background noise.
               </p>
             </div>
@@ -375,7 +375,7 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
                 setRedDb(60);
                 setSoundSensitivity(1.3);
               }}
-              className="text-xs font-bold text-[#1A73E8] dark:text-[#8AB4F8] hover:underline"
+              className="text-xs font-bold text-[#1A73E8] dark:text-[#8AB4F8] hover:underline cursor-pointer"
             >
               Reset Defaults
             </button>
@@ -383,7 +383,7 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-bold text-[#5F6368] dark:text-[#9AA0A6] mb-1.5">
+              <label className="block text-xs font-extrabold text-gray-950 dark:text-white mb-1.5">
                 Warning Level ({yellowDb} dB)
               </label>
               <input
@@ -397,7 +397,7 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#5F6368] dark:text-[#9AA0A6] mb-1.5">
+              <label className="block text-xs font-extrabold text-gray-950 dark:text-white mb-1.5">
                 Alarm Level ({redDb} dB)
               </label>
               <input
@@ -411,7 +411,7 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#5F6368] dark:text-[#9AA0A6] mb-1.5">
+              <label className="block text-xs font-extrabold text-gray-950 dark:text-white mb-1.5">
                 Sensitivity ({soundSensitivity.toFixed(1)}x)
               </label>
               <input
@@ -426,11 +426,11 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2 pt-2 border-t border-[#E1E3E1] dark:border-[#303134]">
             <button
               type="button"
               onClick={() => setIsSoundSettingsOpen(false)}
-              className="px-4 py-2 rounded-full text-xs font-semibold bg-[#F1F3F4] hover:bg-[#E8EAED] dark:bg-[#2D2E30] dark:hover:bg-[#3C4043] transition-colors"
+              className="px-4 py-2 rounded-full text-xs font-bold bg-gray-100 hover:bg-gray-200 border-2 border-gray-300 dark:border-transparent dark:bg-[#2D2E30] dark:hover:bg-[#3C4043] text-gray-950 dark:text-white transition-colors"
             >
               Cancel
             </button>

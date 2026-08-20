@@ -181,51 +181,48 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
     >
       <div
         id="mobile-auth-sheet"
-        className={`w-full max-w-md rounded-t-3xl sm:rounded-3xl border shadow-2xl transition-all max-h-[92vh] overflow-y-auto ${
+        className={`w-full max-w-md rounded-t-3xl sm:rounded-3xl border shadow-xl transition-all max-h-[92vh] overflow-y-auto ${
           isDarkMode
             ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3]'
             : 'bg-white border-[#E1E3E1] text-[#1F1F1F]'
         }`}
       >
-        {/* Mobile Drag Pill */}
+        {/* Mobile Drag Handle */}
         <div className="flex justify-center pt-3 pb-1 sm:hidden">
-          <div className="w-12 h-1.5 rounded-full bg-black/20 dark:bg-white/20" />
+          <div className="w-10 h-1 rounded-full bg-[#5F6368]/30 dark:bg-[#9AA0A6]/30" />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-4 pb-3 border-b border-black/5 dark:border-white/5">
-          <div className="flex items-center gap-2.5">
+        <div className="flex items-center justify-between px-6 pt-4 pb-3 border-b border-[#E1E3E1] dark:border-[#303134]">
+          <div className="flex items-center gap-3">
             {!currentUser && viewStep === 'form' ? (
               <button
                 type="button"
                 onClick={() => setViewStep('choose')}
-                className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 text-[#5F6368] dark:text-[#9AA0A6] -ml-2"
-                title="Back to options"
+                className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[#F1F3F4] dark:hover:bg-[#303134] text-[#5F6368] dark:text-[#9AA0A6] -ml-2 transition-colors"
+                title="Go Back"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
             ) : (
-              <img
-                src="/icon.svg"
-                alt="App Icon"
-                className="w-9 h-9 rounded-xl shrink-0 object-cover shadow-2xs"
-                referrerPolicy="no-referrer"
-              />
+              <div className="w-9 h-9 rounded-2xl bg-[#E8F0FE] dark:bg-[#1A73E8]/20 text-[#1A73E8] dark:text-[#8AB4F8] flex items-center justify-center shrink-0 shadow-2xs font-bold text-sm">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
             )}
             <div>
-              <h3 className="font-bold text-base font-sans tracking-tight">
+              <h3 className="font-bold text-base font-sans tracking-tight text-[#1F1F1F] dark:text-[#E3E3E3]">
                 {currentUser
                   ? 'Your Village Profile'
                   : viewStep === 'form'
-                  ? 'Create or Sign In'
+                  ? 'Sign In to Flood Alert'
                   : 'Welcome to Flood Alert'}
               </h3>
               <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6]">
                 {currentUser
-                  ? 'Active Community Member'
+                  ? 'Active Village Member'
                   : viewStep === 'form'
                   ? 'Enter your name and village'
-                  : 'Dzenje CDSS ADDA STEM Early Warning'}
+                  : 'Early flood warning for your community'}
               </p>
             </div>
           </div>
@@ -233,7 +230,7 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
           <button
             id="btn-close-auth-modal"
             onClick={handleContinueAsGuest}
-            className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 text-[#5F6368] dark:text-[#9AA0A6]"
+            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[#F1F3F4] dark:hover:bg-[#303134] text-[#5F6368] dark:text-[#9AA0A6] transition-colors"
             title="Close"
           >
             <X className="w-5 h-5" />
@@ -244,10 +241,10 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
         {currentUser ? (
           <div className="p-6 space-y-5">
             <div
-              className={`p-4 rounded-2xl border flex items-center gap-3.5 ${
+              className={`p-4 rounded-3xl border flex items-center gap-3.5 ${
                 isAdmin
-                  ? 'bg-[#FEF7E0] dark:bg-amber-950/20 border-[#FEEFC3] dark:border-amber-900/40'
-                  : 'bg-[#E8F0FE] dark:bg-[#1A73E8]/15 border-[#D2E3FC] dark:border-[#1A73E8]/30'
+                  ? 'bg-[#FEF7E0] dark:bg-[#B06000]/20 border-[#FEEFC3] dark:border-[#B06000]/40'
+                  : 'bg-[#E8F0FE] dark:bg-[#1A73E8]/15 border-[#CEE0FD] dark:border-[#1A73E8]/30'
               }`}
             >
               {currentUser.photoURL ? (
@@ -255,13 +252,13 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                   src={currentUser.photoURL}
                   alt={currentUser.name}
                   className={`w-12 h-12 rounded-full border-2 object-cover ${
-                    isAdmin ? 'border-amber-500' : 'border-[#1A73E8]'
+                    isAdmin ? 'border-[#B06000]' : 'border-[#1A73E8]'
                   }`}
                 />
               ) : (
                 <div
                   className={`w-12 h-12 rounded-full text-white font-bold text-lg flex items-center justify-center shadow-xs ${
-                    isAdmin ? 'bg-amber-600' : 'bg-[#1A73E8]'
+                    isAdmin ? 'bg-[#B06000]' : 'bg-[#1A73E8]'
                   }`}
                 >
                   {currentUser.name.charAt(0).toUpperCase()}
@@ -273,17 +270,17 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                     {currentUser.name}
                   </h4>
                   {isAdmin ? (
-                    <span className="text-[10px] font-bold tracking-tight px-2 py-0.5 rounded-full bg-amber-500 text-white shadow-xs">
-                      Admin
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#B06000] text-white">
+                      Village Admin
                     </span>
                   ) : (
-                    <span className="text-[10px] font-bold tracking-tight px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                      Community Member
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/30 dark:text-[#81C995]">
+                      Resident
                     </span>
                   )}
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-[#5F6368] dark:text-[#9AA0A6] mt-0.5">
-                  <MapPin className="w-3.5 h-3.5 text-[#D93025]" />
+                  <MapPin className="w-3.5 h-3.5 text-[#D93025] shrink-0" />
                   <span className="truncate font-semibold">{currentUser.village}</span>
                   {currentUser.email && (
                     <span className="text-[11px] font-mono text-[#5F6368] dark:text-[#9AA0A6] truncate">
@@ -297,7 +294,7 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
             {/* Quick Village Switcher */}
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-[#5F6368] dark:text-[#9AA0A6] mb-2">
-                Active Village / Sector
+                Your Village Location
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {VILLAGE_PRESETS.map((v) => (
@@ -305,10 +302,10 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                     key={v}
                     type="button"
                     onClick={() => handleUpdateVillageOnly(v)}
-                    className={`px-3 py-2 rounded-xl text-xs font-semibold text-left border transition-all flex items-center justify-between ${
+                    className={`px-3 py-2.5 rounded-2xl text-xs font-bold text-left border transition-all flex items-center justify-between active:scale-98 ${
                       currentUser.village === v
                         ? 'bg-[#1A73E8] text-white border-[#1A73E8] shadow-xs'
-                        : 'bg-black/[0.02] dark:bg-white/[0.04] border-black/10 dark:border-white/10 hover:border-[#1A73E8]'
+                        : 'bg-[#F8F9FA] dark:bg-[#28292A] border-[#E1E3E1] dark:border-[#303134] text-[#1F1F1F] dark:text-[#E3E3E3] hover:border-[#1A73E8]'
                     }`}
                   >
                     <span className="truncate">{v}</span>
@@ -319,43 +316,43 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
             </div>
 
             {successMsg && (
-              <div className="p-3 rounded-xl bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/20 dark:text-[#81C995] text-xs font-bold flex items-center gap-2">
+              <div className="p-3 rounded-2xl bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/20 dark:text-[#81C995] text-xs font-bold flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>{successMsg}</span>
               </div>
             )}
 
-            {/* Sign Out Button */}
+            {/* Sign Out & Done Buttons */}
             <div className="pt-2 flex gap-2.5">
               <button
                 id="btn-sign-out"
                 onClick={handleSignOut}
                 disabled={loading}
-                className="flex-1 py-3 rounded-2xl font-bold text-sm bg-[#FCE8E6] text-[#C5221F] dark:bg-red-950/40 dark:text-red-300 border border-red-200 dark:border-red-900/50 flex items-center justify-center gap-2 hover:bg-red-100 transition-colors"
+                className="flex-1 py-3 rounded-full font-bold text-xs bg-[#FCE8E6] text-[#D93025] hover:bg-[#FAD2CF] dark:bg-[#D93025]/20 dark:text-[#F28B82] border border-[#FAD2CF] dark:border-[#D93025]/40 flex items-center justify-center gap-2 transition-all active:scale-95"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Sign Out</span>
               </button>
               <button
                 onClick={onClose}
-                className="flex-1 py-3 rounded-2xl font-bold text-sm bg-[#F1F3F4] dark:bg-[#2D2E30] text-[#1F1F1F] dark:text-[#E3E3E3] hover:bg-[#E8EAED] transition-colors"
+                className="flex-1 py-3 rounded-full font-bold text-xs bg-[#1F1F1F] text-white dark:bg-white dark:text-[#1F1F1F] hover:opacity-90 transition-all active:scale-95 shadow-xs"
               >
                 Done
               </button>
             </div>
           </div>
         ) : viewStep === 'choose' ? (
-          /* 2. Welcome First Open: Choose Create Account OR Continue Without Account */
+          /* 2. Welcome First Open: Choose Create Account OR Continue as Guest */
           <div className="p-6 space-y-4">
             <div className="text-center space-y-1.5 py-1">
-              <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-[#1A73E8] dark:text-[#8AB4F8] mx-auto flex items-center justify-center border border-blue-100 dark:border-blue-900/40 shadow-xs">
+              <div className="w-14 h-14 rounded-3xl bg-[#E8F0FE] dark:bg-[#1A73E8]/20 text-[#1A73E8] dark:text-[#8AB4F8] mx-auto flex items-center justify-center border border-[#CEE0FD] dark:border-[#1A73E8]/30 shadow-xs">
                 <ShieldCheck className="w-7 h-7" />
               </div>
-              <h4 className="font-extrabold text-lg font-sans tracking-tight text-[#1F1F1F] dark:text-white">
+              <h4 className="font-bold text-lg font-sans tracking-tight text-[#1F1F1F] dark:text-white">
                 How would you like to start?
               </h4>
               <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] max-w-xs mx-auto leading-relaxed">
-                Receive live Ruo River water level warnings, sirens, and community flood safety alerts.
+                Get river level warnings, loud sirens, and community flood safety alerts.
               </p>
             </div>
 
@@ -367,23 +364,22 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                 setError(null);
                 setViewStep('form');
               }}
-              className="w-full p-4 rounded-2xl bg-[#1A73E8] hover:bg-[#1557B0] text-white text-left shadow-xs active:scale-98 transition-all flex items-center justify-between gap-3 group border border-[#1A73E8]"
+              className="w-full p-4 rounded-3xl bg-[#1A73E8] hover:bg-[#1557B0] text-white text-left shadow-xs active:scale-98 transition-all flex items-center justify-between gap-3 group"
             >
               <div className="flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
                   <UserPlus className="w-5 h-5 text-white" />
                 </div>
                 <div>
                   <div className="font-bold text-sm leading-tight flex items-center gap-1.5">
-                    <span>Create Account or Sign In</span>
-                    <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Sign In or Create Account</span>
                   </div>
-                  <p className="text-[11px] text-white/80 leading-snug mt-0.5">
-                    Save your name &amp; village for SOS check-ins &amp; localized alerts
+                  <p className="text-[11px] text-white/85 leading-snug mt-0.5">
+                    Save your name &amp; village for fast SOS voice notes and safety check-ins
                   </p>
                 </div>
               </div>
-              <ArrowRight className="w-5 h-5 text-white/80 group-hover:translate-x-1 transition-transform shrink-0" />
+              <ArrowRight className="w-5 h-5 text-white group-hover:translate-x-1 transition-transform shrink-0" />
             </button>
 
             {/* Option B: Continue without Account */}
@@ -391,18 +387,18 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
               id="btn-choice-continue-guest"
               type="button"
               onClick={handleContinueAsGuest}
-              className="w-full p-4 rounded-2xl bg-black/[0.03] dark:bg-white/[0.05] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] text-left border border-black/10 dark:border-white/10 active:scale-98 transition-all flex items-center justify-between gap-3 group text-[#1F1F1F] dark:text-[#E3E3E3]"
+              className="w-full p-4 rounded-3xl bg-[#F8F9FA] dark:bg-[#28292A] hover:bg-[#F1F3F4] dark:hover:bg-[#303134] text-left border border-[#E1E3E1] dark:border-[#303134] active:scale-98 transition-all flex items-center justify-between gap-3 group text-[#1F1F1F] dark:text-[#E3E3E3]"
             >
               <div className="flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-2xl bg-[#E6F4EA] dark:bg-[#137333]/20 text-[#137333] dark:text-[#81C995] flex items-center justify-center shrink-0">
                   <Radio className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="font-bold text-sm leading-tight">
-                    Continue without Account
+                    Continue as Guest
                   </div>
                   <p className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6] leading-snug mt-0.5">
-                    Instant access to river radar, live flood siren &amp; safety maps
+                    Instant access to live river radar, loud flood sirens, and safety advice
                   </p>
                 </div>
               </div>
@@ -410,14 +406,14 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
             </button>
 
             <p className="text-[11px] text-[#5F6368] dark:text-[#9AA0A6] text-center pt-1">
-              You can create or switch an account anytime from the top bar.
+              You can sign in or change your village anytime from the top bar.
             </p>
           </div>
         ) : (
           /* 3. Sign In Form (Name & Village or Google) */
-          <div className="p-6 space-y-5">
-            {/* Auth Method Tabs */}
-            <div className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-black/[0.04] dark:bg-white/[0.06]">
+          <div className="p-6 space-y-4">
+            {/* Auth Method Segmented Tabs */}
+            <div className="grid grid-cols-2 gap-1 p-1 rounded-full bg-[#F1F3F4] dark:bg-[#28292A]">
               <button
                 type="button"
                 id="tab-auth-village"
@@ -425,9 +421,9 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                   setAuthMethod('village');
                   setError(null);
                 }}
-                className={`py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                className={`py-2 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                   authMethod === 'village'
-                    ? 'bg-white dark:bg-[#28292A] text-[#1A73E8] shadow-xs'
+                    ? 'bg-white dark:bg-[#303134] text-[#1A73E8] dark:text-[#8AB4F8] shadow-xs'
                     : 'text-[#5F6368] dark:text-[#9AA0A6]'
                 }`}
               >
@@ -442,9 +438,9 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                   setAuthMethod('google');
                   setError(null);
                 }}
-                className={`py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                className={`py-2 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                   authMethod === 'google'
-                    ? 'bg-white dark:bg-[#28292A] text-[#1A73E8] shadow-xs'
+                    ? 'bg-white dark:bg-[#303134] text-[#1A73E8] dark:text-[#8AB4F8] shadow-xs'
                     : 'text-[#5F6368] dark:text-[#9AA0A6]'
                 }`}
               >
@@ -471,14 +467,14 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
             </div>
 
             {error && (
-              <div className="p-3 rounded-xl bg-[#FCE8E6] text-[#C5221F] dark:bg-red-950/50 dark:text-red-300 text-xs font-semibold flex items-center gap-2 border border-[#FAD2CF] dark:border-red-900/50">
+              <div className="p-3 rounded-2xl bg-[#FCE8E6] text-[#D93025] dark:bg-[#D93025]/20 dark:text-[#F28B82] text-xs font-semibold flex items-center gap-2 border border-[#FAD2CF] dark:border-[#D93025]/40">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
             {successMsg && (
-              <div className="p-3 rounded-xl bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/20 dark:text-[#81C995] text-xs font-bold flex items-center gap-2">
+              <div className="p-3 rounded-2xl bg-[#E6F4EA] text-[#137333] dark:bg-[#137333]/20 dark:text-[#81C995] text-xs font-bold flex items-center gap-2 border border-[#CEEAD6] dark:border-[#137333]/40">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>{successMsg}</span>
               </div>
@@ -490,10 +486,10 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                 {/* Full Name */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-bold text-[#5F6368] dark:text-[#9AA0A6]">
-                      Your Full Name *
+                    <label className="block text-xs font-bold text-[#3C4043] dark:text-[#BDC1C6]">
+                      Your Full Name
                     </label>
-                    <span className="text-[10px] font-mono text-[#1A73E8] dark:text-[#8AB4F8] transition-opacity">
+                    <span className="text-[11px] font-medium text-[#1A73E8] dark:text-[#8AB4F8]">
                       e.g. {EXAMPLE_NAMES[exampleNameIndex]}
                     </span>
                   </div>
@@ -508,7 +504,11 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder={`e.g. ${EXAMPLE_NAMES[exampleNameIndex]}`}
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-black/15 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.03] text-sm focus:outline-none focus:ring-2 focus:ring-[#1A73E8]"
+                      className={`w-full pl-9 pr-3 py-2.5 rounded-2xl border text-xs font-medium outline-none transition-all ${
+                        isDarkMode
+                          ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3] focus:border-[#1A73E8]'
+                          : 'bg-[#F8F9FA] border-[#E1E3E1] text-[#1F1F1F] focus:border-[#1A73E8]'
+                      }`}
                     />
                   </div>
                 </div>
@@ -516,10 +516,10 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                 {/* Village / Sector */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-bold text-[#5F6368] dark:text-[#9AA0A6]">
-                      Village / Community Name *
+                    <label className="block text-xs font-bold text-[#3C4043] dark:text-[#BDC1C6]">
+                      Your Village Name
                     </label>
-                    <span className="text-[10px] font-mono text-[#137333] dark:text-[#81C995]">
+                    <span className="text-[11px] font-medium text-[#137333] dark:text-[#81C995]">
                       e.g. Dzenje
                     </span>
                   </div>
@@ -533,8 +533,12 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                       required
                       value={village}
                       onChange={(e) => setVillage(e.target.value)}
-                      placeholder="e.g. Dzenje"
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-black/15 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.03] text-sm focus:outline-none focus:ring-2 focus:ring-[#1A73E8]"
+                      placeholder="e.g. Dzenje Village"
+                      className={`w-full pl-9 pr-3 py-2.5 rounded-2xl border text-xs font-medium outline-none transition-all ${
+                        isDarkMode
+                          ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3] focus:border-[#1A73E8]'
+                          : 'bg-[#F8F9FA] border-[#E1E3E1] text-[#1F1F1F] focus:border-[#1A73E8]'
+                      }`}
                     />
                   </div>
 
@@ -545,10 +549,10 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                         key={p}
                         type="button"
                         onClick={() => setVillage(p)}
-                        className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors ${
+                        className={`text-xs font-bold px-3 py-1 rounded-full border transition-all active:scale-95 ${
                           village === p
-                            ? 'bg-[#E8F0FE] text-[#1967D2] border-[#D2E3FC] dark:bg-[#1A73E8]/20 dark:text-[#8AB4F8]'
-                            : 'bg-black/[0.02] dark:bg-white/[0.03] text-[#5F6368] dark:text-[#9AA0A6] border-transparent hover:border-black/10'
+                            ? 'bg-[#1A73E8] text-white border-[#1A73E8] shadow-xs'
+                            : 'bg-[#F8F9FA] dark:bg-[#28292A] text-[#5F6368] dark:text-[#9AA0A6] border-[#E1E3E1] dark:border-[#303134] hover:border-[#1A73E8]'
                         }`}
                       >
                         {p}
@@ -562,29 +566,29 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                   id="btn-submit-village-auth"
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 mt-2 rounded-2xl font-bold text-sm bg-[#1A73E8] hover:bg-[#1557B0] text-white shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 transition-all active:scale-98"
+                  className="w-full py-3.5 mt-2 rounded-full font-bold text-xs bg-[#1A73E8] hover:bg-[#1557B0] text-white shadow-xs flex items-center justify-center gap-2 transition-all active:scale-95"
                 >
                   {loading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <>
                       <LogIn className="w-4 h-4" />
-                      <span>Sign In &amp; Join Village Network</span>
+                      <span>Sign In to Village Network</span>
                     </>
                   )}
                 </button>
               </form>
             ) : (
               /* Option 2: Google Sign In Option */
-              <div className="space-y-4 py-2">
+              <div className="space-y-3.5 py-1">
                 <p className="text-xs text-[#5F6368] dark:text-[#9AA0A6] leading-relaxed">
-                  Sign in with Google to synchronize real-time river radar alerts, neighborhood updates, and siren notifications across all your devices.
+                  Sign in with Google to sync river warnings and loud siren alerts across all your devices.
                 </p>
 
                 {/* Village Selection for Google Account */}
                 <div>
-                  <label className="block text-xs font-bold text-[#5F6368] dark:text-[#9AA0A6] mb-1">
-                    Your Village Community *
+                  <label className="block text-xs font-bold text-[#3C4043] dark:text-[#BDC1C6] mb-1">
+                    Your Village Community
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#5F6368] dark:text-[#9AA0A6]">
@@ -595,7 +599,11 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                       value={village}
                       onChange={(e) => setVillage(e.target.value)}
                       placeholder="e.g. Dzenje Village"
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-black/15 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.03] text-sm focus:outline-none focus:ring-2 focus:ring-[#1A73E8]"
+                      className={`w-full pl-9 pr-3 py-2.5 rounded-2xl border text-xs font-medium outline-none transition-all ${
+                        isDarkMode
+                          ? 'bg-[#1E1F20] border-[#303134] text-[#E3E3E3] focus:border-[#1A73E8]'
+                          : 'bg-[#F8F9FA] border-[#E1E3E1] text-[#1F1F1F] focus:border-[#1A73E8]'
+                      }`}
                     />
                   </div>
                 </div>
@@ -605,13 +613,13 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                   type="button"
                   onClick={handleGoogleSignIn}
                   disabled={loading}
-                  className="w-full py-3.5 rounded-2xl font-bold text-sm bg-white dark:bg-[#28292A] text-[#1F1F1F] dark:text-[#E3E3E3] border border-black/15 dark:border-white/15 hover:bg-black/[0.02] dark:hover:bg-white/[0.04] shadow-sm flex items-center justify-center gap-3 transition-all active:scale-98"
+                  className="w-full py-3.5 rounded-full font-bold text-xs bg-white dark:bg-[#28292A] text-[#1F1F1F] dark:text-[#E3E3E3] border border-[#E1E3E1] dark:border-[#303134] hover:bg-[#F8F9FA] dark:hover:bg-[#303134] shadow-xs flex items-center justify-center gap-3 transition-all active:scale-95"
                 >
                   {loading ? (
                     <Loader2 className="w-4 h-4 animate-spin text-[#1A73E8]" />
                   ) : (
                     <>
-                      <svg className="w-5 h-5" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24">
                         <path
                           fill="#4285F4"
                           d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -641,9 +649,9 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
               <button
                 type="button"
                 onClick={handleContinueAsGuest}
-                className="text-xs text-[#5F6368] dark:text-[#9AA0A6] hover:text-[#1A73E8] dark:hover:text-[#8AB4F8] font-semibold underline underline-offset-2 transition-colors"
+                className="text-xs text-[#5F6368] dark:text-[#9AA0A6] hover:text-[#1A73E8] dark:hover:text-[#8AB4F8] font-bold underline underline-offset-2 transition-colors"
               >
-                Skip and continue without an account →
+                Skip and continue as guest →
               </button>
             </div>
           </div>
