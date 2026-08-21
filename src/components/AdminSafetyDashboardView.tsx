@@ -166,24 +166,18 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
     <div className="space-y-4 pb-24 select-none">
       {/* ================= 1. SAFETY STATUS OVERVIEW BANNER ================= */}
       <div className="bg-[#F3F3FA] rounded-[24px] p-4.5 border border-slate-100 space-y-3.5 shadow-xs">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-[#1F71E8] text-white flex items-center justify-center shadow-xs shrink-0">
-              <Users className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="font-bold text-base text-[#1C1B1F] leading-tight">
-                Village Safety Status
-              </h3>
-              <p className="text-xs text-[#49454F] font-medium mt-0.5">
-                People using this app roll-call &amp; rescue list
-              </p>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-[#1F71E8] text-white flex items-center justify-center shadow-xs shrink-0">
+            <Users className="w-6 h-6" />
           </div>
-
-          <span className="text-xs font-bold text-[#1F71E8] bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-2xs shrink-0">
-            {totalPeopleCount} App Users Checked In
-          </span>
+          <div className="min-w-0 flex-1">
+            <h3 className="font-bold text-base sm:text-lg text-[#1C1B1F] leading-snug">
+              Village Safety Status
+            </h3>
+            <p className="text-xs text-[#49454F] font-medium mt-0.5">
+              People roll-call and rescue status
+            </p>
+          </div>
         </div>
 
         {/* 3 Status Counters */}

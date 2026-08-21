@@ -111,45 +111,25 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
     return (
       <div className="space-y-4 pb-24 select-none">
         {/* Admin Header */}
-        <div className="bg-[#F3F3FA] rounded-[24px] p-4.5 border border-slate-100 space-y-3 shadow-xs">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
-                <Building className="w-6 h-6" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-base text-[#1C1B1F] leading-tight">
-                    Villages & Safe Areas
-                  </h3>
-                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
-                    Admin
-                  </span>
-                </div>
-                <p className="text-xs text-[#49454F] font-medium mt-0.5">
-                  Total people registered and designated safe high ground areas
-                </p>
-              </div>
+        <div className="bg-[#F3F3FA] rounded-[24px] p-4.5 border border-slate-100 space-y-3.5 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
+              <Building className="w-6 h-6" />
             </div>
-
-            <button
-              type="button"
-              onClick={onOpenAuthModal}
-              className="text-xs font-bold text-[#1F71E8] bg-white px-3 py-1.5 rounded-full border border-slate-200 hover:border-[#1F71E8] transition cursor-pointer shadow-2xs shrink-0"
-            >
-              Admin Profile
-            </button>
+            <div className="min-w-0">
+              <h3 className="font-bold text-base sm:text-lg text-[#1C1B1F] leading-snug">
+                Villages &amp; Safe Areas
+              </h3>
+              <p className="text-xs text-[#49454F] font-medium mt-0.5">
+                Total people registered and designated safe high ground areas
+              </p>
+            </div>
           </div>
 
           <div className="bg-white rounded-2xl p-3.5 border border-slate-100 flex items-center justify-between shadow-2xs">
-            <div>
-              <span className="text-xs font-bold text-[#49454F] uppercase tracking-wider block">
-                Total App Users Across All Villages
-              </span>
-              <span className="text-[11px] text-slate-500 font-medium mt-0.5 block">
-                Data for people using this app only (not total village population)
-              </span>
-            </div>
+            <span className="text-xs sm:text-sm font-bold text-[#49454F] uppercase tracking-wider">
+              Total App Users Across All Villages
+            </span>
             <div className="text-right shrink-0">
               <span className="text-lg font-extrabold text-[#1C1B1F] block">
                 {totalAllPeople}
