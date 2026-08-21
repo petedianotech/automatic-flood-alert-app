@@ -56,59 +56,88 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
 
   return (
     <div className="space-y-4 pb-20 select-none">
-      {/* ================= 1. Emergency Siren Broadcast Card ================= */}
-      <div className="bg-[#F3F3FA] rounded-[24px] p-4.5 border border-slate-100 space-y-3 shadow-xs">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-red-100 flex items-center justify-center text-red-700 shrink-0 shadow-2xs">
-              <ShieldAlert className="w-6 h-6" />
+      {/* ================= 1. Emergency Banner (Admin: Siren Control | User: Fast-Access Voice SOS) ================= */}
+      {isAdmin ? (
+        <div className="bg-[#F3F3FA] rounded-[24px] p-4.5 border border-slate-100 space-y-3 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-red-100 flex items-center justify-center text-red-700 shrink-0 shadow-2xs">
+                <ShieldAlert className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-[#1C1B1F] leading-tight">
+                  Village Emergency Siren
+                </h3>
+                <p className="text-xs text-[#49454F] font-medium mt-0.5">
+                  Dzenje CDSS ADDA STEM CLUB Warning System
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-bold text-base text-[#1C1B1F] leading-tight">
-                Village Emergency Siren
-              </h3>
-              <p className="text-xs text-[#49454F] font-medium mt-0.5">
-                Dzenje CDSS ADDA STEM CLUB Warning System
-              </p>
-            </div>
+
+            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800">
+              Admin Control
+            </span>
           </div>
 
-          <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800">
-            Live Link
-          </span>
-        </div>
+          <p className="text-xs text-[#49454F] leading-relaxed">
+            Sound the loud flood evacuation siren on all connected phones and speakers across the village.
+          </p>
 
-        <p className="text-xs text-[#49454F] leading-relaxed">
-          Tap below to sound the loud flood evacuation siren on all connected phones and speakers.
-        </p>
-
-        <div className="flex gap-2 pt-1">
-          <button
-            type="button"
-            onClick={toggleEmergencySiren}
-            className={`flex-1 font-bold py-3 px-4 rounded-full text-xs flex items-center justify-center gap-2 shadow-xs transition active:scale-98 cursor-pointer ${
-              isSirenActive
-                ? 'bg-amber-600 hover:bg-amber-700 text-white animate-pulse'
-                : 'bg-red-600 hover:bg-red-700 text-white'
-            }`}
-          >
-            {isSirenActive ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-            <span>{isSirenActive ? 'Stop Emergency Siren' : 'Sound Emergency Siren'}</span>
-          </button>
-
-          {!isAdmin && onOpenVoiceSOS && (
+          <div className="pt-1">
             <button
               type="button"
-              onClick={onOpenVoiceSOS}
-              className="py-3 px-4 rounded-full bg-[#1F71E8] hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition active:scale-98 cursor-pointer shrink-0"
-              title="Record Voice SOS"
+              onClick={toggleEmergencySiren}
+              className={`w-full font-bold py-3 px-4 rounded-full text-xs flex items-center justify-center gap-2 shadow-xs transition active:scale-98 cursor-pointer ${
+                isSirenActive
+                  ? 'bg-amber-600 hover:bg-amber-700 text-white animate-pulse'
+                  : 'bg-red-600 hover:bg-red-700 text-white'
+              }`}
             >
-              <Mic className="w-4 h-4" />
-              <span>Voice SOS</span>
+              {isSirenActive ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              <span>{isSirenActive ? 'Stop Emergency Siren' : 'Sound Emergency Siren'}</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* Villager / Normal User View: Fast Access Emergency SOS Card (No Siren Sound Button) */
+        <div className="bg-red-50 rounded-[24px] p-4.5 border border-red-200 space-y-3 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-red-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                <Mic className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-red-950 leading-tight">
+                  Emergency Help & Rescue
+                </h3>
+                <p className="text-xs text-red-800 font-medium mt-0.5">
+                  Direct line to community safety team
+                </p>
+              </div>
+            </div>
+
+            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-red-200 text-red-900 shrink-0">
+              Emergency
+            </span>
+          </div>
+
+          <p className="text-xs text-red-900 leading-relaxed">
+            If you are trapped or need urgent help from rising water, tap the button below to send your voice SOS and GPS location.
+          </p>
+
+          {onOpenVoiceSOS && (
+            <button
+              type="button"
+              id="btn-alerts-voice-sos"
+              onClick={onOpenVoiceSOS}
+              className="w-full py-3.5 px-4 rounded-full bg-red-600 hover:bg-red-700 active:scale-98 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-sm transition cursor-pointer"
+            >
+              <Mic className="w-5 h-5" />
+              <span>Send Emergency Voice SOS</span>
             </button>
           )}
         </div>
-      </div>
+      )}
 
       {/* ================= 2. Flood Detection Alerts Feed ================= */}
       <div className="bg-[#F3F3FA] rounded-[24px] p-4.5 border border-slate-100 space-y-3 shadow-xs">

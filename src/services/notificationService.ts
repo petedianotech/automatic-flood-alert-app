@@ -107,7 +107,7 @@ export class NotificationService {
       onMessage(this.messaging, (payload) => {
         console.log('[FCM] Foreground push message received:', payload);
         const title = payload.notification?.title || payload.data?.title || '🚨 FLOOD ALERT';
-        const body = payload.notification?.body || payload.data?.body || 'Continuous water vibration detected!';
+        const body = payload.notification?.body || payload.data?.body || 'Continuous vibration sensor warning detected!';
         
         this.sendFloodPushNotification(title, body, {
           village: payload.data?.village,

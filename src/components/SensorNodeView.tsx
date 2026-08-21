@@ -143,7 +143,7 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
             Select Sensor Detection Mode
           </span>
           <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full">
-            {activeSensorType === 'bell' ? 'Bell Sound Mode' : 'Water Vibration Mode'}
+            {activeSensorType === 'bell' ? 'Bell Sound Mode' : 'Vibration Sensor Mode'}
           </span>
         </div>
 
@@ -172,7 +172,7 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
             }`}
           >
             <Activity className="w-4 h-4" />
-            <span>Water Vibration</span>
+            <span>Vibration Sensor</span>
           </button>
         </div>
 
@@ -198,18 +198,6 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
             </>
           )}
         </button>
-
-        {/* Sensor Simulation Action Button */}
-        {onSimulateTest && (
-          <button
-            type="button"
-            onClick={() => onSimulateTest('yellow')}
-            className="w-full py-2.5 px-4 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-[#1C1B1F] text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-98 shadow-2xs"
-          >
-            <Sparkles className="w-4 h-4 text-[#1F71E8]" />
-            <span>Simulate Sensor Alert Pulse (Test Warning)</span>
-          </button>
-        )}
       </div>
 
       {/* ================= 3. Live Sensor Readouts Meter ================= */}
@@ -220,7 +208,7 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
             <h4 className="font-bold text-sm text-[#1C1B1F]">
               {activeSensorType === 'bell'
                 ? 'Bell Sound Sensor Live Readout'
-                : 'Water Vibration Live Readout'}
+                : 'Vibration Sensor Live Readout'}
             </h4>
           </div>
           <span className="text-[11px] font-bold text-[#49454F] bg-white px-2.5 py-0.5 rounded-full border border-slate-200">

@@ -230,7 +230,7 @@ export const LiveMotionMeter: React.FC<LiveMotionMeterProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-[20px] bg-white dark:bg-[#28292A] border border-[#E7E0EC]/80 dark:border-[#303134] gap-3 shadow-xs">
         <div>
           <span className="text-xs font-semibold uppercase tracking-wider text-[#49454F] dark:text-[#CAC4D0] block">
-            Water Movement Vibration
+            Vibration Sensor
           </span>
           <div className="flex items-baseline gap-1.5 mt-0.5">
             <span
@@ -351,31 +351,6 @@ export const LiveMotionMeter: React.FC<LiveMotionMeterProps> = ({
           </span>
         </div>
       </div>
-
-      {/* 6. Quick Simulation Test Buttons */}
-      {onSimulateTest && (
-        <div className="pt-3 border-t border-[#E7E0EC] dark:border-[#303134] flex items-center justify-between gap-2 flex-wrap">
-          <span className="text-xs font-semibold text-[#1C1B1F] dark:text-white">
-            Test Alarm System:
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => onSimulateTest('yellow')}
-              className="px-4 py-1.5 rounded-full text-xs font-medium bg-[#FEF7E0] hover:bg-[#FEEFC3] text-[#934D00] border border-[#FEEFC3] dark:bg-[#B06000]/20 dark:text-[#FDD663] dark:border-[#B06000]/40 transition-colors active:scale-95 shadow-xs cursor-pointer"
-            >
-              Test Warning
-            </button>
-            <button
-              type="button"
-              onClick={() => onSimulateTest('red')}
-              className="px-4 py-1.5 rounded-full text-xs font-medium bg-[#FCE8E6] hover:bg-[#FAD2CF] text-[#BA1A1A] border border-[#FAD2CF] dark:bg-[#BA1A1A]/20 dark:text-[#F28B82] dark:border-[#BA1A1A]/40 transition-colors active:scale-95 shadow-xs cursor-pointer"
-            >
-              Test Alarm
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

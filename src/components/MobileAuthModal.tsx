@@ -26,16 +26,12 @@ interface MobileAuthModalProps {
   onSignedIn?: (isAdmin: boolean) => void;
 }
 
-const EXAMPLE_NAMES = ['Peter Banda', 'Mr Banda', 'Grace Phiri', 'Chikondi Phiri', 'Hastings M. Skinner'];
+const EXAMPLE_NAMES = ['Peter Damiano', 'Hastings M Skinner'];
 
 const POPULAR_VILLAGES = [
   'Dzenje Village',
+  'Machokola',
   'Mathambi',
-  'Chinyama',
-  'Nkhulambe',
-  'Likabula',
-  'Chitakale',
-  'Chikwawa South',
 ];
 
 export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
@@ -207,9 +203,11 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
         {/* Top Header */}
         <div className="flex items-center justify-between px-5 pt-3 pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-xs shrink-0">
-              <AlertTriangle className="w-5 h-5" />
-            </div>
+            <img
+              src="/icon.svg"
+              alt="App Icon"
+              className="w-9 h-9 rounded-xl object-cover shadow-2xs shrink-0"
+            />
             <div>
               <h3 className="font-bold text-sm leading-tight text-[#1C1B1F]">
                 {currentUser ? 'Your Village Profile' : 'Flood Alert App'}
@@ -336,13 +334,10 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
              ========================================================================= */
           <div className="p-5 space-y-4">
             {/* Top Explanation Banner */}
-            <div className="bg-[#F3F3FA] rounded-[24px] p-3.5 border border-slate-100 space-y-2">
-              <div className="flex items-center gap-2.5">
-                <img src="/icon.svg" alt="App Icon" className="w-8 h-8 rounded-xl border border-blue-100 shrink-0 object-cover" />
-                <p className="text-xs font-bold text-[#1C1B1F]">
-                  Dzenje Flood Warning Network
-                </p>
-              </div>
+            <div className="bg-[#F3F3FA] rounded-[24px] p-3.5 border border-slate-100 space-y-1.5">
+              <p className="text-xs font-bold text-[#1C1B1F]">
+                Dzenje Flood Warning Network
+              </p>
               <p className="text-xs text-[#49454F] leading-relaxed">
                 Sign in to send voice SOS alerts and check in. Admins with STEM Club credentials get full access to sensor controls and dashboard.
               </p>

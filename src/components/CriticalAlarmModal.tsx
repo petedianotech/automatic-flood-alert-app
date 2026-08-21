@@ -138,13 +138,11 @@ export const CriticalAlarmModal: React.FC<CriticalAlarmModalProps> = ({
         {/* 1. Header Bar: App Name & Club Branding on Top/Bottom + Severity Badge & Siren Mute */}
         <div className="flex items-start justify-between gap-3 relative z-10 mb-4 pb-3 border-b border-white/15">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div
-              className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-xs ${
-                isYellow ? 'bg-[#FFDF9E] text-[#261600]' : 'bg-white text-[#8E1014]'
-              }`}
-            >
-              {isYellow ? <AlertTriangle className="w-5 h-5" /> : <AlertOctagon className="w-5 h-5 animate-pulse" />}
-            </div>
+            <img
+              src="/icon.svg"
+              alt="App Icon"
+              className="w-10 h-10 rounded-2xl object-cover shrink-0 shadow-xs"
+            />
             <div className="min-w-0">
               <h2 className="font-bold text-xs sm:text-sm text-white leading-tight truncate">
                 Automatic Flood Alert App

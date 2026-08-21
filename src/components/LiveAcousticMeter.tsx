@@ -286,31 +286,6 @@ export const LiveAcousticMeter: React.FC<LiveAcousticMeterProps> = ({
           <span className="font-bold text-[#1C1B1F] dark:text-white">90 dB (Loud)</span>
         </div>
       </div>
-
-      {/* 5. Quick Simulation Test Buttons */}
-      {onSimulateSoundTest && (
-        <div className="pt-3 border-t border-[#E7E0EC] dark:border-[#303134] flex items-center justify-between gap-2 flex-wrap">
-          <span className="text-xs font-semibold text-[#1C1B1F] dark:text-white">
-            Test Bell Sound System:
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => onSimulateSoundTest('yellow')}
-              className="px-4 py-1.5 rounded-full text-xs font-medium bg-[#FEF7E0] hover:bg-[#FEEFC3] text-[#934D00] border border-[#FEEFC3] dark:bg-[#B06000]/20 dark:text-[#FDD663] dark:border-[#B06000]/40 transition-colors active:scale-95 shadow-xs cursor-pointer"
-            >
-              Test Warning
-            </button>
-            <button
-              type="button"
-              onClick={() => onSimulateSoundTest('red')}
-              className="px-4 py-1.5 rounded-full text-xs font-medium bg-[#FCE8E6] hover:bg-[#FAD2CF] text-[#BA1A1A] border border-[#FAD2CF] dark:bg-[#BA1A1A]/20 dark:text-[#F28B82] dark:border-[#BA1A1A]/40 transition-colors active:scale-95 shadow-xs cursor-pointer"
-            >
-              Test Alarm
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -276,9 +276,11 @@ export const DirectVoiceSOSModal: React.FC<DirectVoiceSOSModalProps> = ({
         {/* Top Header */}
         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-red-600 flex items-center justify-center text-white shadow-xs shrink-0">
-              <AlertTriangle className="w-5 h-5" />
-            </div>
+            <img
+              src="/icon.svg"
+              alt="App Icon"
+              className="w-9 h-9 rounded-xl object-cover shadow-2xs shrink-0"
+            />
             <div>
               <h2 className="text-sm font-bold leading-tight text-[#1C1B1F]">
                 Automatic Flood Alert App

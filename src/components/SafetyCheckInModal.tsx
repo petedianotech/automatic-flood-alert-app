@@ -133,9 +133,11 @@ export const SafetyCheckInModal: React.FC<SafetyCheckInModalProps> = ({
         {/* Top Bar Header */}
         <div className="flex items-center justify-between px-5 pt-3 pb-3 border-b border-slate-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#1F71E8] text-white flex items-center justify-center shadow-xs shrink-0 font-bold">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
+            <img
+              src="/icon.svg"
+              alt="App Icon"
+              className="w-9 h-9 rounded-xl object-cover shadow-2xs shrink-0"
+            />
             <div>
               <h2 className="text-sm font-bold leading-tight text-[#1C1B1F]">
                 Automatic Flood Alert App
@@ -272,7 +274,7 @@ export const SafetyCheckInModal: React.FC<SafetyCheckInModalProps> = ({
                   id="safety-user-name"
                   value={userName}
                   onChange={(e) => setUserName(e.target.value)}
-                  placeholder="e.g. Peter Banda"
+                  placeholder="e.g. Peter Damiano"
                   required
                   className="w-full px-3.5 py-2.5 text-sm font-medium rounded-2xl border border-slate-200 bg-white text-[#1C1B1F] placeholder-slate-400 outline-none focus:border-[#1F71E8] focus:ring-2 focus:ring-blue-100 shadow-2xs"
                 />
@@ -291,6 +293,22 @@ export const SafetyCheckInModal: React.FC<SafetyCheckInModalProps> = ({
                   required
                   className="w-full px-3.5 py-2.5 text-sm font-medium rounded-2xl border border-slate-200 bg-white text-[#1C1B1F] placeholder-slate-400 outline-none focus:border-[#1F71E8] focus:ring-2 focus:ring-blue-100 shadow-2xs"
                 />
+                <div className="flex items-center gap-1.5 pt-1 overflow-x-auto scrollbar-none">
+                  {['Dzenje Village', 'Machokola', 'Mathambi'].map((vName) => (
+                    <button
+                      key={vName}
+                      type="button"
+                      onClick={() => setVillage(vName)}
+                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border transition cursor-pointer shrink-0 ${
+                        village.toLowerCase() === vName.toLowerCase()
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-slate-100 text-slate-700 border-slate-200 hover:border-blue-300'
+                      }`}
+                    >
+                      {vName}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 

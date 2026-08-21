@@ -158,12 +158,8 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
   const villagesList = [
     'All Villages',
     'Dzenje Village',
+    'Machokola',
     'Mathambi',
-    'Chinyama',
-    'Nkhulambe',
-    'Likabula',
-    'Chitakale',
-    'Chikwawa South',
   ];
 
   return (
@@ -180,13 +176,13 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                 Village Safety Status
               </h3>
               <p className="text-xs text-[#49454F] font-medium mt-0.5">
-                Community flood safety roll-call &amp; rescue list
+                People using this app roll-call &amp; rescue list
               </p>
             </div>
           </div>
 
           <span className="text-xs font-bold text-[#1F71E8] bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-2xs shrink-0">
-            {totalPeopleCount} People Reported
+            {totalPeopleCount} App Users Checked In
           </span>
         </div>
 
@@ -214,30 +210,12 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
           </div>
         </div>
 
-        {/* Fast Action Buttons */}
-        <div className="flex items-center gap-2 pt-1">
-          {onOpenCheckInModal && (
-            <button
-              type="button"
-              onClick={onOpenCheckInModal}
-              className="flex-1 py-2.5 px-3 rounded-full bg-[#1F71E8] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs hover:bg-blue-700 active:scale-98 transition cursor-pointer"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Mark I Am Safe</span>
-            </button>
-          )}
-
-          {onOpenDirectVoiceSOS && (
-            <button
-              type="button"
-              onClick={onOpenDirectVoiceSOS}
-              className="py-2.5 px-4 rounded-full bg-red-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs hover:bg-red-700 active:scale-98 transition cursor-pointer shrink-0"
-              title="Record Voice SOS"
-            >
-              <Mic className="w-4 h-4" />
-              <span>Voice SOS</span>
-            </button>
-          )}
+        {/* Admin Overview Footer Indicator */}
+        <div className="flex items-center justify-between text-xs text-[#49454F] pt-1">
+          <span className="font-medium">Admin Monitoring View</span>
+          <span className="font-semibold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full">
+            Live Firestore Data
+          </span>
         </div>
       </div>
 
