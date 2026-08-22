@@ -54,9 +54,11 @@ jobs:
           validate-wrappers: false
 
       - name: Compile and Package APK
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
           cd android
-          gradle assembleDebug --no-daemon --stacktrace
+          gradle assembleDebug --no-daemon --stacktrace --warning-mode all
 
       - name: Prepare APK Artifacts
         run: |
