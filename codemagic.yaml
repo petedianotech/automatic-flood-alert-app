@@ -1,0 +1,46 @@
+workflows:
+  android-apk-build:
+    name: Build Android APK - Dzenje Flood Alert
+    max_build_duration: 30
+    instance_type: linux_x2
+    environment:
+      node: 20
+      java: 17
+    triggering:
+      events:
+        - push
+        - tag
+      branch_patterns:
+        - pattern: '*'
+          include: true
+          source: true
+    scripts:
+      - name: Install Node Dependencies
+        script: |
+          npm ci || npm install
+      - name: Build Web Application Bundle
+        script: |
+          npm run build
+      - name: Sync Capacitor Native Assets
+        script: |
+          npx cap sync android
+      - name: Build Debug Android APK (Instant Installable)
+        script: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+      - name: Build Release APK
+        script: |
+          cd android
+          ./gradlew assembleRelease --stacktrace || true
+    artifacts:
+      - android/app/build/outputs/apk/debug/*.apk
+      - android/app/build/outputs/apk/release/*.apk
+      - android/app/build/outputs/bundle/**/*.aab
+    publishing:
+      email:
+        recipients:
+          - petedianotech@gmail.com
+        notify:
+          success: true
+          failure: true
