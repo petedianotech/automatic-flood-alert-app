@@ -19,8 +19,10 @@ export const InstallAppPrompt: React.FC<InstallAppPromptProps> = ({ isDarkMode }
   const [installSuccess, setInstallSuccess] = useState(false);
 
   useEffect(() => {
-    // 1. Check if already installed as standalone PWA
+    // 1. Check if running inside native Android APK or standalone PWA
+    const isCapacitor = typeof (window as any).Capacitor !== 'undefined' && (window as any).Capacitor.isNativePlatform?.();
     const isStandalone =
+      isCapacitor ||
       window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
       document.referrer.includes('android-app://');

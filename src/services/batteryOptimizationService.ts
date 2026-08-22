@@ -9,9 +9,12 @@ import { registerPlugin } from '@capacitor/core';
 interface NativePowerHelper {
   isBatteryOptimized(): Promise<{ isIgnoringBatteryOptimizations: boolean }>;
   requestDisableBatteryOptimization(): Promise<{ requested: boolean }>;
+  areNotificationsEnabled(): Promise<{ enabled: boolean }>;
+  openNotificationSettings(): Promise<{ opened: boolean }>;
+  showNativeFloodAlert(options: { title: string; body: string }): Promise<{ notified: boolean }>;
 }
 
-const NativePowerHelperPlugin = registerPlugin<NativePowerHelper>('NativePowerHelper');
+export const NativePowerHelperPlugin = registerPlugin<NativePowerHelper>('NativePowerHelper');
 
 export interface PhoneBrandGuide {
   brand: string;

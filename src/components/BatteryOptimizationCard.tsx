@@ -66,39 +66,9 @@ export const BatteryOptimizationCard: React.FC<BatteryOptimizationCardProps> = (
   };
 
 
-  // State 1: Confirmed Unrestricted / Optimal State
+  // State 1: Confirmed Unrestricted / Optimal State -> Automatically hidden to keep UI clean and setup complete
   if (isConfirmed) {
-    return (
-      <div
-        id="card-battery-opt-confirmed"
-        className={`rounded-2xl p-4 border border-emerald-500/40 bg-emerald-50 text-emerald-950 shadow-xs flex items-center justify-between gap-3 ${className}`}
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-            <Zap className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm font-bold text-emerald-950 block truncate">
-                Instant Background Sirens Active
-              </span>
-              <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />
-            </div>
-            <p className="text-xs text-emerald-800 font-medium mt-0.5">
-              Battery optimization disabled. Phone will ring instantly in emergencies.
-            </p>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleUndo}
-          className="text-xs font-semibold text-emerald-700 hover:text-emerald-900 underline px-2 py-1 shrink-0 cursor-pointer"
-        >
-          Change
-        </button>
-      </div>
-    );
+    return null;
   }
 
   // State 2: Unrestricted Setup Prompt (Material 3 Card)

@@ -14,6 +14,7 @@ import firebaseConfigJson from '../../firebase-applet-config.json';
 import { getMessaging, getToken, onMessage, isSupported as isMessagingSupported, Messaging } from 'firebase/messaging';
 import { getApp } from 'firebase/app';
 import { firebaseFloodService } from './firebaseService';
+import { NativePowerHelperPlugin } from './batteryOptimizationService';
 
 export interface OfflineAlertPayload {
   title?: string;
@@ -226,6 +227,30 @@ export class NotificationService {
     }
   }
 
+  public static async openNativeNotificationSettings(): Promise<boolean> {
+    try {
+      if (NativePowerHelperPlugin && typeof NativePowerHelperPlugin.openNotificationSettings === 'function') {
+        const res = await NativePowerHelperPlugin.openNotificationSettings();
+        return res.opened;
+      }
+    } catch {
+      // ignore
+    }
+    return false;
+  }
+
+  public static async checkNativeNotificationStatus(): Promise<boolean> {
+    try {
+      if (NativePowerHelperPlugin && typeof NativePowerHelperPlugin.areNotificationsEnabled === 'function') {
+        const res = await NativePowerHelperPlugin.areNotificationsEnabled();
+        return res.enabled;
+      }
+    } catch {
+      // ignore
+    }
+    return this.getPermission() === 'granted';
+  }
+
   /**
    * Sends flood notification even if app is in background, minimized, or offline!
    * Uses ServiceWorker registration when available so notifications show up reliably.
@@ -235,6 +260,15 @@ export class NotificationService {
     body: string,
     payload?: OfflineAlertPayload
   ): Promise<boolean> {
+    // 0. Trigger native Android system notification & siren channel if running in APK
+    try {
+      if (NativePowerHelperPlugin && typeof NativePowerHelperPlugin.showNativeFloodAlert === 'function') {
+        await NativePowerHelperPlugin.showNativeFloodAlert({ title, body });
+      }
+    } catch {
+      // continue with web / PWA fallbacks
+    }
+
     // Always trigger hardware vibration immediately if supported (even offline)
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try {

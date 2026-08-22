@@ -42,6 +42,7 @@ jobs:
       - name: Build Web Application
         run: |
           npm run build
+          node scripts/generate-android-assets.js
 
       - name: Sync Native Android Assets
         run: |

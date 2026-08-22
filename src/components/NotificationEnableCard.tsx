@@ -16,8 +16,15 @@ export const NotificationEnableCard: React.FC<NotificationEnableCardProps> = ({
     NotificationService.getPermission()
   );
   const [isEnabling, setIsEnabling] = useState(false);
+  const [nativeEnabled, setNativeEnabled] = useState<boolean>(false);
 
   useEffect(() => {
+    NotificationService.checkNativeNotificationStatus().then((enabled) => {
+      if (enabled) {
+        setNativeEnabled(true);
+      }
+    });
+
     const unsubPerm = NotificationService.subscribePermission((perm) => {
       setPermission(perm);
     });
@@ -34,6 +41,9 @@ export const NotificationEnableCard: React.FC<NotificationEnableCardProps> = ({
     const res = await NotificationService.requestPermission(true);
     setPermission(res);
 
+    const isNativeOn = await NotificationService.checkNativeNotificationStatus();
+    setNativeEnabled(isNativeOn);
+
     // Play audible confirmation chime
     sirenService.playWarningAlertSound();
 
@@ -42,37 +52,16 @@ export const NotificationEnableCard: React.FC<NotificationEnableCardProps> = ({
     }, 1200);
   };
 
-  const isGranted = permission === 'granted';
-  const isDenied = permission === 'denied';
+  const handleOpenSettings = async () => {
+    await NotificationService.openNativeNotificationSettings();
+  };
 
+  const isGranted = permission === 'granted' || nativeEnabled;
+  const isDenied = permission === 'denied' && !nativeEnabled;
+
+  // Once configured, automatically hide the card completely to keep UI clean and focused
   if (isGranted) {
-    return (
-      <div
-        id="card-alerts-active-status"
-        className={`rounded-2xl p-4 border-2 transition flex items-center justify-between gap-3 ${
-          isDarkMode
-            ? 'bg-[#132A1C] border-emerald-500 text-emerald-100'
-            : 'bg-emerald-50 border-emerald-500 text-emerald-950 shadow-sm'
-        } ${className}`}
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-            <ShieldCheck className="w-6 h-6" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-black text-emerald-950 dark:text-emerald-200 block truncate tracking-tight">
-                Flood Siren &amp; Push Alerts Active
-              </span>
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 shrink-0 animate-pulse" />
-            </div>
-            <p className="text-xs text-emerald-900 dark:text-emerald-300 font-semibold mt-0.5">
-              Your phone will ring with loud sirens if river water rises.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   // Not Granted / Prompt State: High contrast, prominent M3 Card
@@ -101,9 +90,18 @@ export const NotificationEnableCard: React.FC<NotificationEnableCardProps> = ({
       </div>
 
       {isDenied && (
-        <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-100 border-2 border-amber-500 text-black text-xs font-bold">
-          <AlertCircle className="w-5 h-5 shrink-0 text-amber-900" />
-          <span className="text-black">Notifications are blocked in your browser. Tap the lock icon in your address bar to allow alerts.</span>
+        <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-amber-100 border-2 border-amber-500 text-black text-xs font-bold">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 shrink-0 text-amber-900" />
+            <span className="text-black">Alerts are disabled in system settings.</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleOpenSettings}
+            className="px-3 py-1.5 rounded-lg bg-amber-900 text-white text-xs font-black shrink-0 hover:bg-black transition cursor-pointer"
+          >
+            Fix in Settings
+          </button>
         </div>
       )}
 
