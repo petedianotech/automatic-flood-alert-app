@@ -39,18 +39,16 @@ jobs:
         run: |
           npx cap sync android
 
-      - name: Setup Gradle (Official Action)
+      - name: Build Android Debug APK with Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.14.3'
+          validate-wrappers: false
 
-      - name: Build Android Debug APK
+      - name: Compile and Package APK
         run: |
           cd android
-          # Regenerate a clean, uncorrupted wrapper JAR
-          gradle wrapper --gradle-version 8.14.3 --distribution-type all
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          gradle assembleDebug --no-daemon --stacktrace
 
       - name: Prepare APK Artifacts
         run: |
