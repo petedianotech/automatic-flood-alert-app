@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { UserProfile, FloodAlert, ResidentSafetyReport, isAppAdmin } from '../types';
 import { NotificationEnableCard } from './NotificationEnableCard';
+import { BatteryOptimizationCard } from './BatteryOptimizationCard';
 
 interface VillageCommunityViewProps {
   currentUser: UserProfile | null;
@@ -226,6 +227,9 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
     <div className="space-y-4 pb-24 select-none">
       {/* 0. Notification & Loud Siren Enablement Card */}
       <NotificationEnableCard isDarkMode={false} />
+
+      {/* 0.1 Battery Optimization / Unrestricted Background Siren Card */}
+      <BatteryOptimizationCard />
 
       {/* ================= 1. TOP COMMUNITY BANNER ================= */}
       <div className="bg-[#F3F3FA] rounded-[24px] p-4.5 border border-slate-100 space-y-3.5 shadow-xs">

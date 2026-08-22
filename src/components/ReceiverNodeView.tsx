@@ -18,6 +18,7 @@ import {
 import { FloodAlert, UserProfile, isAppAdmin } from '../types';
 import { sirenService } from '../services/audioSiren';
 import { NotificationEnableCard } from './NotificationEnableCard';
+import { BatteryOptimizationCard } from './BatteryOptimizationCard';
 
 interface ReceiverNodeViewProps {
   alerts: FloodAlert[];
@@ -73,6 +74,9 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
     <div className="space-y-4 pb-20 select-none">
       {/* 0. Notification Enablement Card */}
       <NotificationEnableCard isDarkMode={false} />
+
+      {/* 0.1 Battery Optimization Card for Instant Siren Reception */}
+      <BatteryOptimizationCard />
 
       {/* ================= 1. Emergency Banner (Admin: Siren Control | User: Fast-Access Voice SOS) ================= */}
       {isAdmin ? (
