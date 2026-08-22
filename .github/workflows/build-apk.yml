@@ -16,19 +16,19 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Java JDK 17
+      - name: Set up Java JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Accept Android SDK Licenses & Install Platform 34
+      - name: Accept Android SDK Licenses & Install Platforms
         run: |
           yes | sdkmanager --licenses || true
-          sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+          sdkmanager --channel=0 --channel=3 "platforms;android-36" "build-tools;36.0.0" "platforms;android-35" "build-tools;35.0.0" "platforms;android-34" "build-tools;34.0.0" "platform-tools" || true
 
       - name: Set up Node.js 22 (LTS)
         uses: actions/setup-node@v4
@@ -50,20 +50,19 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.11.1'
+          gradle-version: '8.14.3'
           validate-wrappers: false
 
       - name: Compile and Package APK
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
           cd android
-          gradle assembleDebug --no-daemon --stacktrace --warning-mode all
+          chmod +x ./gradlew || true
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Prepare APK Artifacts
         run: |
           mkdir -p build-output
-          cp android/app/build/outputs/apk/debug/app-debug.apk build-output/Dzenje-Flood-Alert.apk
+          find android/app/build/outputs/apk -name "*.apk" -exec cp {} build-output/Dzenje-Flood-Alert.apk \;
 
       - name: Upload Installable APK
         uses: actions/upload-artifact@v4
