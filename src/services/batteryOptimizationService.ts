@@ -4,6 +4,15 @@
  * and village-friendly guides for Samsung, Xiaomi, Tecno, Infinix, Huawei, and Itel phones.
  */
 
+import { registerPlugin } from '@capacitor/core';
+
+interface NativePowerHelper {
+  isBatteryOptimized(): Promise<{ isIgnoringBatteryOptimizations: boolean }>;
+  requestDisableBatteryOptimization(): Promise<{ requested: boolean }>;
+}
+
+const NativePowerHelperPlugin = registerPlugin<NativePowerHelper>('NativePowerHelper');
+
 export interface PhoneBrandGuide {
   brand: string;
   steps: string[];
@@ -57,8 +66,25 @@ class BatteryOptimizationService {
   private statusKey = 'flood_alert_battery_opt_enabled_v1';
 
   /**
-   * Check if battery optimization exemption was marked enabled by user
+   * Check if battery optimization exemption is active natively or confirmed by user
    */
+  async checkNativeStatus(): Promise<boolean> {
+    try {
+      if (NativePowerHelperPlugin && typeof NativePowerHelperPlugin.isBatteryOptimized === 'function') {
+        const result = await NativePowerHelperPlugin.isBatteryOptimized();
+        if (result && typeof result.isIgnoringBatteryOptimizations === 'boolean') {
+          if (result.isIgnoringBatteryOptimizations) {
+            this.setExemptionConfirmed(true);
+            return true;
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return this.isExemptionConfirmed();
+  }
+
   isExemptionConfirmed(): boolean {
     try {
       return localStorage.getItem(this.statusKey) === 'true';
@@ -103,23 +129,33 @@ class BatteryOptimizationService {
   }
 
   /**
-   * Open Android App Battery Settings via standard intent or Web Intent protocol
+   * Open Android App Battery Settings or trigger native system prompt
    */
-  openAndroidBatterySettings(): boolean {
+  async openAndroidBatterySettings(): Promise<boolean> {
+    // 1. Try Native Capacitor Bridge first
     try {
-      // Try launching native Android intent via Capacitor or browser intent URL
-      const isAndroid = /Android/i.test(navigator.userAgent);
+      if (NativePowerHelperPlugin && typeof NativePowerHelperPlugin.requestDisableBatteryOptimization === 'function') {
+        await NativePowerHelperPlugin.requestDisableBatteryOptimization();
+        return true;
+      }
+    } catch {
+      // fallback
+    }
+
+    // 2. Try browser intent protocol
+    try {
+      const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
       if (isAndroid) {
-        // Try direct package intent
         const intentUrl = 'intent:#Intent;action=android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS;package=com.dzenjecdsstem.floodalert;end';
         window.location.href = intentUrl;
         return true;
       }
-      return false;
     } catch {
-      return false;
+      // ignore
     }
+    return false;
   }
 }
 
 export const batteryOptimizationService = new BatteryOptimizationService();
+

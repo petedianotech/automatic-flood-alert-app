@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   BatteryCharging,
   Zap,
@@ -33,12 +33,20 @@ export const BatteryOptimizationCard: React.FC<BatteryOptimizationCardProps> = (
   const [showBrandGuide, setShowBrandGuide] = useState<boolean>(false);
   const [selectedBrandIndex, setSelectedBrandIndex] = useState<number>(0);
 
+  useEffect(() => {
+    batteryOptimizationService.checkNativeStatus().then((nativeExempt) => {
+      if (nativeExempt) {
+        setIsConfirmed(true);
+      }
+    });
+  }, []);
+
   if (isDismissed && !isConfirmed) {
     return null;
   }
 
-  const handleOpenSettings = () => {
-    batteryOptimizationService.openAndroidBatterySettings();
+  const handleOpenSettings = async () => {
+    await batteryOptimizationService.openAndroidBatterySettings();
     setShowBrandGuide(true);
   };
 
@@ -56,6 +64,7 @@ export const BatteryOptimizationCard: React.FC<BatteryOptimizationCardProps> = (
     batteryOptimizationService.setPromptDismissed(true);
     setIsDismissed(true);
   };
+
 
   // State 1: Confirmed Unrestricted / Optimal State
   if (isConfirmed) {
