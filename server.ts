@@ -16,6 +16,35 @@ async function startServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
+  // CORS and Cache headers for PWA Manifest & Assets (for PWABuilder & crawlers)
+  app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.path === '/manifest.json') {
+      res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
+    }
+    if (req.path === '/sw.js' || req.path === '/firebase-messaging-sw.js') {
+      res.setHeader('Service-Worker-Allowed', '/');
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    }
+    next();
+  });
+
+  // Serve static assets from public/ directory explicitly
+  const publicDir = path.join(process.cwd(), 'public');
+  app.use(express.static(publicDir, {
+    maxAge: '1h',
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('manifest.json')) {
+        res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
+      }
+      if (filePath.endsWith('.png')) {
+        res.setHeader('Content-Type', 'image/png');
+      }
+    }
+  }));
+
   // Helper to format phone number to E.164
   function formatPhoneNumber(num: string): string {
     let cleaned = num.trim().replace(/[\s\-()]/g, '');
