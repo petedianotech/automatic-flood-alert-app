@@ -3,11 +3,14 @@
  * Full Offline PWA Support & Background Notification Engine
  */
 
-const CACHE_NAME = 'flood-alert-cache-v2';
+const CACHE_NAME = 'flood-alert-cache-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/maskable-icon-512.png',
   '/icon.svg',
 ];
 

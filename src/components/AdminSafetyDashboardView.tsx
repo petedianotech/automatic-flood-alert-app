@@ -24,6 +24,7 @@ import {
   X,
   Map as MapIcon,
   Compass,
+  MessageSquare,
 } from 'lucide-react';
 import { ResidentSafetyReport, FloodAlert, UserProfile } from '../types';
 import { firebaseFloodService } from '../services/firebaseService';
@@ -37,6 +38,7 @@ interface AdminSafetyDashboardViewProps {
   onSelectVillage?: (village: string) => void;
   onOpenCheckInModal?: () => void;
   onOpenDirectVoiceSOS?: () => void;
+  onOpenSmsModal?: () => void;
 }
 
 export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> = ({
@@ -46,6 +48,7 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
   onSelectVillage,
   onOpenCheckInModal,
   onOpenDirectVoiceSOS,
+  onOpenSmsModal,
 }) => {
   const [filterCategory, setFilterCategory] = useState<'all' | 'safe' | 'shelters' | 'help'>('all');
   const [villageFilter, setVillageFilter] = useState<string>('all');
@@ -226,7 +229,7 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
           </div>
         </div>
 
-        {/* Admin Overview Footer Indicator + View All on Map Button */}
+        {/* Admin Overview Footer Indicator + View All on Map Button & SMS Broadcast */}
         <div className="flex items-center justify-between text-xs text-[#49454F] pt-1 gap-2 flex-wrap">
           <div className="flex items-center gap-2">
             <span className="font-medium">Admin Monitoring View</span>
@@ -235,14 +238,28 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
             </span>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowOverviewMap(true)}
-            className="flex items-center gap-1.5 bg-[#1F71E8] hover:bg-blue-700 active:scale-95 text-white px-3 py-1 rounded-full text-xs font-bold transition cursor-pointer shadow-2xs"
-          >
-            <MapIcon className="w-3.5 h-3.5" />
-            <span>Village Safety Map ({reportsWithGps.length} GPS)</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {onOpenSmsModal && (
+              <button
+                type="button"
+                id="btn-admin-sms-broadcast"
+                onClick={onOpenSmsModal}
+                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3 py-1 rounded-full text-xs font-bold transition cursor-pointer shadow-2xs"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Africa's Talking SMS</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowOverviewMap(true)}
+              className="flex items-center gap-1.5 bg-[#1F71E8] hover:bg-blue-700 active:scale-95 text-white px-3 py-1 rounded-full text-xs font-bold transition cursor-pointer shadow-2xs"
+            >
+              <MapIcon className="w-3.5 h-3.5" />
+              <span>Village Map ({reportsWithGps.length} GPS)</span>
+            </button>
+          </div>
         </div>
       </div>
 

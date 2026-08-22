@@ -23,6 +23,7 @@ interface VillageCommunityViewProps {
   onOpenAuthModal?: () => void;
   onOpenDirectVoiceSOS?: () => void;
   onOpenCheckInModal?: () => void;
+  onOpenSmsModal?: () => void;
 }
 
 interface SafeZone {

@@ -1,20 +1,111 @@
 {
-  "name": "Automatic Flood Alert App,  Dzenje CDSS ADDA STEM CLUB",
+  "name": "Automatic Flood Alert App, Dzenje CDSS ADDA STEM CLUB",
   "short_name": "Flood Alert",
-  "description": "Automatic Flood Alert App by Dzenje CDSS ADDA STEM CLUB",
+  "description": "Automatic Flood Alert App by Dzenje CDSS ADDA STEM CLUB. Real-time river vibration detection, siren warnings, and village safety roll-call.",
   "start_url": "/",
   "id": "/",
+  "scope": "/",
+  "dir": "ltr",
+  "lang": "en-US",
   "display": "standalone",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "portrait-primary",
-  "background_color": "#141517",
+  "background_color": "#141218",
   "theme_color": "#1A73E8",
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
+  "categories": [
+    "utilities",
+    "safety",
+    "weather",
+    "education"
+  ],
   "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/maskable-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
     {
       "src": "/icon.svg",
       "sizes": "192x192 512x512",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ],
-  "categories": ["utilities", "safety", "weather"]
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "540x960",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Live Flood Radar, Vibration Monitor and Siren Alert"
+    },
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "960x540",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Village Community Safety Roll-Call and Admin Command Center"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Live Flood Radar",
+      "short_name": "Radar",
+      "description": "View live river vibration sensor and water level warning",
+      "url": "/?view=receiver",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Emergency Voice SOS",
+      "short_name": "Voice SOS",
+      "description": "Record and broadcast voice SOS message with GPS coordinates",
+      "url": "/?view=sos",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Village Safety Roll-Call",
+      "short_name": "Check-In",
+      "description": "Check in safe or mark location for evacuation support",
+      "url": "/?view=community",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
 }

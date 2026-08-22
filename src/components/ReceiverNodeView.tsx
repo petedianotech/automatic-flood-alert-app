@@ -13,6 +13,7 @@ import {
   ExternalLink,
   Mic,
   Clock,
+  MessageSquare,
 } from 'lucide-react';
 import { FloodAlert, UserProfile, isAppAdmin } from '../types';
 import { sirenService } from '../services/audioSiren';
@@ -33,6 +34,7 @@ interface ReceiverNodeViewProps {
   isAdmin?: boolean;
   onOpenVoiceSOS?: () => void;
   onTriggerSiren?: () => void;
+  onOpenSmsModal?: () => void;
 }
 
 export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
@@ -43,6 +45,8 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
   currentUser,
   isAdmin: isAdminProp,
   onOpenVoiceSOS,
+  onTriggerSiren,
+  onOpenSmsModal,
 }) => {
   const isAdmin = isAdminProp ?? isAppAdmin(currentUser);
   const [isSirenActive, setIsSirenActive] = useState(false);
@@ -97,11 +101,11 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
             Sound the loud flood evacuation siren on all connected phones and speakers across the village.
           </p>
 
-          <div className="pt-1">
+          <div className="pt-1 flex flex-col sm:flex-row gap-2">
             <button
               type="button"
               onClick={toggleEmergencySiren}
-              className={`w-full font-bold py-3 px-4 rounded-full text-xs flex items-center justify-center gap-2 shadow-xs transition active:scale-98 cursor-pointer ${
+              className={`flex-1 font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-xs transition active:scale-98 cursor-pointer ${
                 isSirenActive
                   ? 'bg-amber-600 hover:bg-amber-700 text-white animate-pulse'
                   : 'bg-red-600 hover:bg-red-700 text-white'
@@ -110,6 +114,19 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
               {isSirenActive ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               <span>{isSirenActive ? 'Stop Emergency Siren' : 'Sound Emergency Siren'}</span>
             </button>
+
+            {onOpenSmsModal && (
+              <button
+                type="button"
+                id="btn-open-sms-broadcast"
+                onClick={onOpenSmsModal}
+                className="py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-98 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer"
+                title="Send Africa's Talking SMS Broadcast"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>Africa's Talking SMS</span>
+              </button>
+            )}
           </div>
         </div>
       ) : (
@@ -139,17 +156,29 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
             If you are trapped or need urgent help from rising water, tap the button below to send your voice SOS and GPS location.
           </p>
 
-          {onOpenVoiceSOS && (
-            <button
-              type="button"
-              id="btn-alerts-voice-sos"
-              onClick={onOpenVoiceSOS}
-              className="w-full py-3.5 px-4 rounded-full bg-red-600 hover:bg-red-700 active:scale-98 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-sm transition cursor-pointer"
-            >
-              <Mic className="w-5 h-5" />
-              <span>Send Emergency Voice SOS</span>
-            </button>
-          )}
+          <div className="flex flex-col sm:flex-row gap-2">
+            {onOpenVoiceSOS && (
+              <button
+                type="button"
+                id="btn-alerts-voice-sos"
+                onClick={onOpenVoiceSOS}
+                className="flex-1 py-3.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 active:scale-98 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-sm transition cursor-pointer"
+              >
+                <Mic className="w-5 h-5" />
+                <span>Send Emergency Voice SOS</span>
+              </button>
+            )}
+            {onOpenSmsModal && (
+              <button
+                type="button"
+                onClick={onOpenSmsModal}
+                className="py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>SMS Alert</span>
+              </button>
+            )}
+          </div>
         </div>
       )}
 
