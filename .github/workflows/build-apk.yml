@@ -56,8 +56,7 @@ jobs:
       - name: Compile and Package APK
         run: |
           cd android
-          chmod +x ./gradlew || true
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          gradle assembleDebug --no-daemon --stacktrace
 
       - name: Prepare APK Artifacts
         run: |
