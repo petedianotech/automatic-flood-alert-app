@@ -3,16 +3,8 @@ import {
   Activity,
   Bell,
   Volume2,
-  ChevronRight,
-  Radio,
   Play,
   Square,
-  Sparkles,
-  Waves,
-  ShieldCheck,
-  MapPin,
-  CheckCircle2,
-  Users,
 } from 'lucide-react';
 import {
   MotionData,
@@ -57,9 +49,6 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
   onSelectDetectionMode,
   isArmed,
   onToggleArm,
-  onSimulateTest,
-  onGoToReceiver,
-  onGoToAdmin,
 }) => {
   const isSensorOn = isArmed;
   const activeSensorType = activeDetectionMode === 'motion' ? 'vibration' : 'bell';
@@ -85,7 +74,7 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-base text-[#1C1B1F] leading-tight">
-                River Sensor Station
+                Flood Sensor Station
               </h3>
               <p className="text-xs text-[#49454F] font-medium mt-0.5">
                 Dzenje CDSS ADDA STEM CLUB Warning Node
@@ -110,30 +99,8 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
         </div>
 
         <p className="text-xs text-[#49454F] font-medium leading-relaxed">
-          Checks river water movements and warning bell sound. Triggers the village flood siren automatically when water rises dangerously.
+          Checks for vibration and bell sound in the system when flood is detected. Sends an automatic warning alert to the village.
         </p>
-
-        {/* Quick Navigation Action Pills */}
-        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200/60">
-          <button
-            type="button"
-            onClick={onGoToAdmin}
-            className="bg-white hover:bg-slate-50 text-[#1F71E8] py-2.5 px-3 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition border border-slate-200 shadow-2xs cursor-pointer active:scale-98"
-          >
-            <Users className="w-3.5 h-3.5" />
-            <span>Safety Dashboard</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-
-          <button
-            type="button"
-            onClick={onGoToReceiver}
-            className="bg-white hover:bg-slate-50 text-[#1C1B1F] py-2.5 px-3 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition border border-slate-200 shadow-2xs cursor-pointer active:scale-98"
-          >
-            <Radio className="w-3.5 h-3.5 text-blue-600" />
-            <span>Village Siren Link</span>
-          </button>
-        </div>
       </div>
 
       {/* ================= 2. Active Sensor Mode & Controls ================= */}
@@ -212,14 +179,14 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
             </h4>
           </div>
           <span className="text-[11px] font-bold text-[#49454F] bg-white px-2.5 py-0.5 rounded-full border border-slate-200">
-            {isSensorOn ? 'Listening to river...' : 'Sensor Off'}
+            {isSensorOn ? 'Sensor Active' : 'Sensor Off'}
           </span>
         </div>
 
         <p className="text-xs text-[#49454F] font-medium leading-relaxed">
           {activeSensorType === 'bell'
-            ? 'Monitors high-pitch warning bell frequency. Automatically ignores normal talking voices and wind noise.'
-            : 'Measures river bank vibration and kinetic waves from rushing flood waters.'}
+            ? 'Listens for warning bell sound in the system and ignores talking voices.'
+            : 'Checks for vibration in the system when flood is detected.'}
         </p>
 
         {/* 2 Live Metric Cards */}
@@ -242,7 +209,7 @@ export const SensorNodeView: React.FC<SensorNodeViewProps> = ({
 
           <div className="bg-white rounded-2xl p-3.5 text-center border border-slate-100 shadow-2xs space-y-1">
             <span className="text-xs text-[#49454F] font-bold block">
-              {activeSensorType === 'bell' ? 'River Sound Level' : 'Total Force'}
+              {activeSensorType === 'bell' ? 'Sound Level' : 'Total Force'}
             </span>
             <span className="text-2xl font-bold text-[#1C1B1F] block">
               {isSensorOn

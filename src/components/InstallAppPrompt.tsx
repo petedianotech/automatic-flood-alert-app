@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, X, Share, PlusSquare, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Download, X, Share, PlusSquare, CheckCircle2, Smartphone } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -48,7 +48,6 @@ export const InstallAppPrompt: React.FC<InstallAppPromptProps> = ({ isDarkMode }
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      // Auto-show prompt after 2 seconds on new devices
       setTimeout(() => {
         setIsVisible(true);
       }, 1500);
@@ -64,7 +63,7 @@ export const InstallAppPrompt: React.FC<InstallAppPromptProps> = ({ isDarkMode }
       return () => clearTimeout(timer);
     }
 
-    // Fallback: If prompt event didn't fire in 3.5 seconds on desktop/mobile and not standalone, show standard prompt
+    // Fallback: Show prompt after 3s on regular mobile/desktop if not standalone
     const fallbackTimer = setTimeout(() => {
       if (!isStandalone && !localStorage.getItem('flood_pwa_prompt_dismissed_at')) {
         setIsVisible(true);
@@ -89,14 +88,13 @@ export const InstallAppPrompt: React.FC<InstallAppPromptProps> = ({ isDarkMode }
           }, 3000);
         }
         setDeferredPrompt(null);
-      } catch (err) {
-        // user or browser cancelled
+      } catch {
+        // cancelled
       }
     } else if (isIOS) {
       setShowIOSGuide(true);
     } else {
-      // Direct user on desktop/android
-      alert('To install this app on your device, tap your browser menu (⋮ or Share) and select "Add to Home screen" or "Install App".');
+      alert('To install: Open browser menu (3 dots or Share) and tap "Add to Home screen".');
     }
   };
 
@@ -111,49 +109,43 @@ export const InstallAppPrompt: React.FC<InstallAppPromptProps> = ({ isDarkMode }
 
   return (
     <>
-      {/* Floating Bottom App Installation Notification */}
+      {/* Floating Bottom App Installation Notification (Material 3 Surface Card) */}
       <div
         id="auto-install-app-notification"
-        className="fixed bottom-20 md:bottom-6 left-3 right-3 sm:left-auto sm:right-6 sm:max-w-md z-50 animate-in slide-in-from-bottom-5 duration-300"
+        className="fixed bottom-20 sm:bottom-6 left-3 right-3 sm:left-auto sm:right-6 sm:max-w-sm z-50 animate-in slide-in-from-bottom-4 duration-300"
       >
         <div
-          className={`p-4 rounded-[28px] border shadow-xl backdrop-blur-lg ${
+          className={`p-4 rounded-[24px] border shadow-lg ${
             isDarkMode
-              ? 'bg-[#1E1F20]/95 border-[#444746] text-[#E3E3E3]'
-              : 'bg-white/95 border-[#E0E2EC] text-[#1C1B1F]'
+              ? 'bg-[#1E1F20] border-[#444746] text-[#E3E3E3]'
+              : 'bg-white border-slate-200 text-[#1C1B1F]'
           }`}
         >
           {installSuccess ? (
             <div className="flex items-center gap-3 py-1">
-              <CheckCircle2 className="w-7 h-7 text-[#0D652D] dark:text-[#81C995] shrink-0" />
+              <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
               <div>
-                <h4 className="font-bold text-sm text-[#1C1B1F] dark:text-[#E3E3E3]">App Installed Successfully</h4>
-                <p className="text-xs text-[#49454F] dark:text-[#C4C7C5] font-medium">
-                  Flood Alert App is now available on your home screen.
+                <h4 className="font-bold text-sm text-[#1C1B1F] dark:text-[#E3E3E3]">App Installed</h4>
+                <p className="text-xs text-[#49454F] dark:text-[#C4C7C5] font-medium mt-0.5">
+                  Flood Alert App is now on your phone home screen.
                 </p>
               </div>
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <img
-                    src="/icon.svg"
-                    alt="App Icon"
-                    className="w-11 h-11 rounded-2xl shrink-0 shadow-xs border border-[#E0E2EC] dark:border-[#444746]"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <h4 className="font-bold text-sm tracking-tight text-[#1C1B1F] dark:text-[#E3E3E3]">
-                        Install Flood Alert App
-                      </h4>
-                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#E0EFFF] text-[#0B57D0] dark:bg-[#1F71E8]/30 dark:text-[#A8C7FA]">
-                        Dzenje STEM
-                      </span>
-                    </div>
-                    <p className="text-xs text-[#49454F] dark:text-[#C4C7C5] mt-0.5 leading-snug font-medium">
-                      Add to your home screen for instant loud flood sirens and easy offline access.
+              <div className="flex items-start justify-between gap-2.5">
+                <div className="flex items-start gap-3 min-w-0">
+                  <div className="w-11 h-11 rounded-2xl bg-[#1F71E8] text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <Smartphone className="w-6 h-6" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-sm text-[#1C1B1F] dark:text-[#E3E3E3] leading-snug">
+                      Install Flood Alert App
+                    </h4>
+                    <p className="text-xs text-[#49454F] dark:text-[#C4C7C5] mt-0.5 font-medium leading-relaxed">
+                      Add this app to your phone screen to open it easily and get fast flood warning sirens.
                     </p>
                   </div>
                 </div>
@@ -162,31 +154,32 @@ export const InstallAppPrompt: React.FC<InstallAppPromptProps> = ({ isDarkMode }
                   type="button"
                   id="btn-dismiss-install-prompt"
                   onClick={handleDismiss}
-                  className="p-1.5 rounded-full text-[#49454F] dark:text-[#C4C7C5] hover:bg-black/5 dark:hover:bg-white/5 transition-colors shrink-0 cursor-pointer"
-                  title="Dismiss for now"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-[#49454F] hover:text-[#1C1B1F] hover:bg-slate-100 dark:hover:bg-white/10 transition cursor-pointer shrink-0"
+                  title="Close"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="flex items-center gap-2 pt-1">
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 pt-0.5">
                 <button
                   type="button"
                   id="btn-install-app-now"
                   onClick={handleInstallClick}
-                  className="flex-1 py-2.5 px-4 rounded-full bg-[#1F71E8] hover:bg-[#1557B0] text-white text-xs font-bold shadow-xs flex items-center justify-center gap-2 transition-all active:scale-98 cursor-pointer"
+                  className="flex-1 py-2.5 px-4 rounded-full bg-[#1F71E8] hover:bg-[#1557B0] active:scale-98 text-white text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 transition cursor-pointer min-h-[42px]"
                 >
                   <Download className="w-4 h-4" />
-                  <span>Install to Home Screen</span>
+                  <span>Install to Phone</span>
                 </button>
 
                 <button
                   type="button"
                   id="btn-install-app-later"
                   onClick={handleDismiss}
-                  className="py-2.5 px-4 rounded-full bg-[#F3F3FA] dark:bg-[#28292A] hover:bg-[#E0EFFF] text-xs font-bold text-[#49454F] dark:text-[#C4C7C5] transition-colors border border-[#E0E2EC] dark:border-[#444746] cursor-pointer"
+                  className="py-2.5 px-4 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-98 text-xs font-bold text-[#49454F] dark:bg-[#28292A] dark:text-[#C4C7C5] dark:hover:bg-[#333537] transition cursor-pointer min-h-[42px]"
                 >
-                  Later
+                  Not Now
                 </button>
               </div>
             </div>
@@ -194,54 +187,51 @@ export const InstallAppPrompt: React.FC<InstallAppPromptProps> = ({ isDarkMode }
         </div>
       </div>
 
-      {/* iOS Step-by-Step Instructions Modal */}
+      {/* iPhone / iPad 2-Step Guide Modal */}
       {showIOSGuide && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div
             className={`w-full max-w-sm p-5 rounded-[28px] border shadow-2xl space-y-4 ${
               isDarkMode
                 ? 'bg-[#1E1F20] border-[#444746] text-[#E3E3E3]'
-                : 'bg-[#FEF7FF] border-[#E0E2EC] text-[#1C1B1F]'
+                : 'bg-white border-slate-200 text-[#1C1B1F]'
             }`}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <img
-                  src="/icon.svg"
-                  alt="App Icon"
-                  className="w-9 h-9 rounded-xl shrink-0"
-                  referrerPolicy="no-referrer"
-                />
+                <div className="w-9 h-9 rounded-2xl bg-[#1F71E8] text-white flex items-center justify-center shrink-0">
+                  <Smartphone className="w-5 h-5" />
+                </div>
                 <div>
-                  <h3 className="font-bold text-sm text-[#1C1B1F] dark:text-[#E3E3E3]">Install on iPhone or iPad</h3>
-                  <p className="text-[11px] text-[#49454F] dark:text-[#C4C7C5] font-medium">2 quick steps</p>
+                  <h3 className="font-bold text-sm text-[#1C1B1F] dark:text-[#E3E3E3]">Install on iPhone</h3>
+                  <p className="text-xs text-[#49454F] dark:text-[#C4C7C5] font-medium">Follow 2 simple steps</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowIOSGuide(false)}
-                className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-[#49454F] hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer"
               >
-                <X className="w-4 h-4 text-[#49454F] dark:text-[#C4C7C5]" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs bg-[#F3F3FA] dark:bg-[#28292A] p-4 rounded-[20px] border border-[#E0E2EC] dark:border-[#444746] text-[#49454F] dark:text-[#C4C7C5]">
+            <div className="space-y-2.5 text-xs bg-[#F3F3FA] dark:bg-[#28292A] p-4 rounded-2xl border border-slate-200 dark:border-[#444746] text-[#1C1B1F] dark:text-[#C4C7C5]">
               <div className="flex items-start gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-[#1F71E8] text-white flex items-center justify-center text-[11px] font-bold shrink-0">
+                <span className="w-5 h-5 rounded-full bg-[#1F71E8] text-white flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">
                   1
                 </span>
-                <p>
-                  Tap the <strong className="inline-flex items-center gap-1 font-bold text-[#1F71E8] dark:text-[#A8C7FA]"><Share className="w-3.5 h-3.5 inline" /> Share</strong> button at the bottom of Safari.
+                <p className="leading-relaxed">
+                  Tap the <strong className="inline-flex items-center gap-1 font-bold text-[#1F71E8]"><Share className="w-3.5 h-3.5 inline" /> Share</strong> button at the bottom of your Safari browser.
                 </p>
               </div>
 
               <div className="flex items-start gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-[#1F71E8] text-white flex items-center justify-center text-[11px] font-bold shrink-0">
+                <span className="w-5 h-5 rounded-full bg-[#1F71E8] text-white flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">
                   2
                 </span>
-                <p>
-                  Scroll down and tap <strong className="inline-flex items-center gap-1 font-bold text-[#1F71E8] dark:text-[#A8C7FA]"><PlusSquare className="w-3.5 h-3.5 inline" /> Add to Home Screen</strong>.
+                <p className="leading-relaxed">
+                  Scroll down and tap <strong className="inline-flex items-center gap-1 font-bold text-[#1F71E8]"><PlusSquare className="w-3.5 h-3.5 inline" /> Add to Home Screen</strong>.
                 </p>
               </div>
             </div>
@@ -252,9 +242,9 @@ export const InstallAppPrompt: React.FC<InstallAppPromptProps> = ({ isDarkMode }
                 setShowIOSGuide(false);
                 setIsVisible(false);
               }}
-              className="w-full py-2.5 rounded-full bg-[#1F71E8] hover:bg-[#1557B0] text-white text-xs font-bold transition-all cursor-pointer"
+              className="w-full py-3 rounded-full bg-[#1F71E8] hover:bg-[#1557B0] text-white text-xs font-bold transition cursor-pointer min-h-[44px]"
             >
-              Got it
+              OK, Got It
             </button>
           </div>
         </div>
@@ -262,3 +252,4 @@ export const InstallAppPrompt: React.FC<InstallAppPromptProps> = ({ isDarkMode }
     </>
   );
 };
+

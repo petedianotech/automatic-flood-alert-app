@@ -15,6 +15,11 @@ export class ScreenWakeLockService {
           this.request();
         }
       });
+      window.addEventListener('focus', () => {
+        if (this.isRequested && !this.isActive()) {
+          this.request();
+        }
+      });
     }
   }
 

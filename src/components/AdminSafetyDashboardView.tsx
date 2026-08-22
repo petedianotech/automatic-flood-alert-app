@@ -18,6 +18,12 @@ import {
   Volume2,
   UserCheck,
   AlertTriangle,
+  Navigation,
+  ExternalLink,
+  Copy,
+  X,
+  Map as MapIcon,
+  Compass,
 } from 'lucide-react';
 import { ResidentSafetyReport, FloodAlert, UserProfile } from '../types';
 import { firebaseFloodService } from '../services/firebaseService';
@@ -45,6 +51,9 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
   const [villageFilter, setVillageFilter] = useState<string>('all');
   const [isVillageDropdownOpen, setIsVillageDropdownOpen] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState<string | null>(null);
+  const [selectedReportForMap, setSelectedReportForMap] = useState<ResidentSafetyReport | null>(null);
+  const [showOverviewMap, setShowOverviewMap] = useState(false);
+  const [copiedGps, setCopiedGps] = useState(false);
 
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -130,7 +139,20 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
         activeAudioRef.current.pause();
         setIsPlayingAudio(null);
       }
+      if (selectedReportForMap?.id === id) {
+        setSelectedReportForMap(null);
+      }
       await firebaseFloodService.deleteSafetyReport(id);
+    }
+  };
+
+  const handleCopyCoordinates = (lat: number, lng: number) => {
+    try {
+      navigator.clipboard.writeText(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+      setCopiedGps(true);
+      setTimeout(() => setCopiedGps(false), 2000);
+    } catch {
+      // fallback
     }
   };
 
@@ -140,7 +162,7 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
   const safeCount = activeReportsList.filter((r) => r.status === 'safe').length;
   const shelterCount = activeReportsList.filter((r) => r.status === 'evacuated' || r.message?.toLowerCase().includes('shelter')).length;
   const helpCount = activeReportsList.filter((r) => r.status === 'needs_help' || r.status === 'in_flooding').length;
-  const totalPeopleCount = activeReportsList.reduce((acc, r) => acc + (r.peopleCount || 1), 0);
+  const reportsWithGps = activeReportsList.filter((r) => r.latitude !== undefined && r.longitude !== undefined);
 
   // Filter list
   const filteredRecords = activeReportsList.filter((rec) => {
@@ -204,12 +226,23 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
           </div>
         </div>
 
-        {/* Admin Overview Footer Indicator */}
-        <div className="flex items-center justify-between text-xs text-[#49454F] pt-1">
-          <span className="font-medium">Admin Monitoring View</span>
-          <span className="font-semibold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full">
-            Live Firestore Data
-          </span>
+        {/* Admin Overview Footer Indicator + View All on Map Button */}
+        <div className="flex items-center justify-between text-xs text-[#49454F] pt-1 gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="font-medium">Admin Monitoring View</span>
+            <span className="font-semibold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full">
+              Live Firestore Data
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowOverviewMap(true)}
+            className="flex items-center gap-1.5 bg-[#1F71E8] hover:bg-blue-700 active:scale-95 text-white px-3 py-1 rounded-full text-xs font-bold transition cursor-pointer shadow-2xs"
+          >
+            <MapIcon className="w-3.5 h-3.5" />
+            <span>Village Safety Map ({reportsWithGps.length} GPS)</span>
+          </button>
         </div>
       </div>
 
@@ -423,7 +456,27 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                     </p>
                   )}
 
-                  {/* Action Buttons: Voice Player + Call Resident + Delete */}
+                  {/* GPS Attached Badge if present */}
+                  {rec.latitude !== undefined && rec.longitude !== undefined && (
+                    <div className="flex items-center justify-between gap-2 bg-blue-50/80 px-3 py-2 rounded-xl border border-blue-200/70 text-xs">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <MapPin className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                        <span className="font-bold text-[#1C1B1F] truncate">
+                          GPS Attached: {rec.latitude.toFixed(4)}, {rec.longitude.toFixed(4)}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedReportForMap(rec)}
+                        className="px-2.5 py-1 rounded-lg bg-[#1F71E8] hover:bg-blue-700 active:scale-95 text-white font-bold text-[11px] flex items-center gap-1 shrink-0 transition cursor-pointer shadow-2xs"
+                      >
+                        <Navigation className="w-3 h-3" />
+                        <span>View Map</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Action Buttons: Voice Player + Call Resident + View Map + Delete */}
                   <div className="flex items-center justify-between pt-1 gap-2 border-t border-slate-200/50">
                     <div className="flex items-center gap-2 flex-wrap">
                       {hasVoice && (
@@ -451,8 +504,19 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                           className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3 py-1.5 rounded-full text-xs font-bold transition shadow-2xs"
                         >
                           <Phone className="w-3.5 h-3.5" />
-                          <span>Call Resident</span>
+                          <span>Call</span>
                         </a>
+                      )}
+
+                      {rec.latitude !== undefined && rec.longitude !== undefined && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedReportForMap(rec)}
+                          className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white px-3 py-1.5 rounded-full text-xs font-bold transition cursor-pointer shadow-2xs"
+                        >
+                          <MapPin className="w-3.5 h-3.5" />
+                          <span>Map Location</span>
+                        </button>
                       )}
                     </div>
 
@@ -471,6 +535,301 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
           )}
         </div>
       </div>
+
+      {/* ================= 4. SINGLE RESIDENT LOCATION MAP MODAL ================= */}
+      {selectedReportForMap && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white w-full max-w-lg rounded-[28px] overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[92vh] animate-in zoom-in-95">
+            {/* Modal Header */}
+            <div className="p-4 border-b border-slate-200/80 flex items-center justify-between bg-[#F3F3FA]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-[#1F71E8] text-white flex items-center justify-center shadow-xs shrink-0">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-[#1C1B1F] leading-tight">
+                    {selectedReportForMap.userName}
+                  </h3>
+                  <div className="flex items-center gap-1.5 text-xs text-[#49454F] font-medium mt-0.5">
+                    <span>{selectedReportForMap.village}</span>
+                    <span>•</span>
+                    <span>{selectedReportForMap.formattedTime || 'Recent'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedReportForMap(null)}
+                className="w-9 h-9 rounded-full bg-white hover:bg-slate-200 text-slate-700 flex items-center justify-center transition cursor-pointer shadow-2xs"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-4 space-y-3.5 overflow-y-auto flex-1">
+              {/* Status Badge & Headcount */}
+              <div className="flex items-center justify-between gap-2">
+                <span
+                  className={`text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 ${
+                    selectedReportForMap.status === 'needs_help' || selectedReportForMap.status === 'in_flooding'
+                      ? 'bg-red-100 text-red-900 border border-red-200'
+                      : selectedReportForMap.status === 'evacuated' || selectedReportForMap.message?.toLowerCase().includes('shelter')
+                      ? 'bg-blue-100 text-blue-900 border border-blue-200'
+                      : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                  }`}
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>
+                    {selectedReportForMap.status === 'needs_help'
+                      ? 'Needs Rescue Help'
+                      : selectedReportForMap.status === 'in_flooding'
+                      ? 'In Flooding Area'
+                      : selectedReportForMap.status === 'evacuated'
+                      ? 'In Evacuation Shelter'
+                      : 'Safe at Home'}
+                  </span>
+                </span>
+
+                <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full">
+                  {selectedReportForMap.peopleCount || 1} {(selectedReportForMap.peopleCount || 1) === 1 ? 'Person' : 'People'}
+                </span>
+              </div>
+
+              {/* Resident Note if present */}
+              {selectedReportForMap.message && (
+                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-xs text-[#1C1B1F] font-medium leading-relaxed">
+                  <span className="text-slate-500 font-bold block mb-0.5">Note from resident:</span>
+                  {selectedReportForMap.message}
+                </div>
+              )}
+
+              {/* Embedded Live Map */}
+              {selectedReportForMap.latitude !== undefined && selectedReportForMap.longitude !== undefined ? (
+                <div className="space-y-2">
+                  <div className="relative w-full h-56 rounded-2xl overflow-hidden border border-slate-300 bg-slate-100 shadow-inner">
+                    <iframe
+                      title="Resident GPS Map"
+                      width="100%"
+                      height="100%"
+                      frameBorder="0"
+                      scrolling="no"
+                      marginHeight={0}
+                      marginWidth={0}
+                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${selectedReportForMap.longitude - 0.012}%2C${selectedReportForMap.latitude - 0.009}%2C${selectedReportForMap.longitude + 0.012}%2C${selectedReportForMap.latitude + 0.009}&layer=mapnik&marker=${selectedReportForMap.latitude}%2C${selectedReportForMap.longitude}`}
+                      className="w-full h-full"
+                    />
+                  </div>
+
+                  {/* GPS Coordinates Bar & Quick Copy */}
+                  <div className="bg-[#F3EDF7] rounded-2xl p-3 flex items-center justify-between gap-2 border border-slate-200">
+                    <div className="min-w-0">
+                      <span className="text-[11px] text-[#49454F] font-bold block uppercase tracking-wider">
+                        GPS Coordinates
+                      </span>
+                      <span className="text-xs font-bold text-[#1C1B1F]">
+                        {selectedReportForMap.latitude.toFixed(5)}, {selectedReportForMap.longitude.toFixed(5)}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleCopyCoordinates(
+                          selectedReportForMap.latitude!,
+                          selectedReportForMap.longitude!
+                        )
+                      }
+                      className="px-3 py-1.5 bg-white hover:bg-slate-100 text-[#1C1B1F] rounded-full text-xs font-bold flex items-center gap-1 border border-slate-300 transition cursor-pointer shadow-2xs"
+                    >
+                      {copiedGps ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="text-emerald-700">Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 text-slate-600" />
+                          <span>Copy GPS</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-6 text-center bg-slate-50 rounded-2xl border border-slate-200">
+                  <MapPin className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                  <p className="text-xs font-bold text-[#1C1B1F]">No exact GPS attached</p>
+                  <p className="text-xs text-[#49454F] mt-1">
+                    Resident reported safety status without attaching GPS coordinates.
+                  </p>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="space-y-2 pt-1">
+                {selectedReportForMap.latitude !== undefined && selectedReportForMap.longitude !== undefined && (
+                  <a
+                    href={
+                      selectedReportForMap.mapsUrl ||
+                      `https://www.google.com/maps/search/?api=1&query=${selectedReportForMap.latitude},${selectedReportForMap.longitude}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-3 px-4 rounded-2xl bg-[#1F71E8] hover:bg-blue-700 active:scale-98 text-white font-bold text-xs flex items-center justify-center gap-2 transition shadow-xs cursor-pointer text-center"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    <span>Open in Google Maps (Directions & Navigation)</span>
+                  </a>
+                )}
+
+                <div className="grid grid-cols-2 gap-2">
+                  {selectedReportForMap.phone && (
+                    <a
+                      href={`tel:${selectedReportForMap.phone.replace(/\s+/g, '')}`}
+                      className="py-2.5 px-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-2xs"
+                    >
+                      <Phone className="w-4 h-4" />
+                      <span>Call ({selectedReportForMap.phone})</span>
+                    </a>
+                  )}
+
+                  {selectedReportForMap.hasVoiceNote && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        toggleAudio(
+                          selectedReportForMap.id,
+                          selectedReportForMap.voiceAudioBase64,
+                          selectedReportForMap.voiceDurationSec || 3
+                        )
+                      }
+                      className="py-2.5 px-3 rounded-2xl bg-[#1F71E8] hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-2xs cursor-pointer"
+                    >
+                      {isPlayingAudio === selectedReportForMap.id ? (
+                        <Pause className="w-4 h-4" />
+                      ) : (
+                        <Play className="w-4 h-4 fill-current" />
+                      )}
+                      <span>
+                        {isPlayingAudio === selectedReportForMap.id
+                          ? 'Playing Voice...'
+                          : 'Play Voice SOS'}
+                      </span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= 5. ALL VILLAGES OVERVIEW SAFETY MAP MODAL ================= */}
+      {showOverviewMap && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white w-full max-w-xl rounded-[28px] overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[92vh] animate-in zoom-in-95">
+            {/* Header */}
+            <div className="p-4 border-b border-slate-200/80 flex items-center justify-between bg-[#F3F3FA]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-[#1F71E8] text-white flex items-center justify-center shadow-xs shrink-0">
+                  <MapIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-[#1C1B1F] leading-tight">
+                    Village Safety Map Overview
+                  </h3>
+                  <p className="text-xs text-[#49454F] font-medium mt-0.5">
+                    {reportsWithGps.length} residents with active GPS locations
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowOverviewMap(false)}
+                className="w-9 h-9 rounded-full bg-white hover:bg-slate-200 text-slate-700 flex items-center justify-center transition cursor-pointer shadow-2xs"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 space-y-3.5 overflow-y-auto flex-1">
+              {/* Interactive Regional Map Embed */}
+              <div className="relative w-full h-64 rounded-2xl overflow-hidden border border-slate-300 bg-slate-100 shadow-inner">
+                <iframe
+                  title="All Villages Safety Map"
+                  width="100%"
+                  height="100%"
+                  frameBorder="0"
+                  scrolling="no"
+                  marginHeight={0}
+                  marginWidth={0}
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=35.5100%2C-16.0300%2C35.5800%2C-15.9500&layer=mapnik`}
+                  className="w-full h-full"
+                />
+              </div>
+
+              {/* Residents with GPS List */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-[#49454F] uppercase tracking-wider">
+                  <span>Residents with GPS Pins</span>
+                  <span>{reportsWithGps.length} Total</span>
+                </div>
+
+                {reportsWithGps.length === 0 ? (
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-center">
+                    <p className="text-xs text-[#49454F]">
+                      No residents have attached GPS coordinates yet. When villagers check in with "Attach GPS", their pins appear here.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                    {reportsWithGps.map((rep) => (
+                      <div
+                        key={rep.id}
+                        onClick={() => {
+                          setShowOverviewMap(false);
+                          setSelectedReportForMap(rep);
+                        }}
+                        className="bg-[#F3F3FA] hover:bg-[#E7E0EC] p-3 rounded-2xl border border-slate-200/80 flex items-center justify-between gap-2 cursor-pointer transition"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div
+                            className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-white ${
+                              rep.status === 'needs_help' || rep.status === 'in_flooding'
+                                ? 'bg-red-600'
+                                : rep.status === 'evacuated'
+                                ? 'bg-blue-600'
+                                : 'bg-emerald-600'
+                            }`}
+                          >
+                            <MapPin className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-xs font-bold text-[#1C1B1F] block truncate">
+                              {rep.userName}
+                            </span>
+                            <span className="text-[11px] text-[#49454F] block">
+                              {rep.village} • {rep.latitude?.toFixed(4)}, {rep.longitude?.toFixed(4)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <span className="px-2.5 py-1 rounded-full bg-white text-[#1F71E8] font-bold text-[11px] border border-slate-200 shrink-0">
+                          View Pin
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

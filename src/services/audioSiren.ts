@@ -13,6 +13,17 @@ class SirenAudioService {
   private isPlaying: boolean = false;
   private volume: number = 0.85;
 
+  public unlockAudio() {
+    try {
+      this.initContext();
+      if (this.audioCtx && this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume().catch(() => {});
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   private initContext() {
     if (!this.audioCtx) {
       const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;

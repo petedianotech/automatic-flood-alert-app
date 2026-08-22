@@ -31,6 +31,7 @@ interface CriticalAlarmModalProps {
   isSoundEnabled: boolean;
   onOpenCheckIn?: () => void;
   onOpenVoiceSOS?: () => void;
+  isAdmin?: boolean;
 }
 
 export const CriticalAlarmModal: React.FC<CriticalAlarmModalProps> = ({
@@ -40,6 +41,7 @@ export const CriticalAlarmModal: React.FC<CriticalAlarmModalProps> = ({
   isSoundEnabled,
   onOpenCheckIn,
   onOpenVoiceSOS,
+  isAdmin = false,
 }) => {
   const [isMuted, setIsMuted] = useState(!isSoundEnabled);
   const [copied, setCopied] = useState(false);
@@ -355,20 +357,21 @@ export const CriticalAlarmModal: React.FC<CriticalAlarmModalProps> = ({
           )}
         </div>
 
-        {/* 6. Action Buttons Section (Material 3 Full Touch Targets) */}
+        {/* 6. Action Buttons Section (Material 3 Touch Targets - Clear for Local Users) */}
         <div className="relative z-10 space-y-2.5">
-          {/* Quick Mark Safe & Voice SOS Actions */}
+          {/* Quick Mark Safe & Voice SOS Actions - Primary for all residents */}
           <div className="grid grid-cols-2 gap-2">
             {onOpenCheckIn && (
               <button
                 type="button"
+                id="btn-modal-mark-safe"
                 onClick={() => {
                   handleStopAlertOnly();
                   onOpenCheckIn();
                 }}
-                className="py-2.5 px-3 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs cursor-pointer transition"
+                className="py-3 px-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition border border-emerald-400/40 min-h-[46px]"
               >
-                <CheckCircle2 className="w-4 h-4" />
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>Mark I Am Safe</span>
               </button>
             )}
@@ -376,43 +379,55 @@ export const CriticalAlarmModal: React.FC<CriticalAlarmModalProps> = ({
             {onOpenVoiceSOS && (
               <button
                 type="button"
+                id="btn-modal-voice-sos"
                 onClick={() => {
                   handleStopAlertOnly();
                   onOpenVoiceSOS();
                 }}
-                className="py-2.5 px-3 rounded-full bg-red-600 hover:bg-red-700 active:scale-98 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs cursor-pointer transition border border-white/20"
+                className="py-3 px-3.5 rounded-2xl bg-white text-[#BA1A1A] hover:bg-zinc-100 active:scale-98 text-xs font-bold flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition border border-white min-h-[46px]"
               >
-                <Mic className="w-4 h-4" />
+                <Mic className="w-4 h-4 shrink-0" />
                 <span>Record Voice SOS</span>
               </button>
             )}
           </div>
 
-          {/* Main 1-Tap Button: Turn Off Sensor & Stop Alert */}
+          {/* User Acknowledgment: Silence personal siren & close alert on user's phone */}
           <button
             type="button"
-            id="btn-turn-off-sensor-and-stop"
-            onClick={handleTurnOffSensorAndStop}
-            className={`w-full py-3.5 px-6 rounded-full active:scale-98 font-bold text-xs sm:text-sm tracking-wide uppercase shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer border ${
-              isYellow
-                ? 'bg-[#FFDF9E] text-[#261600] hover:bg-[#FFE7BA] border-[#FFDF9E]'
-                : 'bg-white text-[#BA1A1A] hover:bg-zinc-100 border-white'
-            }`}
+            id="btn-user-silence-siren"
+            onClick={handleStopAlertOnly}
+            className="w-full py-3 px-4 rounded-full bg-black/40 hover:bg-black/60 active:scale-98 text-xs font-bold text-white flex items-center justify-center gap-2 transition border border-white/30 cursor-pointer min-h-[44px]"
           >
-            <Power className="w-4 h-4 text-[#BA1A1A] shrink-0" />
-            <span>Turn Off Sensor &amp; Stop Alarm</span>
+            <BellOff className="w-4 h-4 text-amber-200" />
+            <span>I Understand &bull; Silence My Phone Siren</span>
           </button>
 
-          {/* Secondary 1-Tap Button: Stop Siren Sound Only */}
-          <button
-            type="button"
-            id="btn-stop-alert-only"
-            onClick={handleStopAlertOnly}
-            className="w-full py-2.5 px-5 rounded-full bg-black/40 hover:bg-black/60 active:scale-98 text-xs font-medium text-white/90 hover:text-white flex items-center justify-center gap-2 transition-all border border-white/20 cursor-pointer"
-          >
-            <BellOff className="w-4 h-4 text-white/80" />
-            <span>Stop Loud Siren Only</span>
-          </button>
+          {/* Admin-Only Station Control */}
+          {isAdmin ? (
+            <div className="pt-2 border-t border-white/20 mt-3 space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] font-bold text-white/80">
+                <span className="flex items-center gap-1 text-amber-300">
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                  STEM Admin Controls
+                </span>
+                <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded-full">Authorized Leader</span>
+              </div>
+              <button
+                type="button"
+                id="btn-admin-turn-off-sensor"
+                onClick={handleTurnOffSensorAndStop}
+                className="w-full py-2.5 px-4 rounded-full bg-red-950/80 hover:bg-red-950 active:scale-98 text-xs font-bold text-red-200 hover:text-white flex items-center justify-center gap-2 border border-red-400/50 cursor-pointer transition"
+              >
+                <Power className="w-3.5 h-3.5 text-red-400" />
+                <span>Turn Off River Sensor &amp; Reset Village Alarm</span>
+              </button>
+            </div>
+          ) : (
+            <p className="text-center text-[11px] text-white/70 font-medium pt-1">
+              River sensor is monitored live by Dzenje STEM Station Admins.
+            </p>
+          )}
         </div>
 
         {/* 7. Quick Share / WhatsApp / SMS button */}
@@ -421,17 +436,17 @@ export const CriticalAlarmModal: React.FC<CriticalAlarmModalProps> = ({
             type="button"
             id="btn-share-alert-action"
             onClick={handleShareOrCopy}
-            className="w-full py-2.5 px-5 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 text-xs font-medium text-white flex items-center justify-center gap-2 transition-all border border-white/20 cursor-pointer"
+            className="w-full py-2.5 px-5 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 text-xs font-semibold text-white flex items-center justify-center gap-2 transition border border-white/20 cursor-pointer min-h-[40px]"
           >
             {copied ? (
               <>
                 <Check className="w-4 h-4 text-[#81C995]" />
-                <span className="text-[#81C995]">Alert Message Copied!</span>
+                <span className="text-[#81C995]">Warning Copied to Clipboard!</span>
               </>
             ) : (
               <>
                 <Share2 className="w-4 h-4" />
-                <span>Share Warning with Family &amp; Village</span>
+                <span>Share Warning to Family &amp; Neighbors</span>
               </>
             )}
           </button>

@@ -16,12 +16,14 @@ import {
 } from 'lucide-react';
 import { FloodAlert, UserProfile, isAppAdmin } from '../types';
 import { sirenService } from '../services/audioSiren';
+import { NotificationEnableCard } from './NotificationEnableCard';
 
 interface ReceiverNodeViewProps {
   alerts: FloodAlert[];
   notificationPermission?: NotificationPermission;
   onRequestNotificationPermission?: () => void;
   onDismissAlert: (id: string) => void;
+  onDeleteAlert?: (id: string) => void;
   onClearAlerts: () => void;
   isFirebaseConnected?: boolean;
   onOpenFirebaseModal?: () => void;
@@ -36,6 +38,7 @@ interface ReceiverNodeViewProps {
 export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
   alerts,
   onDismissAlert,
+  onDeleteAlert,
   onClearAlerts,
   currentUser,
   isAdmin: isAdminProp,
@@ -54,8 +57,19 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
     }
   };
 
+  const handleItemDelete = (alertId: string) => {
+    if (onDeleteAlert) {
+      onDeleteAlert(alertId);
+    } else {
+      onDismissAlert(alertId);
+    }
+  };
+
   return (
     <div className="space-y-4 pb-20 select-none">
+      {/* 0. Notification Enablement Card */}
+      <NotificationEnableCard isDarkMode={false} />
+
       {/* ================= 1. Emergency Banner (Admin: Siren Control | User: Fast-Access Voice SOS) ================= */}
       {isAdmin ? (
         <div className="bg-[#F3F3FA] rounded-[24px] p-4.5 border border-slate-100 space-y-3 shadow-xs">
@@ -154,14 +168,26 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
           {alerts.length > 0 && (
             <button
               type="button"
+              id="btn-clear-alerts"
               onClick={onClearAlerts}
-              className="text-xs font-bold text-red-600 hover:text-red-800 transition flex items-center gap-1 cursor-pointer bg-red-50 px-2.5 py-1 rounded-full border border-red-100"
+              className={`text-xs font-bold transition flex items-center gap-1 cursor-pointer px-2.5 py-1 rounded-full border ${
+                isAdmin
+                  ? 'text-red-700 hover:text-red-900 bg-red-50 border-red-200'
+                  : 'text-slate-700 hover:text-slate-900 bg-slate-100 border-slate-200'
+              }`}
+              title={isAdmin ? 'Delete all alerts from Firebase database for all users' : 'Hide alerts from your screen only'}
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Clear List</span>
+              <span>{isAdmin ? 'Clear Database (Admin)' : 'Clear My View'}</span>
             </button>
           )}
         </div>
+
+        {!isAdmin && alerts.length > 0 && (
+          <p className="text-[11px] text-slate-500 font-medium">
+            Removing alerts clears your phone view only. River data stays safely saved in the village cloud database.
+          </p>
+        )}
 
         <div className="space-y-3">
           {alerts.length > 0 ? (
@@ -225,11 +251,17 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
 
                     <button
                       type="button"
-                      onClick={() => onDismissAlert(alert.id)}
-                      className="text-slate-400 hover:text-slate-700 p-1 transition cursor-pointer shrink-0"
-                      title="Dismiss Alert"
+                      id={`btn-delete-alert-${alert.id}`}
+                      onClick={() => handleItemDelete(alert.id)}
+                      className={`p-1.5 rounded-lg transition cursor-pointer shrink-0 ${
+                        isAdmin
+                          ? 'text-red-500 hover:text-red-700 hover:bg-red-100'
+                          : 'text-slate-400 hover:text-slate-700 hover:bg-slate-200'
+                      }`}
+                      title={isAdmin ? 'Delete alert for everyone from Firestore (Admin)' : 'Hide alert from my screen'}
+                      aria-label={isAdmin ? 'Delete alert for everyone' : 'Hide alert'}
                     >
-                      <CheckCircle className="w-5 h-5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
 

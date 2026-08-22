@@ -41,6 +41,7 @@ import { FloodAlert, UserProfile, AuthState, ADMIN_EMAIL, isAppAdmin, ResidentSa
 
 const STORAGE_KEY_USER_PROFILE = 'flood_alert_user_profile';
 const STORAGE_KEY_ALERTS = 'flood_alert_history_local';
+const STORAGE_KEY_HIDDEN_ALERTS = 'flood_alert_hidden_records_local';
 const STORAGE_KEY_SAFETY_REPORTS = 'flood_alert_safety_reports_local';
 const BROADCAST_CHANNEL_NAME = 'flood_alert_system_sync';
 
@@ -296,6 +297,8 @@ class FirebaseFloodService {
   private updateAuthState(state: AuthState) {
     this.currentAuthState = state;
     this.authListeners.forEach((cb) => cb(state));
+    // Refresh alerts filtering based on updated user role
+    this.notifyAlerts(this.getLocalAlerts());
   }
 
   public getCachedProfile(): UserProfile | null {
@@ -670,9 +673,53 @@ class FirebaseFloodService {
     return newAlert;
   }
 
-  public async dismissAlert(alertId: string, dismissedBy?: string): Promise<void> {
+  public getLocalHiddenAlertIds(): Set<string> {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_HIDDEN_ALERTS);
+      if (raw) {
+        return new Set(JSON.parse(raw));
+      }
+    } catch {
+      // ignore
+    }
+    return new Set();
+  }
+
+  private saveLocalHiddenAlertIds(set: Set<string>) {
+    try {
+      localStorage.setItem(STORAGE_KEY_HIDDEN_ALERTS, JSON.stringify(Array.from(set)));
+    } catch {
+      // ignore
+    }
+  }
+
+  public filterAlertsForCurrentUser(alerts: FloodAlert[]): FloodAlert[] {
+    const isAdmin = isAppAdmin(this.currentAuthState.user);
+    if (isAdmin) {
+      return alerts;
+    }
+    const hiddenSet = this.getLocalHiddenAlertIds();
+    return alerts.filter((a) => !hiddenSet.has(a.id));
+  }
+
+  /**
+   * Dismiss an alert:
+   * - If user is NOT admin: only hides the alert locally on this user's phone. Firestore data remains intact!
+   * - If user IS admin: updates document on Firestore with status = 'dismissed'.
+   */
+  public async dismissAlert(alertId: string, dismissedBy?: string, forceAdmin: boolean = false): Promise<void> {
     const user = this.currentAuthState.user;
-    const authorName = dismissedBy || user?.name || 'Authorized Member';
+    const isAdmin = forceAdmin || isAppAdmin(user);
+
+    if (!isAdmin) {
+      const hidden = this.getLocalHiddenAlertIds();
+      hidden.add(alertId);
+      this.saveLocalHiddenAlertIds(hidden);
+      this.notifyAlerts(this.getLocalAlerts());
+      return;
+    }
+
+    const authorName = dismissedBy || user?.name || 'STEM Station Admin';
     const now = Date.now();
 
     // 1. Update Firestore if connected
@@ -714,12 +761,27 @@ class FirebaseFloodService {
     }
   }
 
-  public async deleteAlert(alertId: string): Promise<void> {
+  /**
+   * Delete an alert:
+   * - If user is NOT admin: only removes it from this user's view (localStorage hidden list). Firestore data is untouched so other villagers see it!
+   * - If user IS admin: deletes document completely from Firestore for all villagers.
+   */
+  public async deleteAlert(alertId: string, forceAdmin: boolean = false): Promise<void> {
+    const isAdmin = forceAdmin || isAppAdmin(this.currentAuthState.user);
+
+    if (!isAdmin) {
+      const hidden = this.getLocalHiddenAlertIds();
+      hidden.add(alertId);
+      this.saveLocalHiddenAlertIds(hidden);
+      this.notifyAlerts(this.getLocalAlerts());
+      return;
+    }
+
     if (this.db) {
       try {
         const docRef = doc(this.db, 'flood_alerts', alertId);
         await deleteDoc(docRef);
-        console.log('[Firestore] Deleted flood_alert document:', alertId);
+        console.log('[Firestore Admin] Deleted flood_alert document for all:', alertId);
       } catch (err) {
         console.warn('Firestore delete flood_alert failed:', err);
       }
@@ -732,13 +794,29 @@ class FirebaseFloodService {
     }
   }
 
-  public async clearAlerts(): Promise<void> {
+  /**
+   * Clear Alerts list:
+   * - If user is NOT admin: hides all current alerts from this user's screen only. Firestore data is NOT deleted!
+   * - If user IS admin: deletes all documents in Firestore so data is cleared for everyone.
+   */
+  public async clearAlerts(forceAdmin: boolean = false): Promise<void> {
+    const isAdmin = forceAdmin || isAppAdmin(this.currentAuthState.user);
+
+    if (!isAdmin) {
+      const all = this.getLocalAlerts();
+      const hidden = this.getLocalHiddenAlertIds();
+      all.forEach((a) => hidden.add(a.id));
+      this.saveLocalHiddenAlertIds(hidden);
+      this.notifyAlerts(all);
+      return;
+    }
+
     if (this.db) {
       try {
         const snap = await getDocs(collection(this.db, 'flood_alerts'));
         const deletePromises = snap.docs.map((d) => deleteDoc(doc(this.db!, 'flood_alerts', d.id)));
         await Promise.all(deletePromises);
-        console.log('[Firestore] Cleared all flood alerts from Firestore');
+        console.log('[Firestore Admin] Cleared all flood alerts from Firestore for all users');
       } catch (err) {
         console.warn('Firestore clearAlerts error:', err);
       }
@@ -796,7 +874,7 @@ class FirebaseFloodService {
 
   public subscribeAlerts(cb: (alerts: FloodAlert[]) => void): () => void {
     this.alertListeners.add(cb);
-    cb(this.getLocalAlerts());
+    cb(this.filterAlertsForCurrentUser(this.getLocalAlerts()));
     return () => this.alertListeners.delete(cb);
   }
 
@@ -812,8 +890,9 @@ class FirebaseFloodService {
     return () => this.authListeners.delete(cb);
   }
 
-  private notifyAlerts(alerts: FloodAlert[]) {
-    this.alertListeners.forEach((cb) => cb(alerts));
+  private notifyAlerts(rawAlerts: FloodAlert[]) {
+    const filtered = this.filterAlertsForCurrentUser(rawAlerts);
+    this.alertListeners.forEach((cb) => cb(filtered));
   }
 
   private notifySafetyReports(reports: ResidentSafetyReport[]) {

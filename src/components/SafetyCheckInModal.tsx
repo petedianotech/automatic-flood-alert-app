@@ -41,6 +41,8 @@ export const SafetyCheckInModal: React.FC<SafetyCheckInModalProps> = ({
   const [message, setMessage] = useState('');
   const [latitude, setLatitude] = useState<number | undefined>();
   const [longitude, setLongitude] = useState<number | undefined>();
+  const [accuracyMeters, setAccuracyMeters] = useState<number | undefined>();
+  const [locationStatusText, setLocationStatusText] = useState<string>('');
   const [isLocating, setIsLocating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
@@ -52,24 +54,66 @@ export const SafetyCheckInModal: React.FC<SafetyCheckInModalProps> = ({
     }
   }, [currentUser]);
 
+  // Village GPS default coordinate presets (Mulanje District, Malawi)
+  const VILLAGE_COORDS: Record<string, { lat: number; lng: number; label: string }> = {
+    'Dzenje Village': { lat: -15.9867, lng: 35.5422, label: 'Dzenje Village, Ruo River Area' },
+    'Machokola': { lat: -15.9715, lng: 35.5310, label: 'Machokola River Watch Post' },
+    'Mathambi': { lat: -16.0120, lng: 35.5560, label: 'Mathambi Flood Basin' },
+  };
+
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
-      alert('Location not supported on this device.');
+      // Fallback to village preset
+      const preset = VILLAGE_COORDS[village] || VILLAGE_COORDS['Dzenje Village'];
+      setLatitude(preset.lat);
+      setLongitude(preset.lng);
+      setLocationStatusText(`Using ${preset.label} preset GPS`);
       return;
     }
+
     setIsLocating(true);
+    setLocationStatusText('Getting GPS satellite location...');
+
+    // Attempt high accuracy first with 8s timeout
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setLatitude(position.coords.latitude);
         setLongitude(position.coords.longitude);
+        setAccuracyMeters(Math.round(position.coords.accuracy));
+        setLocationStatusText(`GPS attached (±${Math.round(position.coords.accuracy)}m accuracy)`);
         setIsLocating(false);
       },
-      () => {
-        setIsLocating(false);
-        alert('Could not get GPS location. Please allow location permissions in your browser.');
+      (error) => {
+        console.warn('High-accuracy GPS failed, trying standard accuracy:', error);
+        // Fallback attempt with standard accuracy
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setLatitude(position.coords.latitude);
+            setLongitude(position.coords.longitude);
+            setAccuracyMeters(Math.round(position.coords.accuracy));
+            setLocationStatusText(`GPS attached (±${Math.round(position.coords.accuracy)}m)`);
+            setIsLocating(false);
+          },
+          () => {
+            // If GPS permission blocked or unavailable, use village preset so the user can still attach location
+            const preset = VILLAGE_COORDS[village] || VILLAGE_COORDS['Dzenje Village'];
+            setLatitude(preset.lat);
+            setLongitude(preset.lng);
+            setLocationStatusText(`GPS access blocked. Set to ${village} center point.`);
+            setIsLocating(false);
+          },
+          { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+        );
       },
-      { enableHighAccuracy: true, timeout: 6000 }
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
     );
+  };
+
+  const handleClearLocation = () => {
+    setLatitude(undefined);
+    setLongitude(undefined);
+    setAccuracyMeters(undefined);
+    setLocationStatusText('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -360,30 +404,78 @@ export const SafetyCheckInModal: React.FC<SafetyCheckInModalProps> = ({
             </div>
 
             {/* GPS Location Attachment */}
-            <div className="bg-[#F3F3FA] rounded-2xl p-3 border border-slate-200 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs">
-                <MapPin className="w-4 h-4 text-red-500 shrink-0" />
-                <span className="text-[#1C1B1F] font-semibold">
-                  {latitude && longitude
-                    ? `GPS: ${latitude.toFixed(3)}, ${longitude.toFixed(3)}`
-                    : 'Attach GPS location'}
-                </span>
+            <div className="bg-[#F3F3FA] rounded-2xl p-3.5 border border-slate-200 space-y-2.5 shadow-2xs">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${latitude ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-700'}`}>
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-[#1C1B1F] block truncate">
+                      {latitude && longitude
+                        ? `GPS: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
+                        : 'Attach GPS Location'}
+                    </span>
+                    <span className="text-[11px] text-[#49454F] block">
+                      {locationStatusText || (latitude ? 'Location ready to send to admin' : 'Sends precise pin to rescue team')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {latitude && (
+                    <button
+                      type="button"
+                      onClick={handleClearLocation}
+                      className="p-1.5 rounded-full text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                      title="Clear attached GPS"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    id="get-gps-coords-btn"
+                    onClick={handleGetLocation}
+                    disabled={isLocating}
+                    className={`px-3.5 py-1.5 text-xs font-bold rounded-full flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs ${
+                      latitude
+                        ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
+                        : 'bg-[#1F71E8] hover:bg-blue-700 text-white'
+                    }`}
+                  >
+                    {isLocating ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Navigation className="w-3.5 h-3.5" />
+                    )}
+                    <span>{latitude ? 'Update GPS' : 'Attach GPS'}</span>
+                  </button>
+                </div>
               </div>
 
-              <button
-                type="button"
-                id="get-gps-coords-btn"
-                onClick={handleGetLocation}
-                disabled={isLocating}
-                className="px-3.5 py-1.5 text-xs font-bold rounded-full bg-[#1F71E8] hover:bg-blue-700 text-white flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs"
-              >
-                {isLocating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Navigation className="w-4 h-4" />
-                )}
-                <span>{latitude ? 'Updated' : 'Add GPS'}</span>
-              </button>
+              {/* Quick Village Presets if GPS not yet attached */}
+              {!latitude && (
+                <div className="flex items-center gap-1.5 pt-1 border-t border-slate-200/60 overflow-x-auto scrollbar-none">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider shrink-0">
+                    Or select area:
+                  </span>
+                  {Object.entries(VILLAGE_COORDS).map(([name, coords]) => (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => {
+                        setLatitude(coords.lat);
+                        setLongitude(coords.lng);
+                        setLocationStatusText(`Attached ${name} center point`);
+                      }}
+                      className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white hover:bg-blue-50 text-[#1F71E8] border border-slate-200 hover:border-blue-300 transition cursor-pointer shrink-0"
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Action Buttons */}

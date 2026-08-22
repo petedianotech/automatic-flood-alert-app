@@ -65,7 +65,7 @@ const DEFAULT_CONFIG: SensorConfig = {
   sensorName: 'Basement Water Vibrator Node',
   nodeId: 'node-vibrator-' + Math.random().toString(36).substring(2, 6),
   sirenVolume: 0.85,
-  autoWakeLock: true,
+  autoWakeLock: false,
   pushEnabled: true,
   soundAlarmOnDevice: true,
   highContrastAlert: true,
@@ -247,8 +247,16 @@ export default function App() {
     sirenService.setVolume(config.sirenVolume);
   }, [config]);
 
-  // 1. Screen Wake Lock Lifecycle (Auto-request on page load to keep plugged-in screen awake)
+  // 1. Audio Context Global Unlock
   useEffect(() => {
+    const handleGlobalInteraction = () => {
+      sirenService.unlockAudio();
+    };
+
+    window.addEventListener('pointerdown', handleGlobalInteraction, { passive: true });
+    window.addEventListener('click', handleGlobalInteraction, { passive: true });
+    window.addEventListener('touchstart', handleGlobalInteraction, { passive: true });
+
     const unsubWakeLock = wakeLockService.subscribe((active, err) => {
       setWakeLockState({
         isSupported: wakeLockService.isSupported(),
@@ -257,14 +265,13 @@ export default function App() {
       });
     });
 
-    if (config.autoWakeLock) {
-      wakeLockService.request();
-    }
-
     return () => {
+      window.removeEventListener('pointerdown', handleGlobalInteraction);
+      window.removeEventListener('click', handleGlobalInteraction);
+      window.removeEventListener('touchstart', handleGlobalInteraction);
       unsubWakeLock();
     };
-  }, [config.autoWakeLock]);
+  }, []);
 
   // 2. Firebase Alerts Subscription
   useEffect(() => {
@@ -276,6 +283,22 @@ export default function App() {
       if (currentActive && (!activeAlert || activeAlert.id !== currentActive.id)) {
         setActiveAlert(currentActive);
         
+        // Immediately start loud siren and hardware vibration
+        sirenService.unlockAudio();
+        if (currentActive.severity === 'yellow') {
+          sirenService.startWarningChime();
+        } else {
+          sirenService.startEmergencySiren();
+        }
+
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          try {
+            navigator.vibrate([1000, 300, 1000, 300, 1000]);
+          } catch {
+            // ignore
+          }
+        }
+
         // Trigger push notification if this is a newly received active alert from another device
         const isYellow = currentActive.severity === 'yellow';
         const userVillage = authState.user?.village || 'Dzenje Village';
@@ -305,7 +328,7 @@ export default function App() {
     return () => {
       unsubAlerts();
     };
-  }, [activeAlert]);
+  }, [activeAlert, authState.user?.village]);
 
   // 3. Motion & Acoustic Sensors Subscriptions & Trigger Callbacks
   const handleFloodTrigger = useCallback(
@@ -514,11 +537,28 @@ export default function App() {
   // Dismiss Active Alert from modal or log
   const handleDismissAlert = async (alertId: string) => {
     const author = authState.user?.name ? `${authState.user.name} (${authState.user.village})` : `Node Operator (${config.nodeId})`;
-    await firebaseFloodService.dismissAlert(alertId, author);
+    await firebaseFloodService.dismissAlert(alertId, author, isAdmin);
     if (activeAlert && activeAlert.id === alertId) {
       setActiveAlert(null);
     }
     sirenService.stopEmergencySiren();
+  };
+
+  // Delete Alert (Local hide for users, Firestore global deletion for admins)
+  const handleDeleteAlert = async (alertId: string) => {
+    if (isAdmin) {
+      if (window.confirm('Delete this flood alert from Firestore for everyone in the village?')) {
+        await firebaseFloodService.deleteAlert(alertId, true);
+        if (activeAlert && activeAlert.id === alertId) {
+          setActiveAlert(null);
+        }
+      }
+    } else {
+      await firebaseFloodService.deleteAlert(alertId, false);
+      if (activeAlert && activeAlert.id === alertId) {
+        setActiveAlert(null);
+      }
+    }
   };
 
   // One-Tap Turn Off Sensors & Dismiss Alert
@@ -531,12 +571,20 @@ export default function App() {
     await handleDismissAlert(alertId);
   };
 
-  // Clear Alerts Log
+  // Clear Alerts Log (Local screen clearing for users, Firestore global wipe for admins)
   const handleClearAlerts = async () => {
-    if (window.confirm('Clear all recorded flood incidents from the history log?')) {
-      await firebaseFloodService.clearAlerts();
-      setActiveAlert(null);
-      sirenService.stopEmergencySiren();
+    if (isAdmin) {
+      if (window.confirm('Permanently delete all flood alerts from Firestore database for all village users?')) {
+        await firebaseFloodService.clearAlerts(true);
+        setActiveAlert(null);
+        sirenService.stopEmergencySiren();
+      }
+    } else {
+      if (window.confirm('Clear all alerts from your screen? (Sensor data remains safely stored in the village database).')) {
+        await firebaseFloodService.clearAlerts(false);
+        setActiveAlert(null);
+        sirenService.stopEmergencySiren();
+      }
     }
   };
 
@@ -636,6 +684,7 @@ export default function App() {
               notificationPermission={notificationPermission}
               onRequestNotificationPermission={handleRequestNotificationPermission}
               onDismissAlert={handleDismissAlert}
+              onDeleteAlert={handleDeleteAlert}
               onClearAlerts={handleClearAlerts}
               isFirebaseConnected={firebaseFloodService.getIsFirebaseConnected()}
               onOpenFirebaseModal={() => setIsFirebaseModalOpen(true)}
@@ -688,6 +737,7 @@ export default function App() {
         isSoundEnabled={config.soundAlarmOnDevice}
         onOpenCheckIn={handleOpenNormalCheckIn}
         onOpenVoiceSOS={handleOpenDirectVoiceSOS}
+        isAdmin={isAdmin}
       />
 
       {/* 6. Direct Fast Voice Emergency SOS Modal */}

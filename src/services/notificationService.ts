@@ -160,6 +160,8 @@ export class NotificationService {
     return this.fcmToken;
   }
 
+  private static permissionListeners: Set<(perm: NotificationPermission) => void> = new Set();
+
   public static isSupported(): boolean {
     return typeof window !== 'undefined' && 'Notification' in window;
   }
@@ -180,10 +182,22 @@ export class NotificationService {
     return Notification.permission;
   }
 
-  public static async requestPermission(): Promise<NotificationPermission> {
+  public static subscribePermission(cb: (perm: NotificationPermission) => void): () => void {
+    this.permissionListeners.add(cb);
+    cb(this.getPermission());
+    return () => this.permissionListeners.delete(cb);
+  }
+
+  private static notifyPermissionListeners(perm: NotificationPermission) {
+    this.permissionListeners.forEach((cb) => cb(perm));
+  }
+
+  public static async requestPermission(sendTestNotification = true): Promise<NotificationPermission> {
     if (!this.isSupported()) return 'denied';
     try {
       const result = await Notification.requestPermission();
+      this.notifyPermissionListeners(result);
+
       if (result === 'granted') {
         if (!this.swRegistration && this.isServiceWorkerSupported()) {
           try {
@@ -193,6 +207,17 @@ export class NotificationService {
           }
         }
         await this.requestFcmToken(this.swRegistration || undefined);
+
+        if (sendTestNotification) {
+          // Send verification push notification
+          setTimeout(() => {
+            this.sendFloodPushNotification(
+              '🔔 Flood Alerts Active',
+              'Your phone is now connected to the Dzenje CDSS emergency alert system. You will receive loud siren warnings when flood water rises.',
+              { isTest: true }
+            );
+          }, 300);
+        }
       }
       return result;
     } catch (err) {
