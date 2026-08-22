@@ -1,10 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" rx="128" fill="#1A73E8"/>
-  <circle cx="256" cy="256" r="180" fill="#1557B0" opacity="0.4"/>
-  <!-- Water wave and warning radar -->
-  <path d="M256 120 L370 320 L142 320 Z" fill="#FEEFC3" stroke="#F9AB00" stroke-width="16" stroke-linejoin="round"/>
-  <rect x="246" y="190" width="20" height="70" rx="10" fill="#E37400"/>
-  <circle cx="256" cy="285" r="12" fill="#E37400"/>
-  <path d="M100 380 Q 180 340, 256 380 T 412 380" fill="none" stroke="#FFFFFF" stroke-width="24" stroke-linecap="round"/>
-  <path d="M120 420 Q 200 380, 276 420 T 392 420" fill="none" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round" opacity="0.8"/>
-</svg>
+    <rect width="512" height="512" rx="110" fill="#1A73E8"/>
+    <circle cx="256" cy="256" r="180" fill="#1557B0" opacity="0.4"/>
+    <!-- Warning Triangle -->
+    <path d="M256 110 L380 320 L132 320 Z" fill="#FEEFC3" stroke="#F9AB00" stroke-width="18" stroke-linejoin="round"/>
+    <!-- Exclamation mark -->
+    <rect x="246" y="180" width="20" height="75" rx="10" fill="#D93025"/>
+    <circle cx="256" cy="285" r="12" fill="#D93025"/>
+    <!-- Water waves -->
+    <path d="M90 380 Q 170 340, 256 380 T 422 380" fill="none" stroke="#FFFFFF" stroke-width="24" stroke-linecap="round"/>
+    <path d="M110 425 Q 190 385, 276 425 T 402 425" fill="none" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round" opacity="0.85"/>
+  </svg>

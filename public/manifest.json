@@ -20,14 +20,6 @@
     "client_mode": "navigate-existing"
   },
   "handle_links": "preferred",
-  "scope_extensions": [
-    {
-      "origin": "https://ais-pre-fibpgbtlse6y7v7drg2upi-259171141265.europe-west1.run.app"
-    },
-    {
-      "origin": "https://ais-dev-fibpgbtlse6y7v7drg2upi-259171141265.europe-west1.run.app"
-    }
-  ],
   "file_handlers": [
     {
       "action": "/",
@@ -38,13 +30,7 @@
     }
   ],
   "prefer_related_applications": false,
-  "related_applications": [
-    {
-      "platform": "play",
-      "url": "https://play.google.com/store/apps/details?id=com.dzenjecdsstem.floodalert",
-      "id": "com.dzenjecdsstem.floodalert"
-    }
-  ],
+  "related_applications": [],
   "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
   "categories": [
     "utilities",
@@ -57,7 +43,7 @@
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon-512.png",
