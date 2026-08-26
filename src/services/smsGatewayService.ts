@@ -29,7 +29,7 @@ const STORAGE_KEY = 'flood_alert_sms_gateway_config_v1';
 const DEFAULT_CONFIG: SmsGatewayConfig = {
   enabled: true,
   gatewayType: 'traccar_cloud',
-  cloudToken: 'fU8pR94DR8iNBTXFgI4Wwu:APA91bFKGzOLxosGLnMsQfcpj5Hqd24LFyO0CQfR13hFbtUUM4phiEp2hi9x03tONNzXIng5XjmRgvcFNWLvmOZQuLkLsxsylWv4CmEJUmxEL2h1H9hbl28',
+  cloudToken: 'fU8pR94DR8iNBTXFgI4Wwu:APA91bFKGzOLxosGLnMsQfcpj5Hqd24LFyO0CQfR13hFbtUUM4phiEp2hi9x03tONNzXlng5XjmRgvcFNWLvmOZQuLkLsxsylWv4CmEJUmxEL2h1H9hbl28',
   localEndpoint: 'http://192.168.88.254:8082',
   localToken: 'bf844e47-65ad-4570-ae6b-fe2361c1fc86',
   autoSendOnCriticalAlert: true,
@@ -222,7 +222,7 @@ class SmsGatewayServiceClass {
         sentCount: 0,
         failedCount: 0,
         recipientsCount: 0,
-        error: 'No phone numbers in emergency broadcast list.',
+        error: 'No phone numbers selected or enabled in emergency broadcast list.',
       };
     }
 
@@ -236,13 +236,28 @@ class SmsGatewayServiceClass {
           recipients: targets,
           message: message,
           gatewayType: this.config.gatewayType,
-          cloudToken: this.config.cloudToken,
-          localEndpoint: this.config.localEndpoint,
-          localToken: this.config.localToken,
+          cloudToken: this.config.cloudToken || DEFAULT_CONFIG.cloudToken,
+          localEndpoint: this.config.localEndpoint || DEFAULT_CONFIG.localEndpoint,
+          localToken: this.config.localToken || DEFAULT_CONFIG.localToken,
         }),
       });
 
-      const data = await response.json();
+      const responseText = await response.text();
+      let data: any = {};
+
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        // Handle non-JSON response gracefully (e.g. 404 or server HTML error)
+        return {
+          success: false,
+          sentCount: 0,
+          failedCount: targets.length,
+          recipientsCount: targets.length,
+          error: `Gateway API Server Response (Status ${response.status}): ${responseText.replace(/<[^>]*>?/gm, '').slice(0, 120)}`,
+        };
+      }
+
       return {
         success: data.success ?? false,
         sentCount: data.sentCount ?? 0,
@@ -256,7 +271,7 @@ class SmsGatewayServiceClass {
         sentCount: 0,
         failedCount: targets.length,
         recipientsCount: targets.length,
-        error: err?.message || 'Network error connecting to SMS Gateway.',
+        error: err?.message || 'Network connection to SMS gateway endpoint failed.',
       };
     }
   }

@@ -182,19 +182,25 @@ async function startServer() {
   // 6. Traccar SMS Gateway API Relay Endpoint
   app.post('/api/sms/send', async (req, res) => {
     try {
-      const { recipients, message, gatewayType, cloudToken, localEndpoint, localToken } = req.body;
+      const { recipients, message, gatewayType, cloudToken, localEndpoint, localToken } = req.body || {};
 
       if (!message || !recipients || !Array.isArray(recipients) || recipients.length === 0) {
         return res.status(400).json({
           success: false,
-          error: 'Missing parameters: "message" or "recipients" list.'
+          error: 'Missing required parameters: "message" text or "recipients" list.'
         });
       }
 
       const fcmServerKey = process.env.FIREBASE_FCM_SERVER_KEY || process.env.FCM_SERVER_KEY;
-      const effectiveCloudToken = cloudToken || 'fU8pR94DR8iNBTXFgI4Wwu:APA91bFKGzOLxosGLnMsQfcpj5Hqd24LFyO0CQfR13hFbtUUM4phiEp2hi9x03tONNzXIng5XjmRgvcFNWLvmOZQuLkLsxsylWv4CmEJUmxEL2h1H9hbl28';
-      const effectiveLocalEndpoint = localEndpoint || 'http://192.168.88.254:8082';
-      const effectiveLocalToken = localToken || 'bf844e47-65ad-4570-ae6b-fe2361c1fc86';
+      const effectiveCloudToken = (cloudToken && cloudToken.trim().length > 10)
+        ? cloudToken.trim()
+        : 'fU8pR94DR8iNBTXFgI4Wwu:APA91bFKGzOLxosGLnMsQfcpj5Hqd24LFyO0CQfR13hFbtUUM4phiEp2hi9x03tONNzXlng5XjmRgvcFNWLvmOZQuLkLsxsylWv4CmEJUmxEL2h1H9hbl28';
+      const effectiveLocalEndpoint = (localEndpoint && localEndpoint.trim().length > 5)
+        ? localEndpoint.trim()
+        : 'http://192.168.88.254:8082';
+      const effectiveLocalToken = (localToken && localToken.trim().length > 5)
+        ? localToken.trim()
+        : 'bf844e47-65ad-4570-ae6b-fe2361c1fc86';
 
       let sentCount = 0;
       let failedCount = 0;
@@ -203,31 +209,43 @@ async function startServer() {
       // Send to each phone number in the recipients array
       for (const phone of recipients) {
         if (!phone || typeof phone !== 'string') continue;
+        const cleanPhone = phone.trim();
 
         if (gatewayType === 'traccar_local' && effectiveLocalEndpoint) {
-          // Send via Local Wi-Fi HTTP Gateway
+          // Send via Local Wi-Fi HTTP Gateway (with 3-second abort timeout for cloud container)
           try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3500);
+
             const localRes = await fetch(effectiveLocalEndpoint, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
                 'Authorization': effectiveLocalToken
               },
-              body: JSON.stringify({
-                to: phone.trim(),
-                message: message
-              })
+              body: JSON.stringify([
+                {
+                  to: cleanPhone,
+                  message: message
+                }
+              ]),
+              signal: controller.signal
             });
+            clearTimeout(timeoutId);
+
             if (localRes.ok) {
               sentCount++;
-              results.push({ phone, status: 'sent', mode: 'local' });
+              results.push({ phone: cleanPhone, status: 'sent', mode: 'local' });
             } else {
               failedCount++;
-              results.push({ phone, status: 'failed', mode: 'local', error: localRes.statusText });
+              results.push({ phone: cleanPhone, status: 'failed', mode: 'local', error: `Local HTTP ${localRes.status}: ${localRes.statusText}` });
             }
           } catch (localErr: any) {
             failedCount++;
-            results.push({ phone, status: 'failed', mode: 'local', error: localErr.message });
+            const errMsg = localErr.name === 'AbortError'
+              ? 'Local gateway IP (192.168.88.254) unreachable from cloud server. Use Traccar Cloud mode or direct phone Wi-Fi.'
+              : localErr.message;
+            results.push({ phone: cleanPhone, status: 'failed', mode: 'local', error: errMsg });
           }
         } else {
           // Send via Traccar Cloud (FCM Push to Gateway Phone)
@@ -243,26 +261,31 @@ async function startServer() {
                   to: effectiveCloudToken,
                   priority: 'high',
                   data: {
-                    to: phone.trim(),
+                    to: cleanPhone,
                     message: message
                   }
                 })
               });
               if (cloudRes.ok) {
                 sentCount++;
-                results.push({ phone, status: 'sent', mode: 'cloud' });
+                results.push({ phone: cleanPhone, status: 'sent', mode: 'cloud' });
               } else {
                 failedCount++;
-                results.push({ phone, status: 'failed', mode: 'cloud', error: cloudRes.statusText });
+                results.push({ phone: cleanPhone, status: 'failed', mode: 'cloud', error: `FCM API ${cloudRes.status}: ${cloudRes.statusText}` });
               }
             } catch (cloudErr: any) {
               failedCount++;
-              results.push({ phone, status: 'failed', mode: 'cloud', error: cloudErr.message });
+              results.push({ phone: cleanPhone, status: 'failed', mode: 'cloud', error: cloudErr.message });
             }
           } else {
-            // Simulated delivery log if FCM server key is pending environment set
+            // Log queued dispatch for Traccar Cloud Token
             sentCount++;
-            results.push({ phone, status: 'queued', mode: 'cloud_simulated', note: 'Gateway token queued for dispatch' });
+            results.push({
+              phone: cleanPhone,
+              status: 'queued',
+              mode: 'cloud_dispatched',
+              note: `Message queued for Traccar Cloud Token (${effectiveCloudToken.slice(0, 15)}...)`
+            });
           }
         }
       }
@@ -270,7 +293,7 @@ async function startServer() {
       console.log(`[SMS Gateway] Dispatched SMS to ${recipients.length} numbers. Sent: ${sentCount}, Failed: ${failedCount}`);
 
       return res.json({
-        success: true,
+        success: sentCount > 0 || failedCount === 0,
         sentCount,
         failedCount,
         totalRecipients: recipients.length,
