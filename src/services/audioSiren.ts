@@ -1,9 +1,11 @@
 /**
  * Web Audio Siren API Service
- * Synthesizes high-pitched oscillating emergency alarm sound using HTML5 Web Audio API
+ * Synthesizes emergency alarm sounds (High-pitch Siren, Rapid Bell, Low-tone Horn)
  */
 
 import { NativePowerHelperPlugin } from './batteryOptimizationService';
+
+export type AlertSoundType = 'siren' | 'bell' | 'horn';
 
 class SirenAudioService {
   private audioCtx: AudioContext | null = null;
@@ -13,7 +15,30 @@ class SirenAudioService {
   private lfoGain: GainNode | null = null;
   private masterGain: GainNode | null = null;
   private isPlaying: boolean = false;
-  private volume: number = 0.85;
+  private volume: number = 0.95;
+  private soundTypeKey = 'flood_alert_sound_type_v1';
+  private isPlayingWarning: boolean = false;
+  private warningIntervalId: number | null = null;
+
+  public getSoundType(): AlertSoundType {
+    try {
+      const saved = localStorage.getItem(this.soundTypeKey);
+      if (saved === 'siren' || saved === 'bell' || saved === 'horn') {
+        return saved;
+      }
+      return 'siren';
+    } catch {
+      return 'siren';
+    }
+  }
+
+  public setSoundType(type: AlertSoundType) {
+    try {
+      localStorage.setItem(this.soundTypeKey, type);
+    } catch {
+      // ignore
+    }
+  }
 
   public unlockAudio() {
     try {
@@ -28,7 +53,9 @@ class SirenAudioService {
 
   private initContext() {
     if (!this.audioCtx) {
-      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.audioCtx = new AudioContextClass();
     }
     if (this.audioCtx.state === 'suspended') {
@@ -57,6 +84,11 @@ class SirenAudioService {
       // ignore
     }
 
+    const soundType = this.getSoundType();
+    this.startSynthesizedSound(soundType);
+  }
+
+  private startSynthesizedSound(type: 'siren' | 'bell' | 'horn') {
     try {
       this.initContext();
       if (!this.audioCtx) return;
@@ -69,42 +101,97 @@ class SirenAudioService {
       this.masterGain.gain.linearRampToValueAtTime(this.volume, now + 0.1);
       this.masterGain.connect(this.audioCtx.destination);
 
-      // Main Oscillator 1: High frequency emergency sweep (800Hz - 1600Hz)
-      this.osc1 = this.audioCtx.createOscillator();
-      this.osc1.type = 'sawtooth';
-      this.osc1.frequency.setValueAtTime(1100, now);
+      if (type === 'bell') {
+        // High-Pitch Fast Bell Alarm
+        this.osc1 = this.audioCtx.createOscillator();
+        this.osc1.type = 'square';
+        this.osc1.frequency.setValueAtTime(1400, now);
 
-      // Main Oscillator 2: Sub-harmonic carrier (950Hz)
-      this.osc2 = this.audioCtx.createOscillator();
-      this.osc2.type = 'square';
-      this.osc2.frequency.setValueAtTime(950, now);
+        this.osc2 = this.audioCtx.createOscillator();
+        this.osc2.type = 'sawtooth';
+        this.osc2.frequency.setValueAtTime(1750, now);
 
-      // Low Frequency Oscillator (LFO) to create the rising/falling urgent siren sweep (2.5 Hz)
-      this.lfo = this.audioCtx.createOscillator();
-      this.lfo.type = 'triangle';
-      this.lfo.frequency.setValueAtTime(2.2, now); // ~2.2 sweeps per second
+        this.lfo = this.audioCtx.createOscillator();
+        this.lfo.type = 'square';
+        this.lfo.frequency.setValueAtTime(6.0, now); // 6 Hz rapid pulse
 
-      // LFO Gain to modulate pitch by +/- 450 Hz
-      this.lfoGain = this.audioCtx.createGain();
-      this.lfoGain.gain.setValueAtTime(450, now);
+        this.lfoGain = this.audioCtx.createGain();
+        this.lfoGain.gain.setValueAtTime(300, now);
 
-      // Connect LFO to modulate oscillator frequencies
-      this.lfo.connect(this.lfoGain);
-      this.lfoGain.connect(this.osc1.frequency);
-      this.lfoGain.connect(this.osc2.frequency);
+        this.lfo.connect(this.lfoGain);
+        this.lfoGain.connect(this.osc1.frequency);
+        this.lfoGain.connect(this.osc2.frequency);
 
-      // Connect oscillators to master gain
-      const osc1Gain = this.audioCtx.createGain();
-      osc1Gain.gain.setValueAtTime(0.6, now);
-      this.osc1.connect(osc1Gain);
-      osc1Gain.connect(this.masterGain);
+        const osc1Gain = this.audioCtx.createGain();
+        osc1Gain.gain.setValueAtTime(0.5, now);
+        this.osc1.connect(osc1Gain);
+        osc1Gain.connect(this.masterGain);
 
-      const osc2Gain = this.audioCtx.createGain();
-      osc2Gain.gain.setValueAtTime(0.4, now);
-      this.osc2.connect(osc2Gain);
-      osc2Gain.connect(this.masterGain);
+        const osc2Gain = this.audioCtx.createGain();
+        osc2Gain.gain.setValueAtTime(0.5, now);
+        this.osc2.connect(osc2Gain);
+        osc2Gain.connect(this.masterGain);
+      } else if (type === 'horn') {
+        // Deep Penetrating Resonant Horn Warning
+        this.osc1 = this.audioCtx.createOscillator();
+        this.osc1.type = 'sawtooth';
+        this.osc1.frequency.setValueAtTime(440, now);
 
-      // Start all nodes
+        this.osc2 = this.audioCtx.createOscillator();
+        this.osc2.type = 'triangle';
+        this.osc2.frequency.setValueAtTime(220, now);
+
+        this.lfo = this.audioCtx.createOscillator();
+        this.lfo.type = 'sine';
+        this.lfo.frequency.setValueAtTime(1.5, now);
+
+        this.lfoGain = this.audioCtx.createGain();
+        this.lfoGain.gain.setValueAtTime(80, now);
+
+        this.lfo.connect(this.lfoGain);
+        this.lfoGain.connect(this.osc1.frequency);
+
+        const osc1Gain = this.audioCtx.createGain();
+        osc1Gain.gain.setValueAtTime(0.7, now);
+        this.osc1.connect(osc1Gain);
+        osc1Gain.connect(this.masterGain);
+
+        const osc2Gain = this.audioCtx.createGain();
+        osc2Gain.gain.setValueAtTime(0.6, now);
+        this.osc2.connect(osc2Gain);
+        osc2Gain.connect(this.masterGain);
+      } else {
+        // Standard High frequency emergency sweep (800Hz - 1600Hz)
+        this.osc1 = this.audioCtx.createOscillator();
+        this.osc1.type = 'sawtooth';
+        this.osc1.frequency.setValueAtTime(1100, now);
+
+        this.osc2 = this.audioCtx.createOscillator();
+        this.osc2.type = 'square';
+        this.osc2.frequency.setValueAtTime(950, now);
+
+        this.lfo = this.audioCtx.createOscillator();
+        this.lfo.type = 'triangle';
+        this.lfo.frequency.setValueAtTime(2.2, now);
+
+        this.lfoGain = this.audioCtx.createGain();
+        this.lfoGain.gain.setValueAtTime(450, now);
+
+        this.lfo.connect(this.lfoGain);
+        this.lfoGain.connect(this.osc1.frequency);
+        this.lfoGain.connect(this.osc2.frequency);
+
+        const osc1Gain = this.audioCtx.createGain();
+        osc1Gain.gain.setValueAtTime(0.6, now);
+        this.osc1.connect(osc1Gain);
+        osc1Gain.connect(this.masterGain);
+
+        const osc2Gain = this.audioCtx.createGain();
+        osc2Gain.gain.setValueAtTime(0.4, now);
+        this.osc2.connect(osc2Gain);
+        osc2Gain.connect(this.masterGain);
+      }
+
       this.lfo.start(now);
       this.osc1.start(now);
       this.osc2.start(now);
@@ -150,9 +237,6 @@ class SirenAudioService {
       this.isPlaying = false;
     }
   }
-
-  private isPlayingWarning: boolean = false;
-  private warningIntervalId: number | null = null;
 
   public playWarningAlertSound() {
     try {

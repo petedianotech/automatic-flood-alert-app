@@ -14,6 +14,9 @@ import {
   Sparkles,
   AlertTriangle,
   ChevronDown,
+  Phone,
+  Smartphone,
+  MessageSquare,
 } from 'lucide-react';
 import { UserProfile, isAppAdmin } from '../types';
 import { firebaseFloodService } from '../services/firebaseService';
@@ -43,6 +46,8 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
   const [authMethod, setAuthMethod] = useState<'village' | 'google'>('village');
   const [name, setName] = useState(currentUser?.name || '');
   const [village, setVillage] = useState(currentUser?.village || 'Dzenje Village');
+  const [phone, setPhone] = useState(currentUser?.phone || '');
+  const [smsAlertsEnabled, setSmsAlertsEnabled] = useState(currentUser?.smsAlertsEnabled !== false);
   const [exampleNameIndex, setExampleNameIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +58,8 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
     if (currentUser) {
       if (currentUser.name) setName(currentUser.name);
       if (currentUser.village) setVillage(currentUser.village);
+      if (currentUser.phone) setPhone(currentUser.phone);
+      if (currentUser.smsAlertsEnabled !== undefined) setSmsAlertsEnabled(currentUser.smsAlertsEnabled);
     }
   }, [currentUser]);
 
@@ -97,7 +104,12 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
       } catch {
         // ignore
       }
-      const profile = await firebaseFloodService.signInWithNameAndVillage(name.trim(), village.trim());
+      const profile = await firebaseFloodService.signInWithNameAndVillage(
+        name.trim(),
+        village.trim(),
+        phone.trim(),
+        smsAlertsEnabled
+      );
       const isUserAdmin = isAppAdmin(profile);
       if (isUserAdmin) {
         setSuccessMsg(`Welcome Admin (${profile.name})! Opening Dashboard...`);
@@ -126,7 +138,11 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
         // ignore
       }
       const targetVillage = village.trim() || 'Dzenje Village';
-      const profile = await firebaseFloodService.signInWithGoogle(targetVillage);
+      const profile = await firebaseFloodService.signInWithGoogle(
+        targetVillage,
+        phone.trim(),
+        smsAlertsEnabled
+      );
       const isUserAdmin = isAppAdmin(profile);
       if (isUserAdmin) {
         setSuccessMsg(`Welcome Admin (${profile.name})! Opening Dashboard...`);
@@ -174,6 +190,25 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
       } catch (err) {
         // ignore
       }
+    }
+  };
+
+  const handleSavePhoneAndSms = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!currentUser) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await firebaseFloodService.updateProfileData({
+        phone: phone.trim(),
+        smsAlertsEnabled,
+      });
+      setSuccessMsg('Phone number & SMS alert settings updated successfully!');
+      setTimeout(() => setSuccessMsg(null), 2500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save phone number');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -299,6 +334,59 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                 })}
               </div>
             </div>
+
+            {/* Phone Number & SMS Gateway Broadcast Subscription */}
+            <form onSubmit={handleSavePhoneAndSms} className="bg-[#F3F3FA] rounded-[24px] p-4 border border-slate-100 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#49454F] uppercase tracking-wider flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-blue-600" />
+                  SMS Flood Alert Phone Number
+                </span>
+                {currentUser.phone ? (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> SMS Active
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                    Not Registered
+                  </span>
+                )}
+              </div>
+
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#49454F]">
+                  <Smartphone className="w-4 h-4" />
+                </div>
+                <input
+                  id="input-profile-phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="e.g. +265999123456 or 0999123456"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-2xl border border-slate-200 bg-white text-sm font-medium text-[#1C1B1F] outline-none focus:border-[#1F71E8]"
+                />
+              </div>
+
+              <label className="flex items-center gap-2.5 text-xs font-semibold text-[#1C1B1F] cursor-pointer pt-0.5">
+                <input
+                  type="checkbox"
+                  checked={smsAlertsEnabled}
+                  onChange={(e) => setSmsAlertsEnabled(e.target.checked)}
+                  className="w-4 h-4 rounded text-[#1F71E8] focus:ring-[#1F71E8] border-slate-300"
+                />
+                <span>Receive emergency SMS messages when river water rises dangerously</span>
+              </label>
+
+              <button
+                id="btn-save-phone-sms"
+                type="submit"
+                disabled={loading}
+                className="w-full py-2.5 rounded-full font-bold text-xs bg-[#1F71E8] hover:bg-blue-700 text-white shadow-xs flex items-center justify-center gap-1.5 transition active:scale-98 cursor-pointer"
+              >
+                {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                <span>Save Phone Number for SMS Warnings</span>
+              </button>
+            </form>
 
             {successMsg && (
               <div className="p-3 rounded-2xl bg-emerald-100 text-emerald-800 text-sm font-medium flex items-center gap-2">
@@ -460,6 +548,39 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                   </div>
                 </div>
 
+                {/* Phone Number Field for SMS Warnings */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-[#1C1B1F]">
+                      Phone Number (For SMS Flood Alerts)
+                    </label>
+                    <span className="text-[11px] text-blue-600 font-semibold">Recommended</span>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-blue-600">
+                      <Phone className="w-4 h-4" />
+                    </div>
+                    <input
+                      id="input-auth-phone"
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="e.g. +265999123456 or 0999123456"
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-2xl border border-slate-200 bg-white text-sm font-medium text-[#1C1B1F] outline-none focus:border-[#1F71E8]"
+                    />
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2.5 text-xs font-medium text-[#49454F] cursor-pointer pt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={smsAlertsEnabled}
+                    onChange={(e) => setSmsAlertsEnabled(e.target.checked)}
+                    className="w-4 h-4 rounded text-[#1F71E8] focus:ring-[#1F71E8] border-slate-300"
+                  />
+                  <span>Receive emergency text messages via Village SMS Gateway</span>
+                </label>
+
                 {/* Submit Button */}
                 <button
                   id="btn-submit-village-auth"
@@ -481,7 +602,7 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
               /* Google Sign In Option */
               <div className="space-y-3.5 py-1">
                 <p className="text-xs text-[#49454F] leading-relaxed font-medium">
-                  Sign in with Google to sync river warnings and loud siren alerts across your devices.
+                  Sign in with Google to sync river warnings and receive instant SMS alerts on your mobile phone.
                 </p>
 
                 <div className="space-y-1">
@@ -497,6 +618,24 @@ export const MobileAuthModal: React.FC<MobileAuthModalProps> = ({
                       value={village}
                       onChange={(e) => setVillage(e.target.value)}
                       placeholder="e.g. Dzenje Village"
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-2xl border border-slate-200 bg-white text-sm font-medium text-[#1C1B1F] outline-none focus:border-[#1F71E8]"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-[#1C1B1F]">
+                    Phone Number (Optional - for SMS Alerts)
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-blue-600">
+                      <Phone className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="e.g. +265999123456 or 0999123456"
                       className="w-full pl-10 pr-3.5 py-2.5 rounded-2xl border border-slate-200 bg-white text-sm font-medium text-[#1C1B1F] outline-none focus:border-[#1F71E8]"
                     />
                   </div>

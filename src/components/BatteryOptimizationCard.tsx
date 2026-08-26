@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
 import {
   BatteryCharging,
   Zap,
@@ -24,6 +25,8 @@ interface BatteryOptimizationCardProps {
 export const BatteryOptimizationCard: React.FC<BatteryOptimizationCardProps> = ({
   className = '',
 }) => {
+  const isNative = Capacitor.isNativePlatform();
+
   const [isConfirmed, setIsConfirmed] = useState<boolean>(() =>
     batteryOptimizationService.isExemptionConfirmed()
   );
@@ -34,12 +37,18 @@ export const BatteryOptimizationCard: React.FC<BatteryOptimizationCardProps> = (
   const [selectedBrandIndex, setSelectedBrandIndex] = useState<number>(0);
 
   useEffect(() => {
+    if (!isNative) return;
     batteryOptimizationService.checkNativeStatus().then((nativeExempt) => {
       if (nativeExempt) {
         setIsConfirmed(true);
       }
     });
-  }, []);
+  }, [isNative]);
+
+  // If user is running the Webapp / PWA, never show battery optimization notifications (only for native APK)
+  if (!isNative) {
+    return null;
+  }
 
   if (isDismissed && !isConfirmed) {
     return null;

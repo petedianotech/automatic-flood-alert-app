@@ -39,6 +39,7 @@ import {
 import firebaseConfigJson from '../../firebase-applet-config.json';
 import { FloodAlert, UserProfile, AuthState, ADMIN_EMAIL, isAppAdmin, ResidentSafetyReport, SafetyStatusType } from '../types';
 import { FcmGatewayService } from './fcmGatewayService';
+import { smsGatewayService } from './smsGatewayService';
 
 const STORAGE_KEY_USER_PROFILE = 'flood_alert_user_profile';
 const STORAGE_KEY_ALERTS = 'flood_alert_history_local';
@@ -205,6 +206,9 @@ class FirebaseFloodService {
 
       this.subscribeFirestoreAlerts();
       this.subscribeFirestoreSafetyReports();
+      if (this.db) {
+        smsGatewayService.syncUsersFromFirestore(this.db);
+      }
     } catch (err) {
       console.warn('Firebase initialization error:', err);
       this.isFirebaseActive = false;
@@ -251,6 +255,8 @@ class FirebaseFloodService {
             uid: fbUser.uid,
             name: data.name || fbUser.displayName || (isAdminUser ? 'Dzenje CDSS ADDA STEM CLUB' : 'Resident'),
             village: data.village || 'Dzenje Village',
+            phone: data.phone || undefined,
+            smsAlertsEnabled: data.smsAlertsEnabled !== false,
             email: userEmail,
             photoURL: fbUser.photoURL || data.photoURL,
             authProvider: data.authProvider || (fbUser.isAnonymous ? 'name_village' : 'google'),
@@ -275,7 +281,7 @@ class FirebaseFloodService {
         profile = {
           uid: fbUser.uid,
           name: fbUser.displayName || (isAdminUser ? 'Admin Peter (System Manager)' : 'Community Member'),
-          village: 'Riverside Village',
+          village: 'Dzenje Village',
           email: userEmail,
           photoURL: fbUser.photoURL || undefined,
           authProvider: fbUser.isAnonymous ? 'name_village' : 'google',
@@ -284,6 +290,17 @@ class FirebaseFloodService {
           updatedAt: new Date().toISOString(),
         };
       }
+    }
+
+    if (profile && profile.phone) {
+      smsGatewayService.addOrUpdateUserRecipient({
+        uid: profile.uid,
+        name: profile.name,
+        phone: profile.phone,
+        village: profile.village,
+        role: profile.role === 'admin' ? 'Village Admin' : 'Resident',
+        enabled: profile.smsAlertsEnabled !== false,
+      });
     }
 
     this.saveCachedProfile(profile);
@@ -327,11 +344,13 @@ class FirebaseFloodService {
   }
 
   /**
-   * Option 1: Sign in using Name, Village, and (optional password)
+   * Option 1: Sign in using Name, Village, optional phone and password
    */
   public async signInWithNameAndVillage(
     name: string,
     village: string,
+    phone?: string,
+    smsAlertsEnabled: boolean = true,
     password?: string
   ): Promise<UserProfile> {
     const trimmedName = name.trim();
@@ -359,8 +378,6 @@ class FirebaseFloodService {
             }
           }
         } catch (authErr) {
-          // Note: If Anonymous Auth is restricted in Firebase console (auth/admin-restricted-operation),
-          // fallback cleanly to persistent client device ID so all users can sign in smoothly.
           console.warn('Firebase Anonymous sign-in unavailable or restricted, using persistent local session:', authErr);
           const cached = this.getCachedProfile();
           if (cached && cached.uid) {
@@ -386,12 +403,26 @@ class FirebaseFloodService {
         uid,
         name: trimmedName,
         village: trimmedVillage,
+        phone: phone ? phone.trim() : undefined,
+        smsAlertsEnabled: smsAlertsEnabled ?? true,
         authProvider: 'name_village',
         hasPassword: Boolean(password && password.trim().length > 0),
         role: isAdminLogin ? 'admin' : 'resident',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+
+      // Register contact with SMS Gateway
+      if (profile.phone && profile.phone.length >= 6) {
+        smsGatewayService.addOrUpdateUserRecipient({
+          uid,
+          name: profile.name,
+          phone: profile.phone,
+          village: profile.village,
+          role: profile.role === 'admin' ? 'Village Admin' : 'Resident',
+          enabled: profile.smsAlertsEnabled !== false,
+        });
+      }
 
       // Save to Firestore if available
       if (this.db) {
@@ -426,7 +457,11 @@ class FirebaseFloodService {
   /**
    * Option 2: Sign in using Google Account
    */
-  public async signInWithGoogle(defaultVillage: string = 'Highland Riverside'): Promise<UserProfile> {
+  public async signInWithGoogle(
+    defaultVillage: string = 'Dzenje Village',
+    phone?: string,
+    smsAlertsEnabled: boolean = true
+  ): Promise<UserProfile> {
     if (!this.auth) {
       throw new Error('Firebase Auth is not available.');
     }
@@ -440,12 +475,16 @@ class FirebaseFloodService {
       const fbUser = result.user;
 
       let village = defaultVillage;
-      // Check if existing profile document has village
+      let existingPhone = phone ? phone.trim() : undefined;
+
+      // Check if existing profile document has village/phone
       if (this.db) {
         try {
           const userDoc = await getDoc(doc(this.db, 'users', fbUser.uid));
-          if (userDoc.exists() && userDoc.data().village) {
-            village = userDoc.data().village;
+          if (userDoc.exists()) {
+            const d = userDoc.data();
+            if (d.village) village = d.village;
+            if (d.phone && !existingPhone) existingPhone = d.phone;
           }
         } catch {
           // ignore
@@ -459,6 +498,8 @@ class FirebaseFloodService {
         uid: fbUser.uid,
         name: fbUser.displayName || (isAdminUser ? 'Admin Peter (System Manager)' : 'Google User'),
         village,
+        phone: existingPhone,
+        smsAlertsEnabled: smsAlertsEnabled ?? true,
         email: userEmail,
         photoURL: fbUser.photoURL || undefined,
         authProvider: 'google',
@@ -466,6 +507,17 @@ class FirebaseFloodService {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+
+      if (profile.phone && profile.phone.length >= 6) {
+        smsGatewayService.addOrUpdateUserRecipient({
+          uid: fbUser.uid,
+          name: profile.name,
+          phone: profile.phone,
+          village: profile.village,
+          role: profile.role === 'admin' ? 'Village Admin' : 'Resident',
+          enabled: profile.smsAlertsEnabled !== false,
+        });
+      }
 
       if (this.db) {
         try {
@@ -496,7 +548,7 @@ class FirebaseFloodService {
   }
 
   /**
-   * Update Profile (e.g. Village or Name)
+   * Update Profile (e.g. Village, Name, Phone Number, SMS preferences)
    */
   public async updateProfileData(updates: Partial<UserProfile>): Promise<UserProfile> {
     const current = this.currentAuthState.user;
@@ -504,6 +556,9 @@ class FirebaseFloodService {
 
     const newName = (updates.name !== undefined ? updates.name : current.name).trim();
     const newVillage = (updates.village !== undefined ? updates.village : current.village).trim();
+    const newPhone = updates.phone !== undefined ? updates.phone.trim() : current.phone;
+    const newSmsEnabled = updates.smsAlertsEnabled !== undefined ? updates.smsAlertsEnabled : (current.smsAlertsEnabled ?? true);
+
     const cleanName = newName.toLowerCase().replace(/\s+/g, ' ');
     const cleanVillage = newVillage.toLowerCase().replace(/\s+/g, ' ');
     const isAdminUser =
@@ -515,9 +570,22 @@ class FirebaseFloodService {
       ...updates,
       name: newName,
       village: newVillage,
+      phone: newPhone,
+      smsAlertsEnabled: newSmsEnabled,
       role: isAdminUser ? 'admin' : (updates.role || current.role || 'resident'),
       updatedAt: new Date().toISOString(),
     };
+
+    if (updatedProfile.phone && updatedProfile.phone.length >= 6) {
+      smsGatewayService.addOrUpdateUserRecipient({
+        uid: updatedProfile.uid,
+        name: updatedProfile.name,
+        phone: updatedProfile.phone,
+        village: updatedProfile.village,
+        role: updatedProfile.role === 'admin' ? 'Village Admin' : 'Resident',
+        enabled: updatedProfile.smsAlertsEnabled !== false,
+      });
+    }
 
     if (this.db && this.currentAuthState.firebaseUid) {
       try {
@@ -525,6 +593,8 @@ class FirebaseFloodService {
           ...updates,
           name: newName,
           village: newVillage,
+          phone: newPhone,
+          smsAlertsEnabled: newSmsEnabled,
           role: isAdminUser ? 'admin' : (updates.role || current.role || 'resident'),
           updatedAt: new Date().toISOString(),
         });
@@ -688,6 +758,20 @@ class FirebaseFloodService {
     }).catch((pushErr) => {
       console.warn('[FCM Gateway] Background broadcast note:', pushErr);
     });
+
+    // 4. Trigger Traccar SMS Gateway to send emergency text messages to all registered village phone numbers
+    if (smsGatewayService.getConfig().autoSendOnCriticalAlert) {
+      const smsMsg = smsGatewayService.formatFloodAlertMessage(
+        newAlert.village || 'Dzenje Village',
+        newAlert.riverName || 'Ruo River',
+        newAlert.peakDelta
+      );
+      smsGatewayService.sendBroadcastSms(smsMsg).then((smsRes) => {
+        console.log('[SMS Gateway] Automatic SMS flood warning dispatched:', smsRes);
+      }).catch((smsErr) => {
+        console.warn('[SMS Gateway] Automatic SMS broadcast note:', smsErr);
+      });
+    }
 
     return newAlert;
   }

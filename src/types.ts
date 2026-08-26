@@ -26,6 +26,8 @@ export interface UserProfile {
   uid: string;
   name: string;
   village: string;
+  phone?: string;
+  smsAlertsEnabled?: boolean;
   email?: string;
   photoURL?: string;
   authProvider: 'name_village' | 'google';

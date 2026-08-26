@@ -15,6 +15,7 @@ import {
   Clock,
   MessageSquare,
   BellRing,
+  Music,
 } from 'lucide-react';
 import { FloodAlert, UserProfile, isAppAdmin } from '../types';
 import { sirenService } from '../services/audioSiren';
@@ -37,6 +38,8 @@ interface ReceiverNodeViewProps {
   onOpenVoiceSOS?: () => void;
   onTriggerSiren?: () => void;
   onOpenFcmModal?: () => void;
+  onOpenSoundModal?: () => void;
+  onOpenSmsModal?: () => void;
 }
 
 export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
@@ -49,6 +52,8 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
   onOpenVoiceSOS,
   onTriggerSiren,
   onOpenFcmModal,
+  onOpenSoundModal,
+  onOpenSmsModal,
 }) => {
   const isAdmin = isAdminProp ?? isAppAdmin(currentUser);
   const [isSirenActive, setIsSirenActive] = useState(false);
@@ -120,6 +125,19 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
               <span>{isSirenActive ? 'Stop Emergency Siren' : 'Sound Emergency Siren'}</span>
             </button>
 
+            {onOpenSoundModal && (
+              <button
+                type="button"
+                id="btn-receiver-sound-settings"
+                onClick={onOpenSoundModal}
+                className="py-3 px-4 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 active:scale-98 text-[#1C1B1F] text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs transition cursor-pointer"
+                title="Change Alert Sound or Upload Ringtone"
+              >
+                <Music className="w-4 h-4 text-blue-600" />
+                <span>Alert Sound</span>
+              </button>
+            )}
+
             {onOpenFcmModal && (
               <button
                 type="button"
@@ -130,6 +148,19 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
               >
                 <BellRing className="w-4 h-4" />
                 <span>Push Alerts</span>
+              </button>
+            )}
+
+            {onOpenSmsModal && (
+              <button
+                type="button"
+                id="btn-receiver-sms-gateway"
+                onClick={onOpenSmsModal}
+                className="py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer"
+                title="SMS Gateway Broadcast Settings"
+              >
+                <MessageSquare className="w-4 h-4 fill-current" />
+                <span>SMS Gateway</span>
               </button>
             )}
           </div>
@@ -171,6 +202,19 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
               >
                 <Mic className="w-5 h-5" />
                 <span>Send Emergency Voice SOS</span>
+              </button>
+            )}
+
+            {onOpenSoundModal && (
+              <button
+                type="button"
+                id="btn-villager-sound-settings"
+                onClick={onOpenSoundModal}
+                className="py-3.5 px-4 rounded-xl bg-white hover:bg-red-50 active:scale-98 text-red-900 border border-red-200 font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition cursor-pointer shrink-0"
+                title="Change Alert Sound or Upload Ringtone"
+              >
+                <Music className="w-4 h-4 text-red-700" />
+                <span>Alert Sound</span>
               </button>
             )}
           </div>

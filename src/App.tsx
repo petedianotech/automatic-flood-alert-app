@@ -28,6 +28,8 @@ import { FirebaseConfigModal } from './components/FirebaseConfigModal';
 import { SafetyCheckInModal } from './components/SafetyCheckInModal';
 import { DirectVoiceSOSModal } from './components/DirectVoiceSOSModal';
 import { FcmGatewayModal } from './components/FcmGatewayModal';
+import { AlertSoundModal } from './components/AlertSoundModal';
+import { SmsGatewayModal } from './components/SmsGatewayModal';
 import { InstallAppPrompt } from './components/InstallAppPrompt';
 import { Mic } from 'lucide-react';
 import {
@@ -199,6 +201,8 @@ export default function App() {
   // Modals & UI helpers
   const [isFirebaseModalOpen, setIsFirebaseModalOpen] = useState(false);
   const [isFcmModalOpen, setIsFcmModalOpen] = useState(false);
+  const [isAlertSoundModalOpen, setIsAlertSoundModalOpen] = useState(false);
+  const [isSmsModalOpen, setIsSmsModalOpen] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(() =>
     NotificationService.getPermission()
   );
@@ -698,6 +702,8 @@ export default function App() {
               isAdmin={isAdmin}
               onOpenVoiceSOS={handleOpenDirectVoiceSOS}
               onOpenFcmModal={() => setIsFcmModalOpen(true)}
+              onOpenSoundModal={() => setIsAlertSoundModalOpen(true)}
+              onOpenSmsModal={() => setIsSmsModalOpen(true)}
             />
           )}
 
@@ -794,7 +800,19 @@ export default function App() {
         isAdmin={isAdmin}
       />
 
-      {/* 11. Automatic Install App Prompt on New Devices */}
+      {/* 11. Alert Sound & Custom Ringtone Settings Modal */}
+      <AlertSoundModal
+        isOpen={isAlertSoundModalOpen}
+        onClose={() => setIsAlertSoundModalOpen(false)}
+      />
+
+      {/* 12. Traccar SMS Gateway Settings Modal */}
+      <SmsGatewayModal
+        isOpen={isSmsModalOpen}
+        onClose={() => setIsSmsModalOpen(false)}
+      />
+
+      {/* 13. Automatic Install App Prompt on New Devices */}
       <InstallAppPrompt isDarkMode={isDarkMode} />
     </div>
   );
