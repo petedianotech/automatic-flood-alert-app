@@ -27,7 +27,7 @@ import { CriticalAlarmModal } from './components/CriticalAlarmModal';
 import { FirebaseConfigModal } from './components/FirebaseConfigModal';
 import { SafetyCheckInModal } from './components/SafetyCheckInModal';
 import { DirectVoiceSOSModal } from './components/DirectVoiceSOSModal';
-import { AfricaTalkingSmsModal } from './components/AfricaTalkingSmsModal';
+import { FcmGatewayModal } from './components/FcmGatewayModal';
 import { InstallAppPrompt } from './components/InstallAppPrompt';
 import { Mic } from 'lucide-react';
 import {
@@ -53,7 +53,6 @@ import { acousticSensorService } from './services/acousticSensorService';
 import { firebaseFloodService } from './services/firebaseService';
 import { sirenService } from './services/audioSiren';
 import { NotificationService } from './services/notificationService';
-import { SmsService } from './services/smsService';
 
 const DEFAULT_CONFIG: SensorConfig = {
   thresholdDelta: 1.5,
@@ -199,15 +198,10 @@ export default function App() {
 
   // Modals & UI helpers
   const [isFirebaseModalOpen, setIsFirebaseModalOpen] = useState(false);
-  const [isSmsModalOpen, setIsSmsModalOpen] = useState(false);
+  const [isFcmModalOpen, setIsFcmModalOpen] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(() =>
     NotificationService.getPermission()
   );
-
-  // Initialize SMS service status check on mount
-  useEffect(() => {
-    SmsService.checkStatus().catch(() => {});
-  }, []);
 
   // Subscribe to Network Online / Offline State
   useEffect(() => {
@@ -383,18 +377,6 @@ export default function App() {
           ? `Sound sensor: ${peakValue.toFixed(0)} dB bell warning (${severity.toUpperCase()})`
           : `Vibration sensor: ${peakValue.toFixed(1)} m/s² motor movement (${severity.toUpperCase()})`,
       });
-
-      // Dispatch real SMS Broadcast to village contacts if critical red severity
-      if (severity === 'red') {
-        SmsService.broadcastFloodAlert({
-          village: userVillage,
-          severity,
-          title,
-          message,
-        }).catch((err) => {
-          console.warn('[AfricaTalking SMS] Auto-broadcast notice:', err);
-        });
-      }
     },
     [config.nodeId, config.sensorName, authState.user?.village]
   );
@@ -669,7 +651,7 @@ export default function App() {
               onSelectVillage={setSelectedVillage}
               onOpenCheckInModal={handleOpenNormalCheckIn}
               onOpenDirectVoiceSOS={handleOpenDirectVoiceSOS}
-              onOpenSmsModal={() => setIsSmsModalOpen(true)}
+              onOpenFcmModal={() => setIsFcmModalOpen(true)}
             />
           )}
 
@@ -715,7 +697,7 @@ export default function App() {
               currentUser={authState.user}
               isAdmin={isAdmin}
               onOpenVoiceSOS={handleOpenDirectVoiceSOS}
-              onOpenSmsModal={() => setIsSmsModalOpen(true)}
+              onOpenFcmModal={() => setIsFcmModalOpen(true)}
             />
           )}
 
@@ -730,7 +712,6 @@ export default function App() {
               onOpenAuthModal={() => setIsAuthModalOpen(true)}
               onOpenDirectVoiceSOS={handleOpenDirectVoiceSOS}
               onOpenCheckInModal={handleOpenNormalCheckIn}
-              onOpenSmsModal={() => setIsSmsModalOpen(true)}
             />
           )}
         </main>
@@ -806,11 +787,10 @@ export default function App() {
         isDarkMode={isDarkMode}
       />
 
-      {/* 10. Africa's Talking SMS Broadcast Modal */}
-      <AfricaTalkingSmsModal
-        isOpen={isSmsModalOpen}
-        onClose={() => setIsSmsModalOpen(false)}
-        currentUser={authState.user}
+      {/* 10. Firebase Cloud Messaging (FCM) Push Gateway Modal */}
+      <FcmGatewayModal
+        isOpen={isFcmModalOpen}
+        onClose={() => setIsFcmModalOpen(false)}
         isAdmin={isAdmin}
       />
 

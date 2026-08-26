@@ -26,17 +26,17 @@ export const TopBar: React.FC<TopBarProps> = ({
   return (
     <header
       id="app-top-bar"
-      className="sticky top-0 z-30 bg-[#FEF7FF]/95 backdrop-blur-md px-4 py-3.5 flex items-center justify-between border-b border-slate-200/80 select-none shadow-xs"
+      className="sticky top-0 z-30 bg-[#FEF7FF]/95 backdrop-blur-md px-3.5 py-3 flex items-center justify-between border-b border-slate-200/80 select-none shadow-xs"
     >
       {/* Left: App PWA Icon + App Name & Club Branding */}
-      <div className="flex items-center gap-3 min-w-0 flex-1">
+      <div className="flex items-center gap-2.5 min-w-0 flex-1">
         <img
           src="/icon.svg"
           alt="Automatic Flood Alert Icon"
-          className="w-11 h-11 rounded-2xl shadow-xs shrink-0 object-cover border border-blue-200/70"
+          className="w-10 h-10 rounded-2xl shadow-xs shrink-0 object-cover border border-blue-200/70"
         />
         <div className="min-w-0 flex-1">
-          {/* Top Line: Automatic Flood Alert App */}
+          {/* Top Line: App Name */}
           <div className="flex items-center gap-2 font-bold text-sm sm:text-base text-[#1C1B1F] leading-snug">
             <span className="truncate">Automatic Flood Alert App</span>
             <span
@@ -45,38 +45,39 @@ export const TopBar: React.FC<TopBarProps> = ({
             />
           </div>
           {/* Bottom Line: Dzenje CDSS ADDA STEM CLUB */}
-          <p className="text-xs sm:text-sm text-[#49454F] font-semibold leading-tight mt-0.5 truncate">
+          <p className="text-[11px] sm:text-xs text-[#49454F] font-semibold leading-tight mt-0.5 truncate">
             Dzenje CDSS ADDA STEM CLUB
           </p>
         </div>
       </div>
 
       {/* Right: Profile / Google Sign In Button */}
-      <div className="flex items-center gap-2.5 shrink-0 pl-2">
+      <div className="flex items-center gap-2 shrink-0 pl-1">
+        {/* Profile / Sign In */}
         <button
           type="button"
           id="btn-topbar-user-profile"
           onClick={onOpenAuthModal}
-          className={`h-10 px-3.5 rounded-full flex items-center gap-2 text-xs sm:text-sm font-bold shadow-xs active:scale-95 transition cursor-pointer border ${
+          className={`h-9 px-3 rounded-full flex items-center gap-2 text-xs font-bold shadow-xs active:scale-95 transition cursor-pointer border ${
             currentUser
               ? 'bg-[#E8DEF8] text-[#1D192B] border-purple-200 hover:bg-[#DBCDEE]'
               : 'bg-white text-[#1F71E8] border-slate-200 hover:border-blue-300 hover:bg-blue-50/50'
           }`}
-          title={currentUser ? `Signed in as ${currentUser.name}` : 'Sign in to Village Network'}
+          title={currentUser ? `Signed in as ${currentUser.name}` : 'Sign In'}
         >
           {currentUser ? (
             <>
-              <div className="w-6 h-6 rounded-full bg-[#6750A4] text-white flex items-center justify-center text-[11px] font-extrabold shrink-0">
+              <div className="w-5 h-5 rounded-full bg-[#6750A4] text-white flex items-center justify-center text-[10px] font-extrabold shrink-0">
                 {getInitials()}
               </div>
-              <span className="hidden sm:inline max-w-[100px] truncate text-xs font-bold">
+              <span className="hidden sm:inline max-w-[90px] truncate text-xs font-bold">
                 {currentUser.name.split(' ')[0]}
               </span>
             </>
           ) : (
             <>
               {/* Google G Multi-color Icon */}
-              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
                   d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"

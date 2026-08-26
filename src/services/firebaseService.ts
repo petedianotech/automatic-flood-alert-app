@@ -38,6 +38,7 @@ import {
 } from 'firebase/auth';
 import firebaseConfigJson from '../../firebase-applet-config.json';
 import { FloodAlert, UserProfile, AuthState, ADMIN_EMAIL, isAppAdmin, ResidentSafetyReport, SafetyStatusType } from '../types';
+import { FcmGatewayService } from './fcmGatewayService';
 
 const STORAGE_KEY_USER_PROFILE = 'flood_alert_user_profile';
 const STORAGE_KEY_ALERTS = 'flood_alert_history_local';
@@ -669,6 +670,24 @@ class FirebaseFloodService {
     if (this.broadcastChannel) {
       this.broadcastChannel.postMessage({ type: 'NEW_ALERT', alert: newAlert });
     }
+
+    // 3. Trigger remote FCM Push Gateway to wake closed/background phones across the village
+    FcmGatewayService.broadcastPushAlert({
+      title: newAlert.title || '🚨 FLOOD EMERGENCY ALARM',
+      body: newAlert.message || `River water rise detected in ${newAlert.village}. Peak vibration delta: ${newAlert.peakDelta.toFixed(1)} m/s²!`,
+      severity: newAlert.severity || (newAlert.peakDelta >= 2.0 ? 'red' : 'yellow'),
+      village: newAlert.village,
+      peakDelta: newAlert.peakDelta,
+      customData: {
+        alertId: newAlert.id,
+        nodeId: newAlert.nodeId,
+        nodeName: newAlert.nodeName,
+        riverName: newAlert.riverName,
+        mapsUrl: newAlert.mapsUrl,
+      },
+    }).catch((pushErr) => {
+      console.warn('[FCM Gateway] Background broadcast note:', pushErr);
+    });
 
     return newAlert;
   }

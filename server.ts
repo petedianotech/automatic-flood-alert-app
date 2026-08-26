@@ -45,141 +45,136 @@ async function startServer() {
     }
   }));
 
-  // Helper to format phone number to E.164
-  function formatPhoneNumber(num: string): string {
-    let cleaned = num.trim().replace(/[\s\-()]/g, '');
-    if (!cleaned) return '';
-    
-    // Malawi local numbers starting with 088, 099, 01, 02, etc. -> +265...
-    if (cleaned.startsWith('0') && cleaned.length >= 10) {
-      cleaned = '+265' + cleaned.substring(1);
-    } else if (!cleaned.startsWith('+')) {
-      // If starts with 265... without +
-      if (cleaned.startsWith('265')) {
-        cleaned = '+' + cleaned;
-      } else {
-        cleaned = '+' + cleaned;
-      }
-    }
-    return cleaned;
-  }
-
   // 1. Health check
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: Date.now() });
   });
 
-  // 2. Africa's Talking Status Check
-  app.get('/api/sms/status', (req, res) => {
-    const apiKey = process.env.AFRICAS_TALKING_API_KEY;
-    const username = process.env.AFRICAS_TALKING_USERNAME;
-    const senderId = process.env.AFRICAS_TALKING_SENDER_ID;
-
-    const isConfigured = Boolean(apiKey && username && apiKey.trim() !== '' && username.trim() !== '');
-    const isSandbox = (username || '').toLowerCase() === 'sandbox';
+  // 2. Firebase Cloud Messaging (FCM) Push Gateway Status
+  app.get('/api/push/status', (req, res) => {
+    const fcmServerKey = process.env.FIREBASE_FCM_SERVER_KEY || process.env.FCM_SERVER_KEY;
+    const isConfigured = Boolean(fcmServerKey && fcmServerKey.trim().length > 10);
 
     res.json({
       configured: isConfigured,
-      isSandbox,
-      username: username ? `${username.substring(0, 3)}***` : null,
-      senderId: senderId || null,
-      serviceName: "Africa's Talking SMS Gateway"
+      serviceName: "Firebase Cloud Messaging (FCM) Push Gateway",
+      androidChannelId: "dzenje_flood_alarm_channel_v1",
+      priority: "high",
+      keyPreview: isConfigured ? `${fcmServerKey!.substring(0, 6)}...${fcmServerKey!.slice(-4)}` : null,
+      message: isConfigured
+        ? "FCM Server Key is active. High-priority push alerts will wake closed and background phones."
+        : "FCM Server Key not set. Add FIREBASE_FCM_SERVER_KEY to your environment settings to wake closed apps."
     });
   });
 
-  // 3. Send SMS via Africa's Talking
-  app.post('/api/sms/send', async (req, res) => {
+  // 5. Firebase Cloud Messaging (FCM) Push Broadcast to Wake Closed/Background Phones
+  app.post('/api/push/broadcast', async (req, res) => {
     try {
-      const apiKey = process.env.AFRICAS_TALKING_API_KEY;
-      const username = process.env.AFRICAS_TALKING_USERNAME;
-      const defaultSenderId = process.env.AFRICAS_TALKING_SENDER_ID;
+      const fcmServerKey = process.env.FIREBASE_FCM_SERVER_KEY || process.env.FCM_SERVER_KEY;
+      const { title, body, severity, village, peakDelta, tokens, data: customData } = req.body;
 
-      if (!apiKey || !username) {
+      if (!title || !body) {
         return res.status(400).json({
           success: false,
-          error: "Africa's Talking credentials missing. Please set AFRICAS_TALKING_API_KEY and AFRICAS_TALKING_USERNAME in your environment settings."
+          error: "Missing required parameters 'title' or 'body'."
         });
       }
 
-      const { to, message, from } = req.body;
-
-      if (!to || !message) {
-        return res.status(400).json({
+      if (!fcmServerKey || fcmServerKey.trim() === '') {
+        return res.status(200).json({
           success: false,
-          error: "Missing required parameters 'to' (phone numbers) or 'message'."
+          notConfigured: true,
+          error: "FCM Server Key is not configured. Set FIREBASE_FCM_SERVER_KEY in your environment to dispatch remote background push messages.",
+          deliveredCount: 0,
+          tokensCount: Array.isArray(tokens) ? tokens.length : 0
         });
       }
 
-      // Parse recipients
-      let rawRecipients: string[] = [];
-      if (Array.isArray(to)) {
-        rawRecipients = to;
-      } else if (typeof to === 'string') {
-        rawRecipients = to.split(',').map((s) => s.trim());
+      // Collect target tokens
+      let targetTokens: string[] = [];
+      if (Array.isArray(tokens) && tokens.length > 0) {
+        targetTokens = tokens.filter((t) => typeof t === 'string' && t.trim().length > 10);
       }
 
-      const formattedRecipients = rawRecipients
-        .map(formatPhoneNumber)
-        .filter((n) => n.length > 5);
-
-      if (formattedRecipients.length === 0) {
+      if (targetTokens.length === 0) {
         return res.status(400).json({
           success: false,
-          error: "No valid phone numbers provided. Please provide numbers in international format (e.g., +265991234567 or 0991234567)."
+          error: "No active FCM device tokens provided to broadcast to."
         });
       }
 
-      const isSandbox = username.toLowerCase() === 'sandbox';
-      const endpoint = isSandbox
-        ? 'https://api.sandbox.africastalking.com/version1/messaging'
-        : 'https://api.africastalking.com/version1/messaging';
+      // Prepare High-Priority FCM Payload for Android APK and Web PWA
+      const fcmPayload = {
+        registration_ids: targetTokens,
+        priority: 'high',
+        time_to_live: 0, // Deliver immediately or discard if unreachable
+        notification: {
+          title: title,
+          body: body,
+          sound: 'default',
+          android_channel_id: 'dzenje_flood_alarm_channel_v1',
+          click_action: 'FLDT_ALARM_OPEN',
+          icon: 'ic_launcher'
+        },
+        data: {
+          title: title,
+          body: body,
+          severity: severity || 'red',
+          village: village || 'Dzenje Village',
+          peakDelta: String(peakDelta || 0),
+          timestamp: String(Date.now()),
+          alarmType: 'flood_siren',
+          click_action: 'FLDT_ALARM_OPEN',
+          ...(customData || {})
+        },
+        android: {
+          priority: 'high',
+          notification: {
+            channel_id: 'dzenje_flood_alarm_channel_v1',
+            sound: 'default',
+            priority: 'max',
+            visibility: 'public'
+          }
+        }
+      };
 
-      const params = new URLSearchParams();
-      params.append('username', username);
-      params.append('to', formattedRecipients.join(','));
-      params.append('message', message);
+      console.log(`[FCM Gateway] Dispatching high-priority push to ${targetTokens.length} devices...`);
 
-      const senderId = from || defaultSenderId;
-      if (senderId && senderId.trim() !== '') {
-        params.append('from', senderId.trim());
-      }
-
-      console.log(`[Africa's Talking] Sending SMS to ${formattedRecipients.length} recipients via ${isSandbox ? 'Sandbox' : 'Production'}...`);
-
-      const response = await fetch(endpoint, {
+      const fcmResponse = await fetch('https://fcm.googleapis.com/fcm/send', {
         method: 'POST',
         headers: {
-          'apiKey': apiKey.trim(),
-          'Accept': 'application/json',
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `key=${fcmServerKey.trim()}`,
+          'Content-Type': 'application/json'
         },
-        body: params.toString(),
+        body: JSON.stringify(fcmPayload)
       });
 
-      const data = await response.json().catch(() => null);
+      const responseJson = await fcmResponse.json().catch(() => null);
 
-      if (!response.ok) {
-        console.error("[Africa's Talking] Error response:", data || response.statusText);
-        return res.status(response.status).json({
+      if (!fcmResponse.ok) {
+        console.error('[FCM Gateway] FCM Error response:', responseJson || fcmResponse.statusText);
+        return res.status(fcmResponse.status).json({
           success: false,
-          error: (data && data.errorMessage) || (data && data.Message) || `Africa's Talking API error (${response.status})`,
-          details: data
+          error: (responseJson && responseJson.results) || fcmResponse.statusText || 'FCM push request rejected by Google.',
+          details: responseJson
         });
       }
 
-      console.log("[Africa's Talking] Success response:", JSON.stringify(data));
+      console.log(`[FCM Gateway] Push sent successfully: ${responseJson?.success} delivered, ${responseJson?.failure} failed.`);
 
       return res.json({
         success: true,
-        data,
-        recipientsCount: formattedRecipients.length,
-        recipients: formattedRecipients
+        deliveredCount: responseJson?.success || 0,
+        failureCount: responseJson?.failure || 0,
+        tokensCount: targetTokens.length,
+        multicastId: responseJson?.multicast_id,
+        results: responseJson?.results
       });
     } catch (err: any) {
-      console.error("[Africa's Talking] Server exception:", err);
+      console.error('[FCM Gateway] Server exception during push:', err);
       return res.status(500).json({
         success: false,
-        error: err.message || "Failed to communicate with Africa's Talking API."
+        error: err.message || 'Failed to dispatch FCM push notification.'
       });
     }
   });

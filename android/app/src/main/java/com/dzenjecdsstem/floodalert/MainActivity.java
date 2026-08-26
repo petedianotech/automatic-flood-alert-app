@@ -6,6 +6,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioAttributes;
+import android.media.AudioManager;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
@@ -105,11 +106,45 @@ public class MainActivity extends BridgeActivity {
         }
 
         @PluginMethod
+        public void boostSystemAlarmVolume(PluginCall call) {
+            try {
+                Context context = getContext();
+                AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+                if (audioManager != null) {
+                    // Set Alarm and Notification stream volume to maximum (100%)
+                    int maxAlarmVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM);
+                    audioManager.setStreamVolume(AudioManager.STREAM_ALARM, maxAlarmVolume, 0);
+
+                    int maxMusicVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxMusicVolume, 0);
+                    call.resolve(new com.getcapacitor.JSObject().put("boosted", true));
+                    return;
+                }
+            } catch (Exception e) {
+                // ignore
+            }
+            call.resolve(new com.getcapacitor.JSObject().put("boosted", false));
+        }
+
+        @PluginMethod
         public void showNativeFloodAlert(PluginCall call) {
             try {
                 Context context = getContext();
                 String title = call.getString("title", "🚨 FLOOD WARNING ALERT");
                 String body = call.getString("body", "Continuous river rise detected! Evacuate to high ground immediately.");
+
+                // 1. Boost volume to 100% (STREAM_ALARM & STREAM_MUSIC) so flood alert bypasses low volume
+                try {
+                    AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+                    if (audioManager != null) {
+                        int maxAlarm = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM);
+                        audioManager.setStreamVolume(AudioManager.STREAM_ALARM, maxAlarm, 0);
+                        int maxMusic = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+                        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxMusic, 0);
+                    }
+                } catch (Exception e) {
+                    // Ignore volume boost errors
+                }
 
                 Intent intent = new Intent(context, MainActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);

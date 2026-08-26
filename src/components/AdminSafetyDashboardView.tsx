@@ -25,6 +25,7 @@ import {
   Map as MapIcon,
   Compass,
   MessageSquare,
+  BellRing,
 } from 'lucide-react';
 import { ResidentSafetyReport, FloodAlert, UserProfile } from '../types';
 import { firebaseFloodService } from '../services/firebaseService';
@@ -38,7 +39,7 @@ interface AdminSafetyDashboardViewProps {
   onSelectVillage?: (village: string) => void;
   onOpenCheckInModal?: () => void;
   onOpenDirectVoiceSOS?: () => void;
-  onOpenSmsModal?: () => void;
+  onOpenFcmModal?: () => void;
 }
 
 export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> = ({
@@ -48,7 +49,7 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
   onSelectVillage,
   onOpenCheckInModal,
   onOpenDirectVoiceSOS,
-  onOpenSmsModal,
+  onOpenFcmModal,
 }) => {
   const [filterCategory, setFilterCategory] = useState<'all' | 'safe' | 'shelters' | 'help'>('all');
   const [villageFilter, setVillageFilter] = useState<string>('all');
@@ -238,16 +239,17 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
-            {onOpenSmsModal && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {onOpenFcmModal && (
               <button
                 type="button"
-                id="btn-admin-sms-broadcast"
-                onClick={onOpenSmsModal}
-                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3 py-1 rounded-full text-xs font-bold transition cursor-pointer shadow-2xs"
+                id="btn-admin-fcm-gateway"
+                onClick={onOpenFcmModal}
+                className="flex items-center gap-1.5 bg-[#4F378B] hover:bg-[#38236B] active:scale-95 text-white px-3 py-1 rounded-full text-xs font-bold transition cursor-pointer shadow-2xs"
+                title="Push Notification Settings"
               >
-                <MessageSquare className="w-3.5 h-3.5" />
-                <span>Africa's Talking SMS</span>
+                <BellRing className="w-3.5 h-3.5" />
+                <span>Push Alerts</span>
               </button>
             )}
 

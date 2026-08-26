@@ -14,6 +14,7 @@ import {
   Mic,
   Clock,
   MessageSquare,
+  BellRing,
 } from 'lucide-react';
 import { FloodAlert, UserProfile, isAppAdmin } from '../types';
 import { sirenService } from '../services/audioSiren';
@@ -35,7 +36,7 @@ interface ReceiverNodeViewProps {
   isAdmin?: boolean;
   onOpenVoiceSOS?: () => void;
   onTriggerSiren?: () => void;
-  onOpenSmsModal?: () => void;
+  onOpenFcmModal?: () => void;
 }
 
 export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
@@ -47,7 +48,7 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
   isAdmin: isAdminProp,
   onOpenVoiceSOS,
   onTriggerSiren,
-  onOpenSmsModal,
+  onOpenFcmModal,
 }) => {
   const isAdmin = isAdminProp ?? isAppAdmin(currentUser);
   const [isSirenActive, setIsSirenActive] = useState(false);
@@ -105,7 +106,7 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
             Sound the loud flood evacuation siren on all connected phones and speakers across the village.
           </p>
 
-          <div className="pt-1 flex flex-col sm:flex-row gap-2">
+          <div className="pt-1 flex flex-col sm:flex-row gap-2 flex-wrap">
             <button
               type="button"
               onClick={toggleEmergencySiren}
@@ -119,16 +120,16 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
               <span>{isSirenActive ? 'Stop Emergency Siren' : 'Sound Emergency Siren'}</span>
             </button>
 
-            {onOpenSmsModal && (
+            {onOpenFcmModal && (
               <button
                 type="button"
-                id="btn-open-sms-broadcast"
-                onClick={onOpenSmsModal}
-                className="py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-98 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer"
-                title="Send Africa's Talking SMS Broadcast"
+                id="btn-receiver-fcm-gateway"
+                onClick={onOpenFcmModal}
+                className="py-3 px-4 rounded-xl bg-[#4F378B] hover:bg-[#38236B] active:scale-98 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer"
+                title="Push Notification Settings"
               >
-                <MessageSquare className="w-4 h-4" />
-                <span>Africa's Talking SMS</span>
+                <BellRing className="w-4 h-4" />
+                <span>Push Alerts</span>
               </button>
             )}
           </div>
@@ -170,16 +171,6 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
               >
                 <Mic className="w-5 h-5" />
                 <span>Send Emergency Voice SOS</span>
-              </button>
-            )}
-            {onOpenSmsModal && (
-              <button
-                type="button"
-                onClick={onOpenSmsModal}
-                className="py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer"
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span>SMS Alert</span>
               </button>
             )}
           </div>

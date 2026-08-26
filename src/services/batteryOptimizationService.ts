@@ -12,6 +12,7 @@ interface NativePowerHelper {
   areNotificationsEnabled(): Promise<{ enabled: boolean }>;
   openNotificationSettings(): Promise<{ opened: boolean }>;
   showNativeFloodAlert(options: { title: string; body: string }): Promise<{ notified: boolean }>;
+  boostSystemAlarmVolume(): Promise<{ boosted: boolean }>;
 }
 
 export const NativePowerHelperPlugin = registerPlugin<NativePowerHelper>('NativePowerHelper');

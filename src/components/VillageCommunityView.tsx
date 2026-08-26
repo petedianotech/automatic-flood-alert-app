@@ -24,7 +24,6 @@ interface VillageCommunityViewProps {
   onOpenAuthModal?: () => void;
   onOpenDirectVoiceSOS?: () => void;
   onOpenCheckInModal?: () => void;
-  onOpenSmsModal?: () => void;
 }
 
 interface SafeZone {
@@ -252,21 +251,27 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
         {/* Dynamic Firestore Quick Numbers Bar */}
         <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-200/60">
           <div className="bg-white rounded-2xl p-2.5 text-center border border-slate-100">
-            <span className="text-[11px] text-[#49454F] font-medium block">Check-Ins</span>
+            <span className="text-[11px] text-[#49454F] font-medium block">
+              Check-Ins
+            </span>
             <span className="text-base font-bold text-[#1C1B1F]">
               {realTotalReportsCount}
             </span>
           </div>
 
           <div className="bg-white rounded-2xl p-2.5 text-center border border-slate-100">
-            <span className="text-[11px] text-[#49454F] font-medium block">Safe Checked</span>
+            <span className="text-[11px] text-[#49454F] font-medium block">
+              Safe
+            </span>
             <span className="text-base font-bold text-emerald-700">
               {realSafeCount}
             </span>
           </div>
 
           <div className="bg-white rounded-2xl p-2.5 text-center border border-slate-100">
-            <span className="text-[11px] text-[#49454F] font-medium block">People</span>
+            <span className="text-[11px] text-[#49454F] font-medium block">
+              People
+            </span>
             <span className="text-base font-bold text-blue-700">
               {realHeadcountSum}
             </span>
@@ -291,7 +296,7 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
               type="button"
               onClick={onOpenDirectVoiceSOS}
               className="py-2.5 px-4 rounded-full bg-red-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs hover:bg-red-700 active:scale-98 transition cursor-pointer shrink-0"
-              title="Record Voice SOS"
+              title="Voice SOS"
             >
               <Mic className="w-4 h-4" />
               <span>Voice SOS</span>

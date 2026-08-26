@@ -3,6 +3,8 @@
  * Synthesizes high-pitched oscillating emergency alarm sound using HTML5 Web Audio API
  */
 
+import { NativePowerHelperPlugin } from './batteryOptimizationService';
+
 class SirenAudioService {
   private audioCtx: AudioContext | null = null;
   private osc1: OscillatorNode | null = null;
@@ -45,6 +47,15 @@ class SirenAudioService {
 
   public startEmergencySiren() {
     if (this.isPlaying) return;
+
+    // Trigger system volume boost to 100% on Android APK so emergency siren bypasses low volume
+    try {
+      if (NativePowerHelperPlugin && typeof NativePowerHelperPlugin.boostSystemAlarmVolume === 'function') {
+        NativePowerHelperPlugin.boostSystemAlarmVolume().catch(() => {});
+      }
+    } catch {
+      // ignore
+    }
 
     try {
       this.initContext();
