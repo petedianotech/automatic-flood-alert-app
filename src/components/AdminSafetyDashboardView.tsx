@@ -26,6 +26,8 @@ import {
   Compass,
   MessageSquare,
   BellRing,
+  Power,
+  Send,
 } from 'lucide-react';
 import { ResidentSafetyReport, FloodAlert, UserProfile } from '../types';
 import { firebaseFloodService } from '../services/firebaseService';
@@ -33,6 +35,7 @@ import { firebaseFloodService } from '../services/firebaseService';
 interface AdminSafetyDashboardViewProps {
   safetyReports: ResidentSafetyReport[];
   alerts: FloodAlert[];
+  activeAlert?: FloodAlert | null;
   currentUser: UserProfile | null;
   isDarkMode: boolean;
   selectedVillage?: string;
@@ -40,16 +43,24 @@ interface AdminSafetyDashboardViewProps {
   onOpenCheckInModal?: () => void;
   onOpenDirectVoiceSOS?: () => void;
   onOpenFcmModal?: () => void;
+  onOpenSmsModal?: () => void;
+  onTurnOffSensorAndDismiss?: (alertId: string) => void;
+  onDismissAlert?: (alertId: string) => void;
 }
 
 export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> = ({
   safetyReports,
+  alerts,
+  activeAlert,
   currentUser,
   selectedVillage = 'Dzenje Village',
   onSelectVillage,
   onOpenCheckInModal,
   onOpenDirectVoiceSOS,
   onOpenFcmModal,
+  onOpenSmsModal,
+  onTurnOffSensorAndDismiss,
+  onDismissAlert,
 }) => {
   const [filterCategory, setFilterCategory] = useState<'all' | 'safe' | 'shelters' | 'help'>('all');
   const [villageFilter, setVillageFilter] = useState<string>('all');
@@ -60,6 +71,9 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
   const [copiedGps, setCopiedGps] = useState(false);
 
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Derive any current active alert
+  const currentActiveAlert = activeAlert || alerts.find((a) => a.status === 'active') || null;
 
   // Stop audio on unmount
   useEffect(() => {
@@ -190,6 +204,83 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
 
   return (
     <div className="space-y-4 pb-24 select-none">
+      {/* ================= 0. ACTIVE FLOOD DETECTED CARD (ADMIN CONTROL - SIMPLE & DIRECT) ================= */}
+      {currentActiveAlert && (
+        <div
+          id="admin-active-flood-alert-card"
+          className="bg-[#93000A] text-white rounded-[24px] p-4.5 border-2 border-[#FFB4AB] space-y-3 shadow-md animate-in fade-in"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-2xl bg-white text-[#93000A] flex items-center justify-center shrink-0 shadow-xs font-bold">
+                <AlertTriangle className="w-6 h-6 text-[#BA1A1A]" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-white leading-tight">
+                  Flood Detected &bull; {currentActiveAlert.riverName || 'Ruo River'}
+                </h3>
+                <p className="text-xs text-white/90 font-medium mt-0.5">
+                  Reported at {currentActiveAlert.formattedTime || 'Just now'} &bull; {currentActiveAlert.village || 'Dzenje Village'}
+                </p>
+              </div>
+            </div>
+
+            <span className="text-[11px] font-bold bg-black/40 text-amber-200 px-2.5 py-1 rounded-full border border-white/20 shrink-0">
+              Silent on Admin
+            </span>
+          </div>
+
+          <p className="text-xs text-white/95 leading-relaxed font-medium bg-black/30 p-2.5 rounded-xl border border-white/10">
+            Sensor detected flood water. Village phones are ringing with alarms. Choose an action:
+          </p>
+
+          {/* Simple few actions only */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-0.5">
+            <button
+              type="button"
+              id="btn-admin-card-turn-off-sensor"
+              onClick={() => {
+                if (onTurnOffSensorAndDismiss) {
+                  onTurnOffSensorAndDismiss(currentActiveAlert.id);
+                } else if (onDismissAlert) {
+                  onDismissAlert(currentActiveAlert.id);
+                }
+              }}
+              className="py-2.5 px-3 rounded-xl bg-white text-[#93000A] hover:bg-zinc-100 active:scale-98 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+            >
+              <Power className="w-4 h-4 text-[#BA1A1A] shrink-0" />
+              <span>Turn Off River Sensor</span>
+            </button>
+
+            {onOpenSmsModal && (
+              <button
+                type="button"
+                id="btn-admin-card-send-sms"
+                onClick={onOpenSmsModal}
+                className="py-2.5 px-3 rounded-xl bg-[#006A4E] hover:bg-emerald-800 active:scale-98 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer border border-emerald-400 shadow-xs"
+              >
+                <Send className="w-4 h-4 shrink-0" />
+                <span>Send SMS to Village</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              id="btn-admin-card-dismiss-alert"
+              onClick={() => {
+                if (onDismissAlert) {
+                  onDismissAlert(currentActiveAlert.id);
+                }
+              }}
+              className="py-2.5 px-3 rounded-xl bg-black/40 hover:bg-black/60 active:scale-98 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer border border-white/20"
+            >
+              <Check className="w-4 h-4 shrink-0" />
+              <span>Dismiss Alert</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ================= 1. SAFETY STATUS OVERVIEW BANNER ================= */}
       <div className="bg-[#F3F3FA] rounded-[24px] p-4.5 border border-slate-100 space-y-3.5 shadow-xs">
         <div className="flex items-center gap-3">

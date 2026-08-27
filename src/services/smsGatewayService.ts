@@ -10,8 +10,12 @@ export interface SmsRecipient {
   phone: string;
   role: string;
   village: string;
+  language?: 'en' | 'ny';
   enabled: boolean;
 }
+
+export const CHICHEWA_SMS_ALERT = 'KUSEFUKIRA KWA MADZI: Nsinje wa Ruo  madzi akusefukira  pitani Kumalo okwera';
+export const SIMPLE_ENGLISH_SMS_ALERT = 'FLOOD ALERT: Ruo River rising fast at Dzenje! Go to high ground now!';
 
 export interface SmsGatewayConfig {
   enabled: boolean;
@@ -105,6 +109,8 @@ class SmsGatewayServiceClass {
       ...recipient,
       id: newId,
       phone: recipient.phone.trim(),
+      language: recipient.language || 'ny',
+      enabled: recipient.enabled !== undefined ? recipient.enabled : false, // Default FALSE: must be marked by admin
     };
     const updatedList = [...(this.config.recipients || []).filter((r) => !isMockRecipient(r)), newRec];
     this.config.recipients = updatedList;
@@ -128,6 +134,7 @@ class SmsGatewayServiceClass {
     phone: string;
     village: string;
     role?: string;
+    language?: 'en' | 'ny';
     enabled?: boolean;
   }) {
     if (!user.phone || user.phone.trim().length < 6) return;
@@ -141,13 +148,16 @@ class SmsGatewayServiceClass {
     const updatedList = [...cleanList];
 
     if (existingIndex >= 0) {
+      // Preserve existing enabled preference if admin marked/unmarked it
+      const currentEnabled = cleanList[existingIndex].enabled;
       updatedList[existingIndex] = {
         ...updatedList[existingIndex],
         name: user.name || updatedList[existingIndex].name,
         phone: cleanPhone,
         village: user.village || updatedList[existingIndex].village,
         role: user.role || updatedList[existingIndex].role || 'Signed-In Resident',
-        enabled: user.enabled !== undefined ? user.enabled : true,
+        language: user.language || updatedList[existingIndex].language || 'ny',
+        enabled: user.enabled !== undefined ? user.enabled : (currentEnabled ?? false),
       };
     } else {
       updatedList.push({
@@ -156,7 +166,8 @@ class SmsGatewayServiceClass {
         phone: cleanPhone,
         village: user.village || 'Dzenje Village',
         role: user.role || 'Signed-In Resident',
-        enabled: user.enabled !== undefined ? user.enabled : true,
+        language: user.language || 'ny',
+        enabled: user.enabled !== undefined ? user.enabled : false, // Default FALSE: no number receives SMS until admin marks it
       });
     }
 
@@ -175,16 +186,15 @@ class SmsGatewayServiceClass {
       usersSnap.forEach((docSnap) => {
         const data = docSnap.data();
         if (data && data.phone && typeof data.phone === 'string' && data.phone.trim().length >= 6) {
-          if (data.smsAlertsEnabled !== false) {
-            this.addOrUpdateUserRecipient({
-              uid: docSnap.id,
-              name: data.name || 'Village Resident',
-              phone: data.phone,
-              village: data.village || 'Dzenje Village',
-              role: data.role === 'admin' ? 'Village Admin' : 'Registered Resident',
-              enabled: true,
-            });
-          }
+          this.addOrUpdateUserRecipient({
+            uid: docSnap.id,
+            name: data.name || 'Village Resident',
+            phone: data.phone,
+            village: data.village || 'Dzenje Village',
+            role: data.role === 'admin' ? 'Village Admin' : 'Registered Resident',
+            language: data.alertLanguage || 'ny',
+            // Do not force enabled = true; preserve or default to false
+          });
         }
       });
 
@@ -200,7 +210,8 @@ class SmsGatewayServiceClass {
               phone: data.phone,
               village: data.village || 'Dzenje Village',
               role: data.role || 'Community Contact',
-              enabled: data.enabled !== false,
+              language: data.language || 'ny',
+              enabled: data.enabled ?? false,
             });
           }
         });
@@ -239,8 +250,96 @@ class SmsGatewayServiceClass {
     this.saveConfig({ recipients: this.config.recipients });
   }
 
+  public updateRecipientLanguage(id: string, language: 'en' | 'ny') {
+    this.config.recipients = this.config.recipients.map((r) =>
+      r.id === id ? { ...r, language } : r
+    );
+    this.saveConfig({ recipients: this.config.recipients });
+  }
+
+  public setAllRecipientsEnabled(enabled: boolean, languageFilter?: 'en' | 'ny') {
+    this.config.recipients = this.config.recipients.map((r) => {
+      if (languageFilter && (r.language || 'ny') !== languageFilter) {
+        return r;
+      }
+      return { ...r, enabled };
+    });
+    this.saveConfig({ recipients: this.config.recipients });
+  }
+
   public getActiveRecipients(): SmsRecipient[] {
     return this.config.recipients.filter((r) => r.enabled && r.phone.trim().length >= 6);
+  }
+
+  public getRecipientsByLanguage(lang: 'en' | 'ny', markedOnly: boolean = false): SmsRecipient[] {
+    return this.config.recipients.filter((r) => {
+      const recipientLang = r.language || 'ny';
+      if (recipientLang !== lang) return false;
+      if (markedOnly && !r.enabled) return false;
+      return r.phone.trim().length >= 6;
+    });
+  }
+
+  /**
+   * Dispatches language-specific SMS messages:
+   * - Chichewa recipients (marked only) get CHICHEWA_SMS_ALERT
+   * - English recipients (marked only) get SIMPLE_ENGLISH_SMS_ALERT
+   */
+  public async sendLanguageAwareBroadcastSms(): Promise<{
+    success: boolean;
+    sentCount: number;
+    failedCount: number;
+    chichewaCount: number;
+    englishCount: number;
+    error?: string;
+    recipientsCount: number;
+  }> {
+    const active = this.getActiveRecipients();
+    if (active.length === 0) {
+      return {
+        success: false,
+        sentCount: 0,
+        failedCount: 0,
+        chichewaCount: 0,
+        englishCount: 0,
+        recipientsCount: 0,
+        error: 'No phone numbers are marked to receive SMS. Please mark recipient numbers first.',
+      };
+    }
+
+    const chichewaRecipients = active.filter((r) => (r.language || 'ny') === 'ny').map((r) => r.phone);
+    const englishRecipients = active.filter((r) => r.language === 'en').map((r) => r.phone);
+
+    let totalSent = 0;
+    const errors: string[] = [];
+
+    if (chichewaRecipients.length > 0) {
+      const resNy = await this.sendBroadcastSms(CHICHEWA_SMS_ALERT, chichewaRecipients);
+      if (resNy.success) {
+        totalSent += chichewaRecipients.length;
+      } else if (resNy.error) {
+        errors.push(`Chichewa: ${resNy.error}`);
+      }
+    }
+
+    if (englishRecipients.length > 0) {
+      const resEn = await this.sendBroadcastSms(SIMPLE_ENGLISH_SMS_ALERT, englishRecipients);
+      if (resEn.success) {
+        totalSent += englishRecipients.length;
+      } else if (resEn.error) {
+        errors.push(`English: ${resEn.error}`);
+      }
+    }
+
+    return {
+      success: totalSent > 0 || errors.length === 0,
+      sentCount: totalSent,
+      failedCount: active.length - totalSent,
+      chichewaCount: chichewaRecipients.length,
+      englishCount: englishRecipients.length,
+      recipientsCount: active.length,
+      error: errors.length > 0 ? errors.join('; ') : undefined,
+    };
   }
 
   /**
@@ -268,8 +367,9 @@ class SmsGatewayServiceClass {
       };
     }
 
-    // Enforce strict Textbee requirement: text must be less than 27 characters (max 26 chars)
-    const safeMessage = (message || '[EVACUATE] Ruo Flood Alert!').slice(0, 26);
+    // Enforce Textbee requirement: text must be below 100 characters (max 99 chars)
+    const defaultMsg = SIMPLE_ENGLISH_SMS_ALERT;
+    const safeMessage = (message || defaultMsg).slice(0, 99);
 
     const apiKey = this.config.textbeeApiKey || DEFAULT_CONFIG.textbeeApiKey;
     const deviceId = this.config.textbeeDeviceId || DEFAULT_CONFIG.textbeeDeviceId;
@@ -341,11 +441,12 @@ class SmsGatewayServiceClass {
     };
   }
 
-  public getNativeSmsUrl(message: string, specificNumbers?: string[]): string {
+  public getNativeSmsUrl(message?: string, specificNumbers?: string[]): string {
     const targets = specificNumbers || this.getActiveRecipients().map((r) => r.phone.trim());
     if (targets.length === 0) return '';
 
-    const safeMessage = (message || '[EVACUATE] Ruo Flood Alert!').slice(0, 26);
+    const defaultMsg = SIMPLE_ENGLISH_SMS_ALERT;
+    const safeMessage = (message || defaultMsg).slice(0, 99);
     // Join numbers with comma for universal SMS app compatibility
     const numberList = targets.join(',');
     const encodedBody = encodeURIComponent(safeMessage);
@@ -355,7 +456,7 @@ class SmsGatewayServiceClass {
     return isIOS ? `sms:${numberList}&body=${encodedBody}` : `sms:${numberList}?body=${encodedBody}`;
   }
 
-  public sendViaNativeSms(message: string, specificNumbers?: string[]): boolean {
+  public sendViaNativeSms(message?: string, specificNumbers?: string[]): boolean {
     const url = this.getNativeSmsUrl(message, specificNumbers);
     if (!url) return false;
     
@@ -369,11 +470,27 @@ class SmsGatewayServiceClass {
 
   /**
    * Helper to format flood warning text for local SMS
-   * STRICT CONSTRAINT: Must be less than 27 characters (max 26 chars for Textbee limit)
+   * Supports Chichewa ('ny') and Simple English ('en')
+   * CONSTRAINT: Must be below 100 characters (max 99 chars)
    */
-  public formatFloodAlertMessage(village?: string, riverName: string = 'Ruo', peakDelta?: number): string {
-    // Exactly 26 characters: "[EVACUATE] Ruo Flood Alert!"
-    return '[EVACUATE] Ruo Flood Alert!';
+  public formatFloodAlertMessage(
+    village?: string,
+    riverName: string = 'Ruo',
+    langOrDelta?: 'en' | 'ny' | number,
+    maybeLang?: 'en' | 'ny'
+  ): string {
+    const lang: 'en' | 'ny' =
+      typeof langOrDelta === 'string'
+        ? langOrDelta
+        : maybeLang || 'ny';
+
+    if (lang === 'ny') {
+      // Exact Chichewa message requested by user
+      return CHICHEWA_SMS_ALERT.slice(0, 99);
+    }
+    const cleanVillage = village && village !== 'all' ? village.replace(' Village', '') : 'Dzenje';
+    const msg = `FLOOD ALERT: ${riverName} River rising fast at ${cleanVillage}! Go to high ground now!`;
+    return msg.slice(0, 99);
   }
 }
 

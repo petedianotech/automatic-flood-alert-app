@@ -28,6 +28,7 @@ export interface UserProfile {
   village: string;
   phone?: string;
   smsAlertsEnabled?: boolean;
+  alertLanguage?: 'en' | 'ny'; // 'en' = Simple English ("Go to high ground"), 'ny' = Chichewa ("Pitani kumalo okwera")
   email?: string;
   photoURL?: string;
   authProvider: 'name_village' | 'google';

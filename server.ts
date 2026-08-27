@@ -196,8 +196,9 @@ async function startServer() {
         });
       }
 
-      // Enforce Textbee length limit: strictly less than 27 characters (max 26 characters)
-      const safeMessage = (message || '[EVACUATE] Ruo Flood Alert!').slice(0, 26);
+      // Enforce Textbee length limit: below 100 characters (max 99 characters)
+      const defaultMsg = 'FLOOD ALERT: Ruo River rising fast at Dzenje! Evacuate to high ground now!';
+      const safeMessage = (message || defaultMsg).slice(0, 99);
       const cleanRecipients = recipients.map((r: string) => (r || '').trim()).filter((r: string) => r.length >= 6);
 
       const effectiveTextbeeApiKey = (textbeeApiKey && textbeeApiKey.trim().length > 5)

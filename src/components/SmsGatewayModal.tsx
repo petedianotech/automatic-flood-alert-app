@@ -4,17 +4,11 @@ import {
   MessageSquare,
   Smartphone,
   Send,
-  Plus,
   Trash2,
   CheckCircle2,
   AlertTriangle,
-  Phone,
-  Bell,
-  UserPlus,
-  ShieldCheck,
-  ToggleLeft,
-  ToggleRight,
   Check,
+  Search,
 } from 'lucide-react';
 import {
   smsGatewayService,
@@ -34,47 +28,19 @@ export const SmsGatewayModal: React.FC<SmsGatewayModalProps> = ({
     smsGatewayService.getConfig()
   );
 
-  const [testMessage, setTestMessage] = useState(
-    '[EVACUATE] Ruo Flood Alert!'
-  );
+  const [activeTab, setActiveTab] = useState<'all' | 'chichewa' | 'english' | 'marked'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [sendResult, setSendResult] = useState<{
     success: boolean;
     sentCount: number;
     failedCount: number;
+    chichewaCount?: number;
+    englishCount?: number;
     error?: string;
   } | null>(null);
 
-  // New recipient form state
-  const [newName, setNewName] = useState('');
-  const [newPhone, setNewPhone] = useState('');
-  const [newVillage, setNewVillage] = useState('Dzenje Village');
-
   if (!isOpen) return null;
-
-  const handleToggleAutoSend = () => {
-    const newValue = !config.autoSendOnCriticalAlert;
-    const updated = { ...config, autoSendOnCriticalAlert: newValue };
-    setConfig(updated);
-    smsGatewayService.saveConfig({ autoSendOnCriticalAlert: newValue });
-  };
-
-  const handleAddRecipient = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPhone.trim()) return;
-
-    smsGatewayService.addRecipient({
-      name: newName.trim() || 'Village Resident',
-      phone: newPhone.trim(),
-      role: 'Registered Contact',
-      village: newVillage.trim() || 'Dzenje Village',
-      enabled: true,
-    });
-
-    setConfig(smsGatewayService.getConfig());
-    setNewName('');
-    setNewPhone('');
-  };
 
   const handleRemoveRecipient = (id: string) => {
     smsGatewayService.removeRecipient(id);
@@ -86,16 +52,51 @@ export const SmsGatewayModal: React.FC<SmsGatewayModalProps> = ({
     setConfig(smsGatewayService.getConfig());
   };
 
-  const handleSendTestBroadcast = async () => {
+  const handleChangeLanguage = (id: string, language: 'en' | 'ny') => {
+    smsGatewayService.updateRecipientLanguage(id, language);
+    setConfig(smsGatewayService.getConfig());
+  };
+
+  const handleMarkAll = (enabled: boolean, langFilter?: 'en' | 'ny') => {
+    smsGatewayService.setAllRecipientsEnabled(enabled, langFilter);
+    setConfig(smsGatewayService.getConfig());
+  };
+
+  const handleSendBroadcast = async () => {
     setIsSending(true);
     setSendResult(null);
 
-    const result = await smsGatewayService.sendBroadcastSms(testMessage);
+    const result = await smsGatewayService.sendLanguageAwareBroadcastSms();
     setIsSending(false);
     setSendResult(result);
   };
 
-  const activeRecipients = smsGatewayService.getActiveRecipients();
+  const recipients = config.recipients || [];
+  const activeRecipients = recipients.filter((r) => r.enabled && r.phone.trim().length >= 6);
+
+  // Chichewa vs English breakdowns
+  const chichewaAll = recipients.filter((r) => (r.language || 'ny') === 'ny');
+  const chichewaMarked = chichewaAll.filter((r) => r.enabled);
+
+  const englishAll = recipients.filter((r) => r.language === 'en');
+  const englishMarked = englishAll.filter((r) => r.enabled);
+
+  // Filtered recipients according to search query and active tab
+  const filteredRecipients = recipients.filter((rec) => {
+    const recLang = rec.language || 'ny';
+    if (activeTab === 'chichewa' && recLang !== 'ny') return false;
+    if (activeTab === 'english' && recLang !== 'en') return false;
+    if (activeTab === 'marked' && !rec.enabled) return false;
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const matchName = rec.name.toLowerCase().includes(q);
+      const matchPhone = rec.phone.toLowerCase().includes(q);
+      const matchVillage = rec.village.toLowerCase().includes(q);
+      return matchName || matchPhone || matchVillage;
+    }
+    return true;
+  });
 
   return (
     <div
@@ -104,251 +105,279 @@ export const SmsGatewayModal: React.FC<SmsGatewayModalProps> = ({
     >
       <div className="bg-[#F3F3FA] rounded-[28px] max-w-lg w-full p-4 sm:p-6 text-[#1C1B1F] shadow-2xl border border-slate-200 space-y-4 max-h-[92vh] overflow-y-auto">
         
-        {/* Material 3 Modal Header */}
-        <div className="flex items-start justify-between gap-3 pb-2 border-b border-slate-200/80">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-2 border-b border-slate-200/80">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-[#006A4E] text-white flex items-center justify-center shadow-xs shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-[#006A4E] text-white flex items-center justify-center shadow-xs shrink-0">
               <MessageSquare className="w-5 h-5" />
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-bold text-[#1C1B1F] leading-tight">
-                SMS Flood Warning Gateway
+                SMS Flood Alert Gateway
               </h2>
-              <p className="text-xs text-[#49454F] mt-0.5">
-                Send automatic text alerts to village phones via Textbee
+              <p className="text-xs text-[#49454F]">
+                Mark numbers to receive Chichewa or English SMS warnings
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-9 h-9 rounded-full bg-slate-200/80 hover:bg-slate-300/80 flex items-center justify-center text-[#49454F] transition active:scale-95 cursor-pointer shrink-0"
+            className="w-9 h-9 rounded-full bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-[#49454F] transition active:scale-95 cursor-pointer shrink-0"
             title="Close"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* 1. Connected Gateway Phone Card (Textbee) */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 space-y-3 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Smartphone className="w-5 h-5 text-[#006A4E]" />
-              <span className="text-xs font-bold text-[#1C1B1F]">
-                Gateway Phone Connected
-              </span>
-            </div>
-            <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
-              <span>Online (SM-A105F)</span>
-            </span>
-          </div>
-
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs text-[#49454F] space-y-1.5">
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="font-semibold text-slate-700">Phone Model:</span>
-              <span className="font-mono text-[#1C1B1F]">Samsung SM-A105F</span>
-            </div>
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="font-semibold text-slate-700">Textbee Device ID:</span>
-              <span className="font-mono text-[#1C1B1F]">6a8fc290f3...</span>
-            </div>
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="font-semibold text-slate-700">API Key Status:</span>
-              <span className="font-semibold text-emerald-700 flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Connected & Ready</span>
-              </span>
-            </div>
-          </div>
-
-          {/* Auto-Send Switch */}
-          <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-            <div className="flex items-center gap-2">
-              <Bell className="w-4 h-4 text-[#006A4E]" />
-              <div>
-                <span className="text-xs font-bold text-[#1C1B1F] block">
-                  Automatic Flood Warning SMS
-                </span>
-                <span className="text-[11px] text-[#49454F]">
-                  Send SMS immediately when water level turns RED critical
-                </span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleToggleAutoSend}
-              className="text-[#006A4E] hover:opacity-90 transition cursor-pointer"
-              title="Toggle automatic flood SMS"
-            >
-              {config.autoSendOnCriticalAlert ? (
-                <ToggleRight className="w-8 h-8 text-[#006A4E]" />
-              ) : (
-                <ToggleLeft className="w-8 h-8 text-slate-400" />
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* 2. Village Phone Numbers List */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 space-y-3 shadow-2xs">
-          <div className="flex items-center justify-between">
+        {/* Gateway Phone Status Only */}
+        <div className="bg-white rounded-2xl p-3.5 border border-slate-200 flex items-center justify-between shadow-2xs">
+          <div className="flex items-center gap-2.5">
+            <Smartphone className="w-5 h-5 text-[#006A4E]" />
             <div>
               <span className="text-xs font-bold text-[#1C1B1F] block">
-                Emergency Contact Numbers
+                Gateway Phone
               </span>
               <span className="text-[11px] text-[#49454F]">
-                {activeRecipients.length} phone number{activeRecipients.length === 1 ? '' : 's'} active to receive text alerts
+                Sends flood alerts directly to local SIMs
               </span>
             </div>
-            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-[#006A4E] border border-slate-200">
-              {config.recipients.length} Saved
+          </div>
+          <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1.5 shrink-0">
+            <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+            <span>Online & Ready</span>
+          </span>
+        </div>
+
+        {/* Language Summary & Mark Filters */}
+        <div className="bg-white rounded-2xl p-4 border border-slate-200 space-y-3 shadow-2xs">
+          
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-[#1C1B1F]">
+              Marked Numbers: {activeRecipients.length} of {recipients.length}
+            </span>
+            <span className="text-[11px] text-[#49454F] font-medium">
+              Tap checkbox to mark
             </span>
           </div>
 
-          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-            {config.recipients.length === 0 ? (
-              <div className="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-center space-y-1">
-                <p className="text-xs font-bold text-[#1C1B1F]">No Saved Numbers Yet</p>
-                <p className="text-[11px] text-[#49454F]">
-                  Add village numbers below. Residents can also register their phone numbers in the app.
-                </p>
+          {/* Chichewa & English Status Cards */}
+          <div className="grid grid-cols-2 gap-2">
+            {/* Chichewa Card */}
+            <div
+              onClick={() => setActiveTab(activeTab === 'chichewa' ? 'all' : 'chichewa')}
+              className={`p-3 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
+                activeTab === 'chichewa'
+                  ? 'bg-emerald-50 border-emerald-400 ring-2 ring-emerald-300'
+                  : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-emerald-950 flex items-center gap-1">
+                  <span>🇲🇼</span>
+                  <span>Chichewa SMS</span>
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-200">
+                  {chichewaMarked.length} marked
+                </span>
               </div>
-            ) : (
-              config.recipients.map((rec) => (
-                <div
-                  key={rec.id}
-                  className={`p-3 rounded-xl border flex items-center justify-between gap-2.5 transition ${
-                    rec.enabled
-                      ? 'bg-slate-50 border-slate-200'
-                      : 'bg-slate-100/50 border-slate-200/60 opacity-60'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <input
-                      type="checkbox"
-                      checked={rec.enabled}
-                      onChange={(e) => handleToggleRecipient(rec.id, e.target.checked)}
-                      className="w-4 h-4 rounded-md accent-[#006A4E] cursor-pointer"
-                    />
-                    <div className="min-w-0">
-                      <span className="text-xs font-bold text-[#1C1B1F] block truncate">
-                        {rec.name}
-                      </span>
-                      <span className="text-[11px] font-mono text-[#49454F]">
-                        {rec.phone} • {rec.village}
-                      </span>
-                    </div>
-                  </div>
+              <p className="mt-2 text-[11px] font-semibold text-emerald-900">
+                {chichewaMarked.length} of {chichewaAll.length} accounts marked
+              </p>
+            </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveRecipient(rec.id)}
-                    className="w-8 h-8 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 flex items-center justify-center transition cursor-pointer shrink-0"
-                    title="Delete number"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))
+            {/* English Card */}
+            <div
+              onClick={() => setActiveTab(activeTab === 'english' ? 'all' : 'english')}
+              className={`p-3 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
+                activeTab === 'english'
+                  ? 'bg-blue-50 border-blue-400 ring-2 ring-blue-300'
+                  : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-blue-950 flex items-center gap-1">
+                  <span>🇬🇧</span>
+                  <span>English SMS</span>
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 border border-blue-200">
+                  {englishMarked.length} marked
+                </span>
+              </div>
+              <p className="mt-2 text-[11px] font-semibold text-blue-900">
+                {englishMarked.length} of {englishAll.length} accounts marked
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Mark Buttons */}
+          <div className="flex items-center justify-between gap-1 text-[11px] pt-1 border-t border-slate-100">
+            <span className="font-bold text-[#49454F]">Quick:</span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => handleMarkAll(true, 'ny')}
+                className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900 font-bold transition cursor-pointer"
+              >
+                Mark All Chichewa (🇲🇼)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMarkAll(true)}
+                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold transition cursor-pointer"
+              >
+                Mark All
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMarkAll(false)}
+                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium transition cursor-pointer"
+              >
+                Unmark All
+              </button>
+            </div>
+          </div>
+
+          {/* Search Box */}
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search by name, village, or number..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-8 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#006A4E]"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                Clear
+              </button>
             )}
           </div>
 
-          {/* Add Phone Number Form */}
-          <form onSubmit={handleAddRecipient} className="pt-3 border-t border-slate-100 space-y-2">
-            <span className="text-[11px] font-bold text-[#49454F] flex items-center gap-1">
-              <UserPlus className="w-3.5 h-3.5 text-[#006A4E]" />
-              <span>Add Village Phone Number</span>
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <input
-                type="text"
-                placeholder="Full Name (e.g., Chief Dzenje)"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                className="px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#006A4E]"
-              />
-              <input
-                type="tel"
-                placeholder="Phone (e.g., +265999123456)"
-                value={newPhone}
-                onChange={(e) => setNewPhone(e.target.value)}
-                className="px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono font-medium focus:outline-none focus:ring-2 focus:ring-[#006A4E]"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-[#1C1B1F] flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-98 border border-slate-200"
-            >
-              <Plus className="w-4 h-4 text-[#006A4E]" />
-              <span>Save Phone Number to App</span>
-            </button>
-          </form>
+          {/* Numbers List */}
+          <div className="space-y-2 max-h-64 overflow-y-auto pr-0.5">
+            {filteredRecipients.length === 0 ? (
+              <div className="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-center text-xs text-[#49454F]">
+                No registered numbers match this view.
+              </div>
+            ) : (
+              filteredRecipients.map((rec) => {
+                const isChichewa = (rec.language || 'ny') === 'ny';
+                return (
+                  <div
+                    key={rec.id}
+                    className={`p-3 rounded-2xl border transition flex flex-col gap-2 ${
+                      rec.enabled
+                        ? 'bg-white border-emerald-300 shadow-2xs ring-1 ring-emerald-200/50'
+                        : 'bg-slate-50/70 border-slate-200 opacity-75'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      {/* Checkbox and Contact info */}
+                      <button
+                        type="button"
+                        onClick={() => handleToggleRecipient(rec.id, !rec.enabled)}
+                        className="flex items-center gap-2.5 text-left cursor-pointer grow min-w-0"
+                      >
+                        <div className="shrink-0">
+                          {rec.enabled ? (
+                            <div className="w-5 h-5 rounded-md bg-[#006A4E] text-white flex items-center justify-center shadow-2xs">
+                              <Check className="w-3.5 h-3.5 stroke-3" />
+                            </div>
+                          ) : (
+                            <div className="w-5 h-5 rounded-md border-2 border-slate-300 bg-white" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-xs font-bold text-[#1C1B1F] truncate">
+                              {rec.name}
+                            </span>
+                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 font-medium">
+                              {rec.village}
+                            </span>
+                          </div>
+                          <span className="text-[11px] font-mono text-[#49454F] block">
+                            {rec.phone}
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* Delete Contact */}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveRecipient(rec.id)}
+                        className="w-7 h-7 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-600 flex items-center justify-center transition cursor-pointer shrink-0"
+                        title="Remove number"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    {/* Language Badge & Status */}
+                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 text-[11px]">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-slate-500 text-[10px]">Gets:</span>
+                        <button
+                          type="button"
+                          onClick={() => handleChangeLanguage(rec.id, isChichewa ? 'en' : 'ny')}
+                          className={`px-2 py-0.5 rounded-full font-bold border transition cursor-pointer flex items-center gap-1 ${
+                            isChichewa
+                              ? 'bg-emerald-50 text-emerald-900 border-emerald-200 hover:bg-emerald-100'
+                              : 'bg-blue-50 text-blue-900 border-blue-200 hover:bg-blue-100'
+                          }`}
+                          title="Click to switch language"
+                        >
+                          <span>{isChichewa ? '🇲🇼 Chichewa SMS' : '🇬🇧 English SMS'}</span>
+                          <span className="text-[9px] text-slate-400 underline">switch</span>
+                        </button>
+                      </div>
+
+                      <div>
+                        {rec.enabled ? (
+                          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                            ✓ Ready to Receive
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-medium text-slate-500 bg-slate-200/60 px-2 py-0.5 rounded-full">
+                            Unmarked (No SMS)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
 
-        {/* 3. Send Warning Text Message Card */}
-        <div className="bg-emerald-50/70 rounded-2xl p-4 border border-emerald-200 space-y-3 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-emerald-950 block">
-              Send Emergency Text Message Now
-            </span>
-            <span
-              className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                testMessage.length <= 26
-                  ? 'bg-emerald-100 text-emerald-800'
-                  : 'bg-amber-100 text-amber-900'
-              }`}
-            >
-              {testMessage.length}/26 letters (Textbee limit)
-            </span>
-          </div>
+        {/* Send Emergency Warning Action */}
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={handleSendBroadcast}
+            disabled={isSending || activeRecipients.length === 0}
+            className="w-full py-3.5 px-4 rounded-2xl bg-[#006A4E] hover:bg-emerald-800 active:scale-98 text-white text-xs sm:text-sm font-bold shadow-xs flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50"
+          >
+            {isSending ? (
+              <span>Sending SMS Warning...</span>
+            ) : (
+              <>
+                <Send className="w-4 h-4 fill-current" />
+                <span>
+                  Send Flood Warning to {activeRecipients.length} Marked Phone{activeRecipients.length === 1 ? '' : 's'}
+                </span>
+              </>
+            )}
+          </button>
 
-          <textarea
-            rows={2}
-            value={testMessage}
-            maxLength={26}
-            onChange={(e) => setTestMessage(e.target.value.slice(0, 26))}
-            className="w-full p-3 rounded-xl bg-white border border-emerald-300 text-xs text-[#1C1B1F] font-bold focus:outline-none focus:ring-2 focus:ring-[#006A4E] resize-none"
-            placeholder="[EVACUATE] Ruo Flood Alert!"
-          />
-
-          <p className="text-[11px] text-emerald-900 leading-snug">
-            Textbee sends short messages (up to 26 letters) fast to all village numbers.
-          </p>
-
-          <div className="space-y-2 pt-1">
-            {/* Action 1: Textbee Gateway Dispatch */}
-            <button
-              type="button"
-              onClick={handleSendTestBroadcast}
-              disabled={isSending || activeRecipients.length === 0}
-              className="w-full py-3 px-4 rounded-full bg-[#006A4E] hover:bg-emerald-800 active:scale-98 text-white text-xs font-bold shadow-xs flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50"
-            >
-              {isSending ? (
-                <span>Sending via Samsung SM-A105F...</span>
-              ) : (
-                <>
-                  <Send className="w-4 h-4 fill-current" />
-                  <span>Send SMS via Textbee ({activeRecipients.length} Phones)</span>
-                </>
-              )}
-            </button>
-
-            {/* Action 2: Direct Phone App Link */}
-            <a
-              href={smsGatewayService.getNativeSmsUrl(testMessage)}
-              target="_blank"
-              rel="noreferrer"
-              className="w-full py-2.5 px-4 rounded-full bg-white hover:bg-emerald-100/50 border border-emerald-300 active:scale-98 text-emerald-900 text-xs font-bold shadow-2xs flex items-center justify-center gap-2 transition cursor-pointer text-center"
-            >
-              <Phone className="w-3.5 h-3.5 text-[#006A4E]" />
-              <span>Open Phone SMS App</span>
-            </a>
-          </div>
-
-          {/* Result Alert */}
+          {/* Feedback message */}
           {sendResult && (
             <div
               className={`p-3 rounded-xl text-xs font-medium flex items-center gap-2.5 ${
@@ -364,7 +393,7 @@ export const SmsGatewayModal: React.FC<SmsGatewayModalProps> = ({
               )}
               <span className="leading-snug">
                 {sendResult.success
-                  ? `Success! Text warning sent via Textbee to ${sendResult.sentCount} village phone${sendResult.sentCount === 1 ? '' : 's'}.`
+                  ? `Success! Emergency text sent to ${sendResult.sentCount} marked phone${sendResult.sentCount === 1 ? '' : 's'} (${sendResult.chichewaCount || 0} Chichewa, ${sendResult.englishCount || 0} English).`
                   : sendResult.error || 'Failed to send text message.'}
               </span>
             </div>

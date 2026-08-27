@@ -351,7 +351,8 @@ class FirebaseFloodService {
     village: string,
     phone?: string,
     smsAlertsEnabled: boolean = true,
-    password?: string
+    password?: string,
+    alertLanguage: 'en' | 'ny' = 'ny'
   ): Promise<UserProfile> {
     const trimmedName = name.trim();
     const trimmedVillage = village.trim();
@@ -405,6 +406,7 @@ class FirebaseFloodService {
         village: trimmedVillage,
         phone: phone ? phone.trim() : undefined,
         smsAlertsEnabled: smsAlertsEnabled ?? true,
+        alertLanguage: alertLanguage || 'ny',
         authProvider: 'name_village',
         hasPassword: Boolean(password && password.trim().length > 0),
         role: isAdminLogin ? 'admin' : 'resident',
@@ -420,6 +422,7 @@ class FirebaseFloodService {
           phone: profile.phone,
           village: profile.village,
           role: profile.role === 'admin' ? 'Village Admin' : 'Resident',
+          language: profile.alertLanguage,
           enabled: profile.smsAlertsEnabled !== false,
         });
       }
@@ -460,7 +463,8 @@ class FirebaseFloodService {
   public async signInWithGoogle(
     defaultVillage: string = 'Dzenje Village',
     phone?: string,
-    smsAlertsEnabled: boolean = true
+    smsAlertsEnabled: boolean = true,
+    alertLanguage: 'en' | 'ny' = 'ny'
   ): Promise<UserProfile> {
     if (!this.auth) {
       throw new Error('Firebase Auth is not available.');
@@ -476,8 +480,9 @@ class FirebaseFloodService {
 
       let village = defaultVillage;
       let existingPhone = phone ? phone.trim() : undefined;
+      let existingLang = alertLanguage || 'ny';
 
-      // Check if existing profile document has village/phone
+      // Check if existing profile document has village/phone/language
       if (this.db) {
         try {
           const userDoc = await getDoc(doc(this.db, 'users', fbUser.uid));
@@ -485,6 +490,7 @@ class FirebaseFloodService {
             const d = userDoc.data();
             if (d.village) village = d.village;
             if (d.phone && !existingPhone) existingPhone = d.phone;
+            if (d.alertLanguage) existingLang = d.alertLanguage;
           }
         } catch {
           // ignore
@@ -500,6 +506,7 @@ class FirebaseFloodService {
         village,
         phone: existingPhone,
         smsAlertsEnabled: smsAlertsEnabled ?? true,
+        alertLanguage: existingLang,
         email: userEmail,
         photoURL: fbUser.photoURL || undefined,
         authProvider: 'google',
@@ -515,6 +522,7 @@ class FirebaseFloodService {
           phone: profile.phone,
           village: profile.village,
           role: profile.role === 'admin' ? 'Village Admin' : 'Resident',
+          language: profile.alertLanguage,
           enabled: profile.smsAlertsEnabled !== false,
         });
       }
@@ -583,6 +591,7 @@ class FirebaseFloodService {
         phone: updatedProfile.phone,
         village: updatedProfile.village,
         role: updatedProfile.role === 'admin' ? 'Village Admin' : 'Resident',
+        language: updatedProfile.alertLanguage || 'ny',
         enabled: updatedProfile.smsAlertsEnabled !== false,
       });
     }
@@ -759,14 +768,9 @@ class FirebaseFloodService {
       console.warn('[FCM Gateway] Background broadcast note:', pushErr);
     });
 
-    // 4. Trigger Textbee SMS Gateway to send emergency text messages to all registered village phone numbers
+    // 4. Trigger Textbee SMS Gateway to send emergency text messages to marked village phone numbers
     if (smsGatewayService.getConfig().autoSendOnCriticalAlert) {
-      const smsMsg = smsGatewayService.formatFloodAlertMessage(
-        newAlert.village || 'Dzenje Village',
-        newAlert.riverName || 'Ruo River',
-        newAlert.peakDelta
-      );
-      smsGatewayService.sendBroadcastSms(smsMsg).then((smsRes) => {
+      smsGatewayService.sendLanguageAwareBroadcastSms().then((smsRes) => {
         console.log('[SMS Gateway] Automatic SMS flood warning dispatched:', smsRes);
       }).catch((smsErr) => {
         console.warn('[SMS Gateway] Automatic SMS broadcast note:', smsErr);

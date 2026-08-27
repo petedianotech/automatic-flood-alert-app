@@ -47,8 +47,9 @@ export default defineConfig(() => {
                 try {
                   const body = JSON.parse(bodyStr || '{}');
                   const recipients: string[] = body.recipients || [];
-                  const rawMessage: string = body.message || '[EVACUATE] Ruo Flood Alert!';
-                  const safeMessage = rawMessage.slice(0, 26);
+                  const defaultMsg = 'FLOOD ALERT: Ruo River rising fast at Dzenje! Evacuate to high ground now!';
+                  const rawMessage: string = body.message || defaultMsg;
+                  const safeMessage = rawMessage.slice(0, 99);
 
                   const textbeeApiKey = body.textbeeApiKey || process.env.TEXTBEE_API_KEY || 'txb_qFXRYTTd0wxVbT5sXIw8sHCHPygvhSrQ';
                   const textbeeDeviceId = body.textbeeDeviceId || process.env.TEXTBEE_DEVICE_ID || '6a8fc290f3dc6f0f7b175829';

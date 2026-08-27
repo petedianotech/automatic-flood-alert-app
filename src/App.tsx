@@ -289,20 +289,25 @@ export default function App() {
       if (currentActive && (!activeAlert || activeAlert.id !== currentActive.id)) {
         setActiveAlert(currentActive);
         
-        // Immediately start loud siren and hardware vibration
-        sirenService.unlockAudio();
-        if (currentActive.severity === 'yellow') {
-          sirenService.startWarningChime();
-        } else {
-          sirenService.startEmergencySiren();
-        }
-
-        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-          try {
-            navigator.vibrate([1000, 300, 1000, 300, 1000]);
-          } catch {
-            // ignore
+        // Admin Dashboard MUST NOT ring - only ring for regular community users
+        if (!isAdmin) {
+          sirenService.unlockAudio();
+          if (currentActive.severity === 'yellow') {
+            sirenService.startWarningChime();
+          } else {
+            sirenService.startEmergencySiren();
           }
+
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+            try {
+              navigator.vibrate([1000, 300, 1000, 300, 1000]);
+            } catch {
+              // ignore
+            }
+          }
+        } else {
+          // Keep silent on admin dashboard
+          sirenService.stopAllAlarms();
         }
 
         // Trigger push notification if this is a newly received active alert from another device
@@ -649,6 +654,7 @@ export default function App() {
             <AdminSafetyDashboardView
               safetyReports={safetyReports}
               alerts={alerts}
+              activeAlert={activeAlert}
               currentUser={authState.user}
               isDarkMode={isDarkMode}
               selectedVillage={selectedVillage}
@@ -656,6 +662,9 @@ export default function App() {
               onOpenCheckInModal={handleOpenNormalCheckIn}
               onOpenDirectVoiceSOS={handleOpenDirectVoiceSOS}
               onOpenFcmModal={() => setIsFcmModalOpen(true)}
+              onOpenSmsModal={() => setIsSmsModalOpen(true)}
+              onTurnOffSensorAndDismiss={handleTurnOffSensorAndDismiss}
+              onDismissAlert={handleDismissAlert}
             />
           )}
 
@@ -748,6 +757,7 @@ export default function App() {
         isSoundEnabled={config.soundAlarmOnDevice}
         onOpenCheckIn={handleOpenNormalCheckIn}
         onOpenVoiceSOS={handleOpenDirectVoiceSOS}
+        onOpenSmsModal={() => setIsSmsModalOpen(true)}
         isAdmin={isAdmin}
       />
 

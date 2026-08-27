@@ -20,6 +20,8 @@ import {
   Mic,
   Home,
   Phone,
+  Send,
+  X,
 } from 'lucide-react';
 import { FloodAlert } from '../types';
 import { sirenService } from '../services/audioSiren';
@@ -31,6 +33,7 @@ interface CriticalAlarmModalProps {
   isSoundEnabled: boolean;
   onOpenCheckIn?: () => void;
   onOpenVoiceSOS?: () => void;
+  onOpenSmsModal?: () => void;
   isAdmin?: boolean;
 }
 
@@ -41,6 +44,7 @@ export const CriticalAlarmModal: React.FC<CriticalAlarmModalProps> = ({
   isSoundEnabled,
   onOpenCheckIn,
   onOpenVoiceSOS,
+  onOpenSmsModal,
   isAdmin = false,
 }) => {
   const [isMuted, setIsMuted] = useState(!isSoundEnabled);
@@ -50,9 +54,9 @@ export const CriticalAlarmModal: React.FC<CriticalAlarmModalProps> = ({
 
   const isYellow = activeAlert?.severity === 'yellow';
 
-  // Sound triggers based on alert level
+  // Sound triggers based on alert level: Admin dashboard MUST NOT ring (only ring for regular users)
   useEffect(() => {
-    if (!activeAlert || isMuted) {
+    if (!activeAlert || isMuted || isAdmin) {
       sirenService.stopAllAlarms();
       return;
     }
@@ -68,7 +72,7 @@ export const CriticalAlarmModal: React.FC<CriticalAlarmModalProps> = ({
     return () => {
       sirenService.stopAllAlarms();
     };
-  }, [activeAlert, isMuted]);
+  }, [activeAlert, isMuted, isAdmin]);
 
   // One-Tap: Turn Off Sensor & Stop Alert
   const handleTurnOffSensorAndStop = () => {
@@ -122,6 +126,108 @@ export const CriticalAlarmModal: React.FC<CriticalAlarmModalProps> = ({
   };
 
   if (!activeAlert) return null;
+
+  // Simple, direct card for Admin Dashboard (silent, few essential actions only)
+  if (isAdmin) {
+    return (
+      <div
+        id="critical-flood-modal-overlay"
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto select-none"
+      >
+        <div
+          id="critical-admin-alert-card"
+          className="w-full max-w-md rounded-[28px] p-5 sm:p-6 bg-[#93000A] text-white border-2 border-[#FFB4AB] shadow-2xl space-y-4 my-auto relative"
+        >
+          {/* Header */}
+          <div className="flex items-start justify-between gap-3 border-b border-white/15 pb-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-10 h-10 rounded-2xl bg-white text-[#93000A] flex items-center justify-center font-bold shrink-0 shadow-xs">
+                <AlertTriangle className="w-6 h-6 text-[#BA1A1A]" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="font-bold text-sm sm:text-base text-white leading-tight">
+                  Flood Detected &bull; Sensor Active
+                </h2>
+                <p className="text-[11px] text-white/80 font-medium leading-tight mt-0.5">
+                  Dzenje CDSS STEM Admin Control
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              id="btn-admin-close-modal"
+              onClick={handleStopAlertOnly}
+              className="w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center cursor-pointer transition shrink-0"
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* River & Station Info */}
+          <div className="bg-black/35 rounded-2xl p-3.5 border border-white/15 space-y-1.5 text-xs text-white">
+            <div className="flex items-center gap-1.5 text-[#FFDF9E] font-bold">
+              <MapPin className="w-4 h-4 text-[#FFB4AB] shrink-0" />
+              <span>{activeAlert.riverName || 'Ruo River'} Sensor Station</span>
+            </div>
+            <p className="text-white/95 font-medium leading-snug">
+              {locationFullString}
+            </p>
+            <div className="flex items-center justify-between text-[11px] text-white/80 pt-1 border-t border-white/10">
+              <span>Time: <strong>{activeAlert.formattedTime || 'Just now'}</strong></span>
+              <span className="text-amber-200 font-bold">Silent on Admin</span>
+            </div>
+          </div>
+
+          <p className="text-xs text-white/90 font-medium leading-relaxed">
+            The river sensor detected rising water. Village user phones are ringing with alarms.
+          </p>
+
+          {/* Simple Few Actions Only */}
+          <div className="space-y-2 pt-1">
+            {/* Primary Action 1: Turn Off Sensor & Reset Alarm */}
+            <button
+              type="button"
+              id="btn-admin-turn-off-sensor"
+              onClick={handleTurnOffSensorAndStop}
+              className="w-full py-3.5 px-4 rounded-2xl bg-white text-[#93000A] hover:bg-zinc-100 active:scale-98 text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer shadow-md"
+            >
+              <Power className="w-4 h-4 text-[#BA1A1A] shrink-0" />
+              <span>Turn Off River Sensor &amp; Reset Alarm</span>
+            </button>
+
+            {/* Action 2: Send SMS Broadcast via Textbee */}
+            {onOpenSmsModal && (
+              <button
+                type="button"
+                id="btn-admin-open-sms-broadcast"
+                onClick={() => {
+                  handleStopAlertOnly();
+                  onOpenSmsModal();
+                }}
+                className="w-full py-3 px-4 rounded-2xl bg-[#006A4E] hover:bg-emerald-800 active:scale-98 text-white text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer border border-emerald-400 shadow-xs"
+              >
+                <Send className="w-4 h-4 shrink-0" />
+                <span>Send SMS Warning to Village (Textbee)</span>
+              </button>
+            )}
+
+            {/* Action 3: Dismiss Alert */}
+            <button
+              type="button"
+              id="btn-admin-dismiss-alert"
+              onClick={handleStopAlertOnly}
+              className="w-full py-2.5 px-4 rounded-full bg-black/40 hover:bg-black/60 active:scale-98 text-xs font-bold text-white flex items-center justify-center gap-1.5 transition border border-white/25 cursor-pointer"
+            >
+              <Check className="w-3.5 h-3.5" />
+              <span>Dismiss Alert</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
