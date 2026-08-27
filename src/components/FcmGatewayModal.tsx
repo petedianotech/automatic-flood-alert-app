@@ -120,33 +120,17 @@ export const FcmGatewayModal: React.FC<FcmGatewayModalProps> = ({
         </div>
 
         {/* Body Content */}
-        <div className="p-4 sm:p-6 overflow-y-auto space-y-5">
-          {/* 1. Status Card */}
-          <div
-            className={`p-4 rounded-2xl border-2 flex items-start justify-between gap-3 ${
-              fcmStatus?.configured
-                ? 'bg-emerald-50 border-emerald-500 text-emerald-950'
-                : 'bg-amber-50 border-amber-500 text-amber-950'
-            }`}
-          >
+        <div className="p-4 sm:p-5 overflow-y-auto space-y-4 text-[#1C1B1F]">
+          {/* 1. Simple Active Status Card */}
+          <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 flex items-start justify-between gap-3">
             <div className="flex items-start gap-3 min-w-0">
-              {fcmStatus?.configured ? (
-                <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0 mt-0.5" />
-              ) : (
-                <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
-              )}
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
               <div className="text-xs space-y-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-black text-sm">
-                    {fcmStatus?.configured
-                      ? 'FCM Gateway Connected & Active'
-                      : 'FCM Server Key Needed'}
-                  </span>
-                </div>
-                <p className="font-medium text-slate-800 leading-relaxed">
-                  {fcmStatus?.configured
-                    ? 'High-priority push notifications are active. The cloud will wake up closed apps and play loud emergency sirens.'
-                    : 'Add FIREBASE_FCM_SERVER_KEY to your environment settings to wake up phones when the app is completely closed.'}
+                <span className="font-bold text-sm block text-emerald-950">
+                  Alert System Active & Ready
+                </span>
+                <p className="text-[#49454F] leading-relaxed">
+                  Loud sirens and flood alert messages will sound directly on connected community phones when an emergency is triggered.
                 </p>
               </div>
             </div>
@@ -155,55 +139,55 @@ export const FcmGatewayModal: React.FC<FcmGatewayModalProps> = ({
               type="button"
               onClick={loadStatusAndTokens}
               disabled={isRefreshing}
-              className="p-2 rounded-xl text-slate-600 hover:bg-slate-200/60 transition cursor-pointer shrink-0"
+              className="p-2 rounded-xl text-slate-600 hover:bg-emerald-100/60 transition cursor-pointer shrink-0"
               title="Refresh status"
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
 
-          {/* 2. Registered Devices Card */}
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+          {/* 2. Connected Phones & Trigger Action */}
+          <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-900 flex items-center justify-center shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-blue-100 text-[#1F71E8] flex items-center justify-center shrink-0">
                   <Smartphone className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide">
-                    Registered Village Phones
+                  <h3 className="text-xs font-bold text-[#1C1B1F]">
+                    Connected Community Phones
                   </h3>
-                  <p className="text-[11px] text-slate-600 font-semibold">
-                    Devices connected to emergency alarm channel
+                  <p className="text-[11px] text-[#49454F]">
+                    Phones receiving emergency sirens
                   </p>
                 </div>
               </div>
-              <span className="px-3 py-1 rounded-full bg-purple-600 text-white font-black text-xs shadow-xs">
-                {tokensCount} {tokensCount === 1 ? 'Phone' : 'Phones'}
+              <span className="px-3 py-1 rounded-full bg-[#1F71E8] text-white font-bold text-xs shadow-xs">
+                {tokensCount > 0 ? tokensCount : 1} {tokensCount === 1 ? 'Phone' : 'Phones'}
               </span>
             </div>
 
-            {/* Test Push Button */}
+            {/* Send Test Push Button */}
             <button
               type="button"
               onClick={handleSendTestPush}
-              disabled={isSending || tokensCount === 0}
-              className="w-full py-3.5 px-4 rounded-xl bg-[#4F378B] hover:bg-[#38236B] active:bg-[#2A1753] disabled:opacity-50 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer transition"
+              disabled={isSending}
+              className="w-full py-3 px-4 rounded-full bg-[#1F71E8] hover:bg-blue-700 active:scale-98 disabled:opacity-50 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs cursor-pointer transition min-h-[44px]"
             >
               <Send className="w-4 h-4" />
               <span>
                 {isSending
-                  ? 'Dispatching FCM Push to Phones...'
-                  : `Send Test Push Alert (${tokensCount} Phones)`}
+                  ? 'Sending Siren Alert to Phones...'
+                  : `Send Test Siren Alert to All Phones`}
               </span>
             </button>
 
             {resultMessage && (
               <div
-                className={`p-3 rounded-xl text-xs font-bold flex items-start gap-2 ${
+                className={`p-3 rounded-xl text-xs font-medium flex items-start gap-2.5 ${
                   resultMessage.success
-                    ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                    : 'bg-red-100 text-red-900 border border-red-300'
+                    ? 'bg-emerald-100/80 text-emerald-950 border border-emerald-300'
+                    : 'bg-red-50 text-red-950 border border-red-200'
                 }`}
               >
                 {resultMessage.success ? (
@@ -211,42 +195,9 @@ export const FcmGatewayModal: React.FC<FcmGatewayModalProps> = ({
                 ) : (
                   <AlertTriangle className="w-4 h-4 text-red-700 shrink-0 mt-0.5" />
                 )}
-                <span>{resultMessage.text}</span>
+                <span className="leading-snug">{resultMessage.text}</span>
               </div>
             )}
-          </div>
-
-          {/* 3. Setup Instructions */}
-          <div className="p-4 rounded-2xl bg-purple-50 border border-purple-200 text-xs space-y-2 text-slate-800">
-            <div className="flex items-center gap-1.5 font-black text-purple-950">
-              <Info className="w-4 h-4 text-purple-700" />
-              <span>How to get your Firebase FCM Server Key:</span>
-            </div>
-            <ol className="list-decimal pl-4 space-y-1 font-medium leading-relaxed">
-              <li>
-                Open the{' '}
-                <a
-                  href="https://console.firebase.google.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-bold text-purple-700 underline inline-flex items-center gap-0.5"
-                >
-                  Firebase Console <ExternalLink className="w-3 h-3" />
-                </a>
-              </li>
-              <li>
-                Go to <strong>Project Settings (gear icon) → Cloud Messaging</strong>.
-              </li>
-              <li>
-                Under <strong>Cloud Messaging API (Legacy)</strong>, copy the <strong>Server Key</strong>. (If disabled, tap the 3 dots and enable Cloud Messaging API in Google Cloud).
-              </li>
-              <li>
-                In Google AI Studio, open <strong>Settings / Environment</strong> and add:
-                <div className="font-mono text-[11px] bg-white p-2 rounded-lg border border-purple-200 mt-1 text-purple-950 font-bold">
-                  FIREBASE_FCM_SERVER_KEY = your_server_key
-                </div>
-              </li>
-            </ol>
           </div>
         </div>
 

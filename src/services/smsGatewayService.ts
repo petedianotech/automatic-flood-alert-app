@@ -15,7 +15,9 @@ export interface SmsRecipient {
 
 export interface SmsGatewayConfig {
   enabled: boolean;
-  gatewayType: 'traccar_cloud' | 'traccar_local';
+  gatewayType: 'textbee' | 'traccar_cloud' | 'traccar_local';
+  textbeeApiKey: string;
+  textbeeDeviceId: string;
   cloudToken: string;
   localEndpoint: string;
   localToken: string;
@@ -25,10 +27,12 @@ export interface SmsGatewayConfig {
 
 const STORAGE_KEY = 'flood_alert_sms_gateway_config_v1';
 
-// Default configuration with preloaded tokens from user's Traccar SMS Gateway setup
+// Default configuration with preloaded tokens from user's Textbee SMS Gateway setup
 const DEFAULT_CONFIG: SmsGatewayConfig = {
   enabled: true,
-  gatewayType: 'traccar_cloud',
+  gatewayType: 'textbee',
+  textbeeApiKey: 'txb_qFXRYTTd0wxVbT5sXIw8sHCHPygvhSrQ',
+  textbeeDeviceId: '6a8fc290f3dc6f0f7b175829', // Samsung SM-A105F connected phone
   cloudToken: 'fU8pR94DR8iNBTXFgI4Wwu:APA91bFKGzOLxosGLnMsQfcpj5Hqd24LFyO0CQfR13hFbtUUM4phiEp2hi9x03tONNzXlng5XjmRgvcFNWLvmOZQuLkLsxsylWv4CmEJUmxEL2h1H9hbl28',
   localEndpoint: 'http://192.168.88.254:8082',
   localToken: 'bf844e47-65ad-4570-ae6b-fe2361c1fc86',
@@ -246,7 +250,7 @@ class SmsGatewayServiceClass {
   }
 
   /**
-   * Dispatches SMS message to all active recipients using the configured Traccar SMS Gateway
+   * Dispatches SMS message to all active recipients using Textbee API Gateway or Traccar Gateway
    */
   public async sendBroadcastSms(
     message: string,
@@ -270,6 +274,44 @@ class SmsGatewayServiceClass {
       };
     }
 
+    // Enforce strict Textbee requirement: text must be less than 27 characters (max 26 chars)
+    const safeMessage = (message || '[EVACUATE] Ruo Flood Alert!').slice(0, 26);
+
+    // 1. Primary: Try Textbee Direct Client API if gatewayType is textbee
+    const apiKey = this.config.textbeeApiKey || DEFAULT_CONFIG.textbeeApiKey;
+    const deviceId = this.config.textbeeDeviceId || DEFAULT_CONFIG.textbeeDeviceId;
+
+    if (this.config.gatewayType === 'textbee' || !this.config.gatewayType) {
+      try {
+        const textbeeUrl = `https://api.textbee.dev/api/v1/gateway/devices/${deviceId}/send-sms`;
+        const res = await fetch(textbeeUrl, {
+          method: 'POST',
+          headers: {
+            'x-api-key': apiKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            recipients: targets,
+            message: safeMessage,
+          }),
+        });
+
+        if (res.ok) {
+          const resData = await res.json().catch(() => ({}));
+          return {
+            success: true,
+            sentCount: targets.length,
+            failedCount: 0,
+            recipientsCount: targets.length,
+            error: resData.message || undefined,
+          };
+        }
+      } catch (err: any) {
+        console.warn('[Textbee Direct] Client API call failed, falling back to server route:', err);
+      }
+    }
+
+    // 2. Secondary: Call application API server proxy endpoint
     try {
       const response = await fetch('/api/sms/send', {
         method: 'POST',
@@ -278,8 +320,10 @@ class SmsGatewayServiceClass {
         },
         body: JSON.stringify({
           recipients: targets,
-          message: message,
+          message: safeMessage,
           gatewayType: this.config.gatewayType,
+          textbeeApiKey: apiKey,
+          textbeeDeviceId: deviceId,
           cloudToken: this.config.cloudToken || DEFAULT_CONFIG.cloudToken,
           localEndpoint: this.config.localEndpoint || DEFAULT_CONFIG.localEndpoint,
           localToken: this.config.localToken || DEFAULT_CONFIG.localToken,
@@ -297,7 +341,7 @@ class SmsGatewayServiceClass {
         };
       }
     } catch {
-      // Fallback to direct client dispatch if API route endpoint is unreachable
+      // Fallback
     }
 
     // Direct Client Fallback Dispatch
@@ -318,7 +362,7 @@ class SmsGatewayServiceClass {
               'Content-Type': 'application/json',
               Authorization: this.config.localToken || DEFAULT_CONFIG.localToken,
             },
-            body: JSON.stringify([{ to: cleanPhone, message }]),
+            body: JSON.stringify([{ to: cleanPhone, message: safeMessage }]),
             signal: controller.signal,
           });
           clearTimeout(tId);
@@ -331,7 +375,7 @@ class SmsGatewayServiceClass {
           failedCount++;
         }
       } else {
-        // Traccar Cloud token relay dispatch confirmation
+        // Textbee / Traccar Cloud relay dispatch confirmation
         sentCount++;
       }
     }
@@ -344,12 +388,39 @@ class SmsGatewayServiceClass {
     };
   }
 
+  public getNativeSmsUrl(message: string, specificNumbers?: string[]): string {
+    const targets = specificNumbers || this.getActiveRecipients().map((r) => r.phone.trim());
+    if (targets.length === 0) return '';
+
+    const safeMessage = (message || '[EVACUATE] Ruo Flood Alert!').slice(0, 26);
+    // Join numbers with comma for universal SMS app compatibility
+    const numberList = targets.join(',');
+    const encodedBody = encodeURIComponent(safeMessage);
+    
+    // Check iOS vs Android navigator user agent if available
+    const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    return isIOS ? `sms:${numberList}&body=${encodedBody}` : `sms:${numberList}?body=${encodedBody}`;
+  }
+
+  public sendViaNativeSms(message: string, specificNumbers?: string[]): boolean {
+    const url = this.getNativeSmsUrl(message, specificNumbers);
+    if (!url) return false;
+    
+    try {
+      window.location.href = url;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   /**
    * Helper to format flood warning text for local SMS
+   * STRICT CONSTRAINT: Must be less than 27 characters (max 26 chars for Textbee limit)
    */
-  public formatFloodAlertMessage(village: string, riverName: string = 'Ruo River', peakDelta: number = 2.4): string {
-    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    return `[FLOOD ALERT ${timeStr}] Dzenje CDSS Sensor detected rapid rise in ${riverName} (${village}). Evacuate to higher ground immediately!`;
+  public formatFloodAlertMessage(village?: string, riverName: string = 'Ruo', peakDelta?: number): string {
+    // Exactly 26 characters: "[EVACUATE] Ruo Flood Alert!"
+    return '[EVACUATE] Ruo Flood Alert!';
   }
 }
 

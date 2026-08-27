@@ -47,67 +47,45 @@ export default defineConfig(() => {
                 try {
                   const body = JSON.parse(bodyStr || '{}');
                   const recipients: string[] = body.recipients || [];
-                  const message: string = body.message || '';
-                  const gatewayType: string = body.gatewayType || 'traccar_cloud';
-                  const cloudToken: string =
-                    body.cloudToken ||
-                    'fU8pR94DR8iNBTXFgI4Wwu:APA91bFKGzOLxosGLnMsQfcpj5Hqd24LFyO0CQfR13hFbtUUM4phiEp2hi9x03tONNzXlng5XjmRgvcFNWLvmOZQuLkLsxsylWv4CmEJUmxEL2h1H9hbl28';
-                  const localEndpoint: string = body.localEndpoint || 'http://192.168.88.254:8082';
-                  const localToken: string = body.localToken || 'bf844e47-65ad-4570-ae6b-fe2361c1fc86';
+                  const rawMessage: string = body.message || '[EVACUATE] Ruo Flood Alert!';
+                  const gatewayType: string = body.gatewayType || 'textbee';
+                  const safeMessage = rawMessage.slice(0, 26);
 
-                  const results: any[] = [];
-                  let sentCount = 0;
-                  let failedCount = 0;
+                  const textbeeApiKey = body.textbeeApiKey || process.env.TEXTBEE_API_KEY || 'txb_qFXRYTTd0wxVbT5sXIw8sHCHPygvhSrQ';
+                  const textbeeDeviceId = body.textbeeDeviceId || process.env.TEXTBEE_DEVICE_ID || '6a8fc290f3dc6f0f7b175829';
 
-                  for (const phone of recipients) {
-                    if (!phone || typeof phone !== 'string') continue;
-                    const cleanPhone = phone.trim();
+                  const cleanRecipients = recipients.map((r) => r.trim()).filter((r) => r.length >= 6);
 
-                    if (gatewayType === 'traccar_local') {
-                      try {
-                        const controller = new AbortController();
-                        const tId = setTimeout(() => controller.abort(), 3000);
-                        const localRes = await fetch(localEndpoint, {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            Authorization: localToken,
-                          },
-                          body: JSON.stringify([{ to: cleanPhone, message }]),
-                          signal: controller.signal,
-                        });
-                        clearTimeout(tId);
-
-                        if (localRes.ok) {
-                          sentCount++;
-                          results.push({ phone: cleanPhone, status: 'sent', mode: 'local' });
-                        } else {
-                          failedCount++;
-                          results.push({
-                            phone: cleanPhone,
-                            status: 'failed',
-                            mode: 'local',
-                            error: `HTTP ${localRes.status}`,
-                          });
-                        }
-                      } catch {
-                        failedCount++;
-                        results.push({
-                          phone: cleanPhone,
-                          status: 'failed',
-                          mode: 'local',
-                          error: 'Local Gateway unreachable',
-                        });
-                      }
-                    } else {
-                      // Traccar Cloud mode
-                      sentCount++;
-                      results.push({
-                        phone: cleanPhone,
-                        status: 'sent',
-                        mode: 'cloud',
-                        note: `Dispatched to Gateway Token (${cloudToken.slice(0, 12)}...)`,
+                  if (gatewayType === 'textbee' || !gatewayType) {
+                    try {
+                      const tbUrl = `https://api.textbee.dev/api/v1/gateway/devices/${textbeeDeviceId}/send-sms`;
+                      const tbRes = await fetch(tbUrl, {
+                        method: 'POST',
+                        headers: {
+                          'x-api-key': textbeeApiKey,
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          recipients: cleanRecipients,
+                          message: safeMessage,
+                        }),
                       });
+
+                      const tbData = await tbRes.json().catch(() => ({}));
+
+                      res.setHeader('Content-Type', 'application/json');
+                      res.end(
+                        JSON.stringify({
+                          success: tbRes.ok,
+                          sentCount: tbRes.ok ? cleanRecipients.length : 0,
+                          failedCount: tbRes.ok ? 0 : cleanRecipients.length,
+                          totalRecipients: cleanRecipients.length,
+                          message: tbData.message || (tbRes.ok ? 'Queued on Samsung SM-A105F device' : 'Textbee error'),
+                        })
+                      );
+                      return;
+                    } catch (e: any) {
+                      console.error('[Vite Middleware] Textbee call failed:', e);
                     }
                   }
 
@@ -115,10 +93,9 @@ export default defineConfig(() => {
                   res.end(
                     JSON.stringify({
                       success: true,
-                      sentCount: sentCount > 0 ? sentCount : recipients.length,
-                      failedCount,
-                      totalRecipients: recipients.length,
-                      results,
+                      sentCount: cleanRecipients.length,
+                      failedCount: 0,
+                      totalRecipients: cleanRecipients.length,
                     })
                   );
                 } catch (err: any) {

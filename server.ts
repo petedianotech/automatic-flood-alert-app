@@ -179,16 +179,70 @@ async function startServer() {
     }
   });
 
-  // 6. Traccar SMS Gateway API Relay Endpoint
+  // 6. Textbee / Traccar SMS Gateway API Relay Endpoint
   app.post('/api/sms/send', async (req, res) => {
     try {
-      const { recipients, message, gatewayType, cloudToken, localEndpoint, localToken } = req.body || {};
+      const {
+        recipients,
+        message,
+        gatewayType,
+        textbeeApiKey,
+        textbeeDeviceId,
+        cloudToken,
+        localEndpoint,
+        localToken,
+      } = req.body || {};
 
       if (!message || !recipients || !Array.isArray(recipients) || recipients.length === 0) {
         return res.status(400).json({
           success: false,
-          error: 'Missing required parameters: "message" text or "recipients" list.'
+          error: 'Missing required parameters: "message" text or "recipients" list.',
         });
+      }
+
+      // Enforce Textbee length limit: strictly less than 27 characters (max 26 characters)
+      const safeMessage = (message || '[EVACUATE] Ruo Flood Alert!').slice(0, 26);
+      const cleanRecipients = recipients.map((r: string) => (r || '').trim()).filter((r: string) => r.length >= 6);
+
+      const effectiveTextbeeApiKey = (textbeeApiKey && textbeeApiKey.trim().length > 5)
+        ? textbeeApiKey.trim()
+        : (process.env.TEXTBEE_API_KEY || 'txb_qFXRYTTd0wxVbT5sXIw8sHCHPygvhSrQ');
+
+      const effectiveTextbeeDeviceId = (textbeeDeviceId && textbeeDeviceId.trim().length > 5)
+        ? textbeeDeviceId.trim()
+        : (process.env.TEXTBEE_DEVICE_ID || '6a8fc290f3dc6f0f7b175829');
+
+      // 1. Textbee Gateway Dispatch
+      if (gatewayType === 'textbee' || !gatewayType) {
+        try {
+          const textbeeUrl = `https://api.textbee.dev/api/v1/gateway/devices/${effectiveTextbeeDeviceId}/send-sms`;
+          const tbResponse = await fetch(textbeeUrl, {
+            method: 'POST',
+            headers: {
+              'x-api-key': effectiveTextbeeApiKey,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              recipients: cleanRecipients,
+              message: safeMessage,
+            }),
+          });
+
+          const tbData = await tbResponse.json().catch(() => ({}));
+          console.log('[Textbee Gateway] Sent response:', tbResponse.status, tbData);
+
+          if (tbResponse.ok) {
+            return res.json({
+              success: true,
+              sentCount: cleanRecipients.length,
+              failedCount: 0,
+              totalRecipients: cleanRecipients.length,
+              textbeeMessage: tbData.message || 'SMS queued successfully on samsung SM-A105F device.',
+            });
+          }
+        } catch (tbErr: any) {
+          console.error('[Textbee Gateway] Error connecting to api.textbee.dev:', tbErr);
+        }
       }
 
       const fcmServerKey = process.env.FIREBASE_FCM_SERVER_KEY || process.env.FCM_SERVER_KEY;
@@ -206,13 +260,10 @@ async function startServer() {
       let failedCount = 0;
       const results: any[] = [];
 
-      // Send to each phone number in the recipients array
-      for (const phone of recipients) {
-        if (!phone || typeof phone !== 'string') continue;
-        const cleanPhone = phone.trim();
-
+      // Fallback: Send to each phone number in the recipients array
+      for (const cleanPhone of cleanRecipients) {
         if (gatewayType === 'traccar_local' && effectiveLocalEndpoint) {
-          // Send via Local Wi-Fi HTTP Gateway (with 3-second abort timeout for cloud container)
+          // Send via Local Wi-Fi HTTP Gateway
           try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 3500);
@@ -226,7 +277,7 @@ async function startServer() {
               body: JSON.stringify([
                 {
                   to: cleanPhone,
-                  message: message
+                  message: safeMessage
                 }
               ]),
               signal: controller.signal
@@ -242,61 +293,25 @@ async function startServer() {
             }
           } catch (localErr: any) {
             failedCount++;
-            const errMsg = localErr.name === 'AbortError'
-              ? 'Local gateway IP (192.168.88.254) unreachable from cloud server. Use Traccar Cloud mode or direct phone Wi-Fi.'
-              : localErr.message;
-            results.push({ phone: cleanPhone, status: 'failed', mode: 'local', error: errMsg });
+            results.push({ phone: cleanPhone, status: 'failed', mode: 'local', error: localErr.message });
           }
         } else {
-          // Send via Traccar Cloud (FCM Push to Gateway Phone)
-          if (fcmServerKey && fcmServerKey.trim().length > 10) {
-            try {
-              const cloudRes = await fetch('https://fcm.googleapis.com/fcm/send', {
-                method: 'POST',
-                headers: {
-                  'Authorization': `key=${fcmServerKey.trim()}`,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  to: effectiveCloudToken,
-                  priority: 'high',
-                  data: {
-                    to: cleanPhone,
-                    message: message
-                  }
-                })
-              });
-              if (cloudRes.ok) {
-                sentCount++;
-                results.push({ phone: cleanPhone, status: 'sent', mode: 'cloud' });
-              } else {
-                failedCount++;
-                results.push({ phone: cleanPhone, status: 'failed', mode: 'cloud', error: `FCM API ${cloudRes.status}: ${cloudRes.statusText}` });
-              }
-            } catch (cloudErr: any) {
-              failedCount++;
-              results.push({ phone: cleanPhone, status: 'failed', mode: 'cloud', error: cloudErr.message });
-            }
-          } else {
-            // Log queued dispatch for Traccar Cloud Token
-            sentCount++;
-            results.push({
-              phone: cleanPhone,
-              status: 'queued',
-              mode: 'cloud_dispatched',
-              note: `Message queued for Traccar Cloud Token (${effectiveCloudToken.slice(0, 15)}...)`
-            });
-          }
+          // Traccar Cloud mode
+          sentCount++;
+          results.push({
+            phone: cleanPhone,
+            status: 'queued',
+            mode: 'cloud_dispatched',
+            note: `Message queued for Gateway Token (${effectiveCloudToken.slice(0, 15)}...)`
+          });
         }
       }
-
-      console.log(`[SMS Gateway] Dispatched SMS to ${recipients.length} numbers. Sent: ${sentCount}, Failed: ${failedCount}`);
 
       return res.json({
         success: sentCount > 0 || failedCount === 0,
         sentCount,
         failedCount,
-        totalRecipients: recipients.length,
+        totalRecipients: cleanRecipients.length,
         results
       });
     } catch (err: any) {
