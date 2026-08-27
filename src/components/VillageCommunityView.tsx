@@ -9,9 +9,6 @@ import {
   Building,
   CheckCircle2,
   Info,
-  GraduationCap,
-  ShieldCheck,
-  HeartHandshake,
 } from 'lucide-react';
 import { UserProfile, FloodAlert, ResidentSafetyReport, isAppAdmin } from '../types';
 import { NotificationEnableCard } from './NotificationEnableCard';
@@ -221,33 +218,6 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
               </div>
             );
           })}
-        </div>
-
-        {/* About & Legal Card for Admin View */}
-        <div className="bg-[#F3F3FA] rounded-[24px] p-4 border border-slate-100 space-y-3 shadow-xs">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
-                <GraduationCap className="w-4 h-4" />
-              </div>
-              <div>
-                <h4 className="font-bold text-xs text-[#1C1B1F] leading-tight">
-                  Dzenje CDSS ADDA STEM CLUB
-                </h4>
-                <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                  School Disaster Warning Innovation • MUST University
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={onOpenAboutModal}
-              className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-blue-700 text-xs font-bold shadow-2xs hover:bg-blue-50 transition cursor-pointer shrink-0"
-            >
-              About &amp; Legal
-            </button>
-          </div>
         </div>
       </div>
     );
@@ -586,42 +556,6 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
           </div>
         </div>
       )}
-
-      {/* ================= 6. ABOUT THE INNOVATION & LEGAL CARD ================= */}
-      <div className="bg-[#F3F3FA] rounded-[24px] p-4 border border-slate-100 space-y-3 shadow-xs">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
-              <GraduationCap className="w-4 h-4" />
-            </div>
-            <div>
-              <h4 className="font-bold text-xs text-[#1C1B1F] leading-tight">
-                Dzenje CDSS ADDA STEM CLUB
-              </h4>
-              <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                School Disaster Warning Innovation • MUST University
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={onOpenAboutModal}
-            className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-blue-700 text-xs font-bold shadow-2xs hover:bg-blue-50 transition cursor-pointer shrink-0"
-          >
-            About &amp; Legal
-          </button>
-        </div>
-
-        <div className="p-2.5 rounded-xl bg-white border border-slate-100 text-[11px] text-slate-600 leading-relaxed space-y-1">
-          <p>
-            <strong className="text-slate-900">Developed by:</strong> Peter Damiano (Club Leader), Mr. H. Skinner (Patron) &amp; 30 STEM Club Members.
-          </p>
-          <p className="italic text-slate-500">
-            &ldquo;You will never fail until you stop trying.&rdquo; — Mr. Palapandu (Head Teacher)
-          </p>
-        </div>
-      </div>
     </div>
   );
 };

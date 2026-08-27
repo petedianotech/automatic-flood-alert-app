@@ -1,4 +1,4 @@
-# Automatic Flood Early Warning System (AFEWS)
+# Automatic Flood Alert App
 
 **A Community-Centric Disaster Risk Reduction & Early Warning Innovation**  
 Developed by the **Dzenje CDSS ADDA STEM Club**  
@@ -8,7 +8,7 @@ Presented at **Malawi University of Science and Technology (MUST)**
 
 ## 👥 Project Team & Leadership
 
-- **Club Leader / Lead Innovator:** Peter Damiano
+- **Club Leader / Lead Innovator:** Peter Damiano ([Web Portfolio](https://peterdamiano.vercel.app))
 - **STEM Club Patron / Mentor:** Mr. H. Skinner
 - **Head Teacher & Institutional Advisor:** Mr. Palapandu  
   > *"You'll never fail till you stop trying."* — Mr. Palapandu
@@ -21,7 +21,7 @@ Presented at **Malawi University of Science and Technology (MUST)**
 
 Malawi faces recurring, devastating seasonal floods along river basins like the Ruo River. Traditional early warning methods often fail to reach rural households in time or rely on high-cost proprietary infrastructure that is difficult to maintain locally.
 
-The **Automatic Flood Early Warning System** is a low-cost, multi-channel disaster alert platform built to protect lives, livestock, and property in local communities. The application connects real-time river monitoring, local sensor nodes, community networks, and emergency SMS broadcasts directly to local residents in both **Chichewa (🇲🇼)** and **Simple English (🇬🇧)**.
+The **Automatic Flood Alert App** is a low-cost, multi-channel disaster alert platform built to protect lives, livestock, and property in local communities. The application connects real-time river monitoring, local sensor nodes, community networks, and emergency SMS broadcasts directly to local residents in both **Chichewa (🇲🇼)** and **Simple English (🇬🇧)**.
 
 ---
 

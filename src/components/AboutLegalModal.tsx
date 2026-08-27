@@ -116,18 +116,13 @@ export const AboutLegalModal: React.FC<AboutLegalModalProps> = ({
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-[#1C1B1F]">
-                    Automatic Flood Early Warning System
+                    Automatic Flood Alert App
                   </h3>
                   <p className="text-slate-600 mt-0.5 font-medium leading-relaxed">
                     A community disaster warning system developed by the students of{' '}
                     <strong className="text-blue-900">Dzenje CDSS ADDA STEM CLUB</strong> in Malawi.
                   </p>
                 </div>
-              </div>
-
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-blue-900 bg-blue-50/70 p-2.5 rounded-xl font-semibold">
-                <span>📍 Presentation Venue:</span>
-                <span className="font-bold">MUST University (Malawi)</span>
               </div>
             </div>
 
@@ -139,14 +134,26 @@ export const AboutLegalModal: React.FC<AboutLegalModalProps> = ({
               </h4>
 
               <div className="space-y-2">
-                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-2">
                   <div>
                     <span className="font-bold text-[#1C1B1F] block text-xs">Peter Damiano</span>
                     <span className="text-[11px] text-slate-500">Club Leader &amp; Innovator</span>
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-900">
-                    Lead
-                  </span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <a
+                      href="https://peterdamiano.vercel.app"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition flex items-center gap-1 cursor-pointer"
+                      title="Open Peter Damiano's Web Portfolio"
+                    >
+                      <span>Web Portfolio</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-900">
+                      Lead
+                    </span>
+                  </div>
                 </div>
 
                 <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
