@@ -759,7 +759,7 @@ class FirebaseFloodService {
       console.warn('[FCM Gateway] Background broadcast note:', pushErr);
     });
 
-    // 4. Trigger Traccar SMS Gateway to send emergency text messages to all registered village phone numbers
+    // 4. Trigger Textbee SMS Gateway to send emergency text messages to all registered village phone numbers
     if (smsGatewayService.getConfig().autoSendOnCriticalAlert) {
       const smsMsg = smsGatewayService.formatFloodAlertMessage(
         newAlert.village || 'Dzenje Village',

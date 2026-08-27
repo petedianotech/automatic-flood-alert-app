@@ -48,7 +48,6 @@ export default defineConfig(() => {
                   const body = JSON.parse(bodyStr || '{}');
                   const recipients: string[] = body.recipients || [];
                   const rawMessage: string = body.message || '[EVACUATE] Ruo Flood Alert!';
-                  const gatewayType: string = body.gatewayType || 'textbee';
                   const safeMessage = rawMessage.slice(0, 26);
 
                   const textbeeApiKey = body.textbeeApiKey || process.env.TEXTBEE_API_KEY || 'txb_qFXRYTTd0wxVbT5sXIw8sHCHPygvhSrQ';
@@ -56,37 +55,35 @@ export default defineConfig(() => {
 
                   const cleanRecipients = recipients.map((r) => r.trim()).filter((r) => r.length >= 6);
 
-                  if (gatewayType === 'textbee' || !gatewayType) {
-                    try {
-                      const tbUrl = `https://api.textbee.dev/api/v1/gateway/devices/${textbeeDeviceId}/send-sms`;
-                      const tbRes = await fetch(tbUrl, {
-                        method: 'POST',
-                        headers: {
-                          'x-api-key': textbeeApiKey,
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                          recipients: cleanRecipients,
-                          message: safeMessage,
-                        }),
-                      });
+                  try {
+                    const tbUrl = `https://api.textbee.dev/api/v1/gateway/devices/${textbeeDeviceId}/send-sms`;
+                    const tbRes = await fetch(tbUrl, {
+                      method: 'POST',
+                      headers: {
+                        'x-api-key': textbeeApiKey,
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        recipients: cleanRecipients,
+                        message: safeMessage,
+                      }),
+                    });
 
-                      const tbData = await tbRes.json().catch(() => ({}));
+                    const tbData = await tbRes.json().catch(() => ({}));
 
-                      res.setHeader('Content-Type', 'application/json');
-                      res.end(
-                        JSON.stringify({
-                          success: tbRes.ok,
-                          sentCount: tbRes.ok ? cleanRecipients.length : 0,
-                          failedCount: tbRes.ok ? 0 : cleanRecipients.length,
-                          totalRecipients: cleanRecipients.length,
-                          message: tbData.message || (tbRes.ok ? 'Queued on Samsung SM-A105F device' : 'Textbee error'),
-                        })
-                      );
-                      return;
-                    } catch (e: any) {
-                      console.error('[Vite Middleware] Textbee call failed:', e);
-                    }
+                    res.setHeader('Content-Type', 'application/json');
+                    res.end(
+                      JSON.stringify({
+                        success: tbRes.ok,
+                        sentCount: tbRes.ok ? cleanRecipients.length : 0,
+                        failedCount: tbRes.ok ? 0 : cleanRecipients.length,
+                        totalRecipients: cleanRecipients.length,
+                        message: tbData.message || (tbRes.ok ? 'Queued on Samsung SM-A105F device' : 'Textbee error'),
+                      })
+                    );
+                    return;
+                  } catch (e: any) {
+                    console.error('[Vite Middleware] Textbee call failed:', e);
                   }
 
                   res.setHeader('Content-Type', 'application/json');

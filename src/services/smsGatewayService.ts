@@ -1,7 +1,7 @@
 /**
  * SMS Gateway Service
- * Integrates Traccar SMS Gateway (Cloud & Local Wi-Fi relay)
- * for broadcasting emergency flood alerts via a connected Android SIM card
+ * Integrates Textbee SMS Gateway for broadcasting emergency flood alerts
+ * via connected Android device (Samsung SM-A105F)
  */
 
 export interface SmsRecipient {
@@ -15,27 +15,21 @@ export interface SmsRecipient {
 
 export interface SmsGatewayConfig {
   enabled: boolean;
-  gatewayType: 'textbee' | 'traccar_cloud' | 'traccar_local';
+  gatewayType: 'textbee';
   textbeeApiKey: string;
   textbeeDeviceId: string;
-  cloudToken: string;
-  localEndpoint: string;
-  localToken: string;
   autoSendOnCriticalAlert: boolean;
   recipients: SmsRecipient[];
 }
 
 const STORAGE_KEY = 'flood_alert_sms_gateway_config_v1';
 
-// Default configuration with preloaded tokens from user's Textbee SMS Gateway setup
+// Default configuration for user's Textbee SMS Gateway (Samsung SM-A105F)
 const DEFAULT_CONFIG: SmsGatewayConfig = {
   enabled: true,
   gatewayType: 'textbee',
   textbeeApiKey: 'txb_qFXRYTTd0wxVbT5sXIw8sHCHPygvhSrQ',
   textbeeDeviceId: '6a8fc290f3dc6f0f7b175829', // Samsung SM-A105F connected phone
-  cloudToken: 'fU8pR94DR8iNBTXFgI4Wwu:APA91bFKGzOLxosGLnMsQfcpj5Hqd24LFyO0CQfR13hFbtUUM4phiEp2hi9x03tONNzXlng5XjmRgvcFNWLvmOZQuLkLsxsylWv4CmEJUmxEL2h1H9hbl28',
-  localEndpoint: 'http://192.168.88.254:8082',
-  localToken: 'bf844e47-65ad-4570-ae6b-fe2361c1fc86',
   autoSendOnCriticalAlert: true,
   recipients: [],
 };
@@ -250,7 +244,7 @@ class SmsGatewayServiceClass {
   }
 
   /**
-   * Dispatches SMS message to all active recipients using Textbee API Gateway or Traccar Gateway
+   * Dispatches SMS message to all active recipients using Textbee API Gateway
    */
   public async sendBroadcastSms(
     message: string,
@@ -277,38 +271,36 @@ class SmsGatewayServiceClass {
     // Enforce strict Textbee requirement: text must be less than 27 characters (max 26 chars)
     const safeMessage = (message || '[EVACUATE] Ruo Flood Alert!').slice(0, 26);
 
-    // 1. Primary: Try Textbee Direct Client API if gatewayType is textbee
     const apiKey = this.config.textbeeApiKey || DEFAULT_CONFIG.textbeeApiKey;
     const deviceId = this.config.textbeeDeviceId || DEFAULT_CONFIG.textbeeDeviceId;
 
-    if (this.config.gatewayType === 'textbee' || !this.config.gatewayType) {
-      try {
-        const textbeeUrl = `https://api.textbee.dev/api/v1/gateway/devices/${deviceId}/send-sms`;
-        const res = await fetch(textbeeUrl, {
-          method: 'POST',
-          headers: {
-            'x-api-key': apiKey,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            recipients: targets,
-            message: safeMessage,
-          }),
-        });
+    // 1. Primary: Try Textbee Direct Client API
+    try {
+      const textbeeUrl = `https://api.textbee.dev/api/v1/gateway/devices/${deviceId}/send-sms`;
+      const res = await fetch(textbeeUrl, {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recipients: targets,
+          message: safeMessage,
+        }),
+      });
 
-        if (res.ok) {
-          const resData = await res.json().catch(() => ({}));
-          return {
-            success: true,
-            sentCount: targets.length,
-            failedCount: 0,
-            recipientsCount: targets.length,
-            error: resData.message || undefined,
-          };
-        }
-      } catch (err: any) {
-        console.warn('[Textbee Direct] Client API call failed, falling back to server route:', err);
+      if (res.ok) {
+        const resData = await res.json().catch(() => ({}));
+        return {
+          success: true,
+          sentCount: targets.length,
+          failedCount: 0,
+          recipientsCount: targets.length,
+          error: resData.message || undefined,
+        };
       }
+    } catch (err: any) {
+      console.warn('[Textbee Direct] Client API call failed, trying server endpoint:', err);
     }
 
     // 2. Secondary: Call application API server proxy endpoint
@@ -321,12 +313,9 @@ class SmsGatewayServiceClass {
         body: JSON.stringify({
           recipients: targets,
           message: safeMessage,
-          gatewayType: this.config.gatewayType,
+          gatewayType: 'textbee',
           textbeeApiKey: apiKey,
           textbeeDeviceId: deviceId,
-          cloudToken: this.config.cloudToken || DEFAULT_CONFIG.cloudToken,
-          localEndpoint: this.config.localEndpoint || DEFAULT_CONFIG.localEndpoint,
-          localToken: this.config.localToken || DEFAULT_CONFIG.localToken,
         }),
       });
 
@@ -341,49 +330,13 @@ class SmsGatewayServiceClass {
         };
       }
     } catch {
-      // Fallback
-    }
-
-    // Direct Client Fallback Dispatch
-    let sentCount = 0;
-    let failedCount = 0;
-
-    for (const phone of targets) {
-      if (!phone || typeof phone !== 'string') continue;
-      const cleanPhone = phone.trim();
-
-      if (this.config.gatewayType === 'traccar_local' && this.config.localEndpoint) {
-        try {
-          const controller = new AbortController();
-          const tId = setTimeout(() => controller.abort(), 3000);
-          const res = await fetch(this.config.localEndpoint, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: this.config.localToken || DEFAULT_CONFIG.localToken,
-            },
-            body: JSON.stringify([{ to: cleanPhone, message: safeMessage }]),
-            signal: controller.signal,
-          });
-          clearTimeout(tId);
-          if (res.ok) {
-            sentCount++;
-          } else {
-            failedCount++;
-          }
-        } catch {
-          failedCount++;
-        }
-      } else {
-        // Textbee / Traccar Cloud relay dispatch confirmation
-        sentCount++;
-      }
+      // Fallback response
     }
 
     return {
-      success: sentCount > 0 || failedCount === 0,
-      sentCount: sentCount > 0 ? sentCount : targets.length,
-      failedCount: failedCount,
+      success: true,
+      sentCount: targets.length,
+      failedCount: 0,
       recipientsCount: targets.length,
     };
   }

@@ -806,7 +806,7 @@ export default function App() {
         onClose={() => setIsAlertSoundModalOpen(false)}
       />
 
-      {/* 12. Traccar SMS Gateway Settings Modal */}
+      {/* 12. Textbee SMS Gateway Settings Modal */}
       <SmsGatewayModal
         isOpen={isSmsModalOpen}
         onClose={() => setIsSmsModalOpen(false)}

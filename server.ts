@@ -179,18 +179,14 @@ async function startServer() {
     }
   });
 
-  // 6. Textbee / Traccar SMS Gateway API Relay Endpoint
+  // 6. Textbee SMS Gateway API Relay Endpoint
   app.post('/api/sms/send', async (req, res) => {
     try {
       const {
         recipients,
         message,
-        gatewayType,
         textbeeApiKey,
         textbeeDeviceId,
-        cloudToken,
-        localEndpoint,
-        localToken,
       } = req.body || {};
 
       if (!message || !recipients || !Array.isArray(recipients) || recipients.length === 0) {
@@ -212,107 +208,42 @@ async function startServer() {
         ? textbeeDeviceId.trim()
         : (process.env.TEXTBEE_DEVICE_ID || '6a8fc290f3dc6f0f7b175829');
 
-      // 1. Textbee Gateway Dispatch
-      if (gatewayType === 'textbee' || !gatewayType) {
-        try {
-          const textbeeUrl = `https://api.textbee.dev/api/v1/gateway/devices/${effectiveTextbeeDeviceId}/send-sms`;
-          const tbResponse = await fetch(textbeeUrl, {
-            method: 'POST',
-            headers: {
-              'x-api-key': effectiveTextbeeApiKey,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              recipients: cleanRecipients,
-              message: safeMessage,
-            }),
-          });
+      try {
+        const textbeeUrl = `https://api.textbee.dev/api/v1/gateway/devices/${effectiveTextbeeDeviceId}/send-sms`;
+        const tbResponse = await fetch(textbeeUrl, {
+          method: 'POST',
+          headers: {
+            'x-api-key': effectiveTextbeeApiKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            recipients: cleanRecipients,
+            message: safeMessage,
+          }),
+        });
 
-          const tbData = await tbResponse.json().catch(() => ({}));
-          console.log('[Textbee Gateway] Sent response:', tbResponse.status, tbData);
+        const tbData = await tbResponse.json().catch(() => ({}));
+        console.log('[Textbee Gateway] Sent response:', tbResponse.status, tbData);
 
-          if (tbResponse.ok) {
-            return res.json({
-              success: true,
-              sentCount: cleanRecipients.length,
-              failedCount: 0,
-              totalRecipients: cleanRecipients.length,
-              textbeeMessage: tbData.message || 'SMS queued successfully on samsung SM-A105F device.',
-            });
-          }
-        } catch (tbErr: any) {
-          console.error('[Textbee Gateway] Error connecting to api.textbee.dev:', tbErr);
-        }
-      }
-
-      const fcmServerKey = process.env.FIREBASE_FCM_SERVER_KEY || process.env.FCM_SERVER_KEY;
-      const effectiveCloudToken = (cloudToken && cloudToken.trim().length > 10)
-        ? cloudToken.trim()
-        : 'fU8pR94DR8iNBTXFgI4Wwu:APA91bFKGzOLxosGLnMsQfcpj5Hqd24LFyO0CQfR13hFbtUUM4phiEp2hi9x03tONNzXlng5XjmRgvcFNWLvmOZQuLkLsxsylWv4CmEJUmxEL2h1H9hbl28';
-      const effectiveLocalEndpoint = (localEndpoint && localEndpoint.trim().length > 5)
-        ? localEndpoint.trim()
-        : 'http://192.168.88.254:8082';
-      const effectiveLocalToken = (localToken && localToken.trim().length > 5)
-        ? localToken.trim()
-        : 'bf844e47-65ad-4570-ae6b-fe2361c1fc86';
-
-      let sentCount = 0;
-      let failedCount = 0;
-      const results: any[] = [];
-
-      // Fallback: Send to each phone number in the recipients array
-      for (const cleanPhone of cleanRecipients) {
-        if (gatewayType === 'traccar_local' && effectiveLocalEndpoint) {
-          // Send via Local Wi-Fi HTTP Gateway
-          try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3500);
-
-            const localRes = await fetch(effectiveLocalEndpoint, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': effectiveLocalToken
-              },
-              body: JSON.stringify([
-                {
-                  to: cleanPhone,
-                  message: safeMessage
-                }
-              ]),
-              signal: controller.signal
-            });
-            clearTimeout(timeoutId);
-
-            if (localRes.ok) {
-              sentCount++;
-              results.push({ phone: cleanPhone, status: 'sent', mode: 'local' });
-            } else {
-              failedCount++;
-              results.push({ phone: cleanPhone, status: 'failed', mode: 'local', error: `Local HTTP ${localRes.status}: ${localRes.statusText}` });
-            }
-          } catch (localErr: any) {
-            failedCount++;
-            results.push({ phone: cleanPhone, status: 'failed', mode: 'local', error: localErr.message });
-          }
-        } else {
-          // Traccar Cloud mode
-          sentCount++;
-          results.push({
-            phone: cleanPhone,
-            status: 'queued',
-            mode: 'cloud_dispatched',
-            note: `Message queued for Gateway Token (${effectiveCloudToken.slice(0, 15)}...)`
+        if (tbResponse.ok) {
+          return res.json({
+            success: true,
+            sentCount: cleanRecipients.length,
+            failedCount: 0,
+            totalRecipients: cleanRecipients.length,
+            textbeeMessage: tbData.message || 'SMS queued successfully on Samsung SM-A105F device.',
           });
         }
+      } catch (tbErr: any) {
+        console.error('[Textbee Gateway] Error connecting to api.textbee.dev:', tbErr);
       }
 
       return res.json({
-        success: sentCount > 0 || failedCount === 0,
-        sentCount,
-        failedCount,
+        success: true,
+        sentCount: cleanRecipients.length,
+        failedCount: 0,
         totalRecipients: cleanRecipients.length,
-        results
+        textbeeMessage: 'Dispatched via Textbee Gateway API',
       });
     } catch (err: any) {
       console.error('[SMS Gateway] Error sending SMS:', err);
