@@ -99,8 +99,11 @@ class FirebaseFloodService {
   private alertListeners: Set<(alerts: FloodAlert[]) => void> = new Set();
   private safetyListeners: Set<(reports: ResidentSafetyReport[]) => void> = new Set();
   private authListeners: Set<(state: AuthState) => void> = new Set();
+  private userListeners: Set<(users: UserProfile[]) => void> = new Set();
   private firestoreUnsubscribe: Unsubscribe | null = null;
   private safetyFirestoreUnsubscribe: Unsubscribe | null = null;
+  private userFirestoreUnsubscribe: Unsubscribe | null = null;
+  private cachedUsers: UserProfile[] = [];
   private isFirebaseActive: boolean = false;
   private currentAuthState: AuthState = {
     user: null,
@@ -206,6 +209,7 @@ class FirebaseFloodService {
 
       this.subscribeFirestoreAlerts();
       this.subscribeFirestoreSafetyReports();
+      this.subscribeFirestoreUsers();
       if (this.db) {
         smsGatewayService.syncUsersFromFirestore(this.db);
       }
@@ -1058,6 +1062,57 @@ class FirebaseFloodService {
     } catch (err) {
       console.warn('Firestore safety reports subscription failed:', err);
     }
+  }
+
+  private subscribeFirestoreUsers() {
+    if (!this.db) return;
+
+    if (this.userFirestoreUnsubscribe) {
+      this.userFirestoreUnsubscribe();
+    }
+
+    try {
+      const q = query(collection(this.db, 'users'), limit(500));
+
+      this.userFirestoreUnsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const users: UserProfile[] = [];
+          snapshot.forEach((docSnapshot) => {
+            const data = docSnapshot.data();
+            users.push({
+              uid: docSnapshot.id,
+              name: data.name || 'Community Member',
+              village: data.village || 'Dzenje Village',
+              phone: data.phone,
+              email: data.email,
+              smsAlertsEnabled: data.smsAlertsEnabled,
+              authProvider: data.authProvider || 'name_village',
+              role: data.role || 'resident',
+              createdAt: data.createdAt,
+              updatedAt: data.updatedAt,
+            });
+          });
+          this.cachedUsers = users;
+          this.notifyUsers(users);
+        },
+        (error) => {
+          console.warn('Firestore users snapshot listener error:', error);
+        }
+      );
+    } catch (err) {
+      console.warn('Firestore users subscription failed:', err);
+    }
+  }
+
+  public subscribeUsers(cb: (users: UserProfile[]) => void): () => void {
+    this.userListeners.add(cb);
+    cb(this.cachedUsers.length > 0 ? this.cachedUsers : (this.currentAuthState.user ? [this.currentAuthState.user] : []));
+    return () => this.userListeners.delete(cb);
+  }
+
+  private notifyUsers(users: UserProfile[]) {
+    this.userListeners.forEach((cb) => cb(users));
   }
 
   public async submitSafetyReport(

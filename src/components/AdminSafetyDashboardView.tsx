@@ -69,6 +69,16 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
   const [selectedReportForMap, setSelectedReportForMap] = useState<ResidentSafetyReport | null>(null);
   const [showOverviewMap, setShowOverviewMap] = useState(false);
   const [copiedGps, setCopiedGps] = useState(false);
+  const [registeredUsers, setRegisteredUsers] = useState<UserProfile[]>([]);
+  const [showUsersListModal, setShowUsersListModal] = useState(false);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+
+  useEffect(() => {
+    const unsub = firebaseFloodService.subscribeUsers((usersList) => {
+      setRegisteredUsers(usersList);
+    });
+    return () => unsub();
+  }, []);
 
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -351,6 +361,44 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
             >
               <MapIcon className="w-3.5 h-3.5" />
               <span>Village Map ({reportsWithGps.length} GPS)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ================= 1.5 TOTAL APP USERS CARD (REAL DATABASE) ================= */}
+      <div className="bg-[#F3F3FA] rounded-[24px] p-4 border border-slate-100 shadow-xs space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-purple-700 text-white flex items-center justify-center shrink-0 shadow-xs font-bold">
+              <UserCheck className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-sm text-[#1C1B1F] leading-tight">
+                  Total App Users
+                </h3>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                  Real Database
+                </span>
+              </div>
+              <p className="text-xs text-[#49454F] font-medium mt-0.5 truncate">
+                People registered on Firestore
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-base font-bold text-purple-900 bg-white px-3 py-1 rounded-2xl border border-slate-200 shadow-2xs">
+              {registeredUsers.length} {registeredUsers.length === 1 ? 'User' : 'Users'}
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowUsersListModal(true)}
+              className="px-3 py-1.5 bg-[#1F71E8] hover:bg-blue-700 text-white rounded-full text-xs font-bold transition cursor-pointer shadow-2xs flex items-center gap-1"
+            >
+              <span>View List</span>
             </button>
           </div>
         </div>
@@ -933,6 +981,109 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                         </span>
                       </div>
                     ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= 6. REGISTERED APP USERS LIST MODAL ================= */}
+      {showUsersListModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white w-full max-w-lg rounded-[28px] overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[92vh] animate-in zoom-in-95">
+            {/* Modal Header */}
+            <div className="p-4 border-b border-slate-200/80 flex items-center justify-between bg-[#F3F3FA]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-purple-700 text-white flex items-center justify-center shadow-xs shrink-0 font-bold">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-[#1C1B1F] leading-tight">
+                    Registered App Users
+                  </h3>
+                  <div className="flex items-center gap-2 text-xs text-[#49454F] font-medium mt-0.5">
+                    <span>{registeredUsers.length} total users in real Firestore database</span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowUsersListModal(false)}
+                className="w-9 h-9 rounded-full bg-white hover:bg-slate-200 text-slate-700 flex items-center justify-center transition cursor-pointer shadow-2xs"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Search and Users List */}
+            <div className="p-4 space-y-3.5 overflow-y-auto flex-1">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search user name or village..."
+                  value={userSearchQuery}
+                  onChange={(e) => setUserSearchQuery(e.target.value)}
+                  className="w-full pl-3.5 pr-4 py-2.5 rounded-2xl bg-[#F3F3FA] border border-slate-200 text-xs font-medium text-[#1C1B1F] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                />
+              </div>
+
+              <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
+                {registeredUsers
+                  .filter(
+                    (u) =>
+                      u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+                      u.village.toLowerCase().includes(userSearchQuery.toLowerCase())
+                  )
+                  .map((usr) => (
+                    <div
+                      key={usr.uid}
+                      className="p-3 bg-[#F3F3FA] rounded-2xl border border-slate-200/80 flex items-center justify-between gap-2"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-800 flex items-center justify-center shrink-0 font-bold text-xs">
+                          {usr.name.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-[#1C1B1F] truncate">
+                              {usr.name}
+                            </span>
+                            {usr.role === 'admin' && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-200">
+                                Admin
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-[11px] text-[#49454F] mt-0.5 font-medium">
+                            <span>{usr.village}</span>
+                            {usr.phone && (
+                              <>
+                                <span>•</span>
+                                <a
+                                  href={`tel:${usr.phone.replace(/\s+/g, '')}`}
+                                  className="text-emerald-700 hover:underline font-bold flex items-center gap-0.5"
+                                >
+                                  <Phone className="w-3 h-3 inline" />
+                                  <span>{usr.phone}</span>
+                                </a>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-white text-slate-700 border border-slate-200 shrink-0 capitalize">
+                        {usr.authProvider === 'google' ? 'Google' : 'Village ID'}
+                      </span>
+                    </div>
+                  ))}
+
+                {registeredUsers.length === 0 && (
+                  <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 text-center text-xs text-[#49454F]">
+                    No registered users found in Firestore database. When villagers log in, their profiles appear here.
                   </div>
                 )}
               </div>
