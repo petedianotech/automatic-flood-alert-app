@@ -1,4 +1,5 @@
 import React from 'react';
+import { Info } from 'lucide-react';
 import { UserProfile } from '../types';
 
 interface TopBarProps {
@@ -6,12 +7,14 @@ interface TopBarProps {
   isAdmin?: boolean;
   onOpenAuthModal: () => void;
   onOpenVoiceSOS?: () => void;
+  onOpenAboutModal?: () => void;
   selectedVillage?: string;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
   currentUser,
   onOpenAuthModal,
+  onOpenAboutModal,
 }) => {
   // Get initials for user avatar badge
   const getInitials = () => {
@@ -51,8 +54,21 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
       </div>
 
-      {/* Right: Profile / Google Sign In Button */}
-      <div className="flex items-center gap-2 shrink-0 pl-1">
+      {/* Right: About Project & Profile / Sign In */}
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 pl-1">
+        {/* About & Legal Info Button */}
+        {onOpenAboutModal && (
+          <button
+            type="button"
+            id="btn-topbar-about-info"
+            onClick={onOpenAboutModal}
+            className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition active:scale-95 cursor-pointer border border-slate-200 shadow-2xs"
+            title="About Project & Legal"
+          >
+            <Info className="w-4 h-4 text-blue-700" />
+          </button>
+        )}
+
         {/* Profile / Sign In */}
         <button
           type="button"

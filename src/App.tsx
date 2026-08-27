@@ -30,6 +30,7 @@ import { DirectVoiceSOSModal } from './components/DirectVoiceSOSModal';
 import { FcmGatewayModal } from './components/FcmGatewayModal';
 import { AlertSoundModal } from './components/AlertSoundModal';
 import { SmsGatewayModal } from './components/SmsGatewayModal';
+import { AboutLegalModal } from './components/AboutLegalModal';
 import { InstallAppPrompt } from './components/InstallAppPrompt';
 import { Mic } from 'lucide-react';
 import {
@@ -203,6 +204,7 @@ export default function App() {
   const [isFcmModalOpen, setIsFcmModalOpen] = useState(false);
   const [isAlertSoundModalOpen, setIsAlertSoundModalOpen] = useState(false);
   const [isSmsModalOpen, setIsSmsModalOpen] = useState(false);
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(() =>
     NotificationService.getPermission()
   );
@@ -640,6 +642,7 @@ export default function App() {
           currentUser={authState.user}
           isAdmin={isAdmin}
           onOpenAuthModal={() => setIsAuthModalOpen(true)}
+          onOpenAboutModal={() => setIsAboutModalOpen(true)}
           onOpenVoiceSOS={handleOpenDirectVoiceSOS}
           activeAlertCount={activeAlertCount}
           selectedVillage={selectedVillage}
@@ -727,6 +730,7 @@ export default function App() {
               onOpenAuthModal={() => setIsAuthModalOpen(true)}
               onOpenDirectVoiceSOS={handleOpenDirectVoiceSOS}
               onOpenCheckInModal={handleOpenNormalCheckIn}
+              onOpenAboutModal={() => setIsAboutModalOpen(true)}
             />
           )}
         </main>
@@ -822,7 +826,13 @@ export default function App() {
         onClose={() => setIsSmsModalOpen(false)}
       />
 
-      {/* 13. Automatic Install App Prompt on New Devices */}
+      {/* 13. About Project & Legal Notice Modal */}
+      <AboutLegalModal
+        isOpen={isAboutModalOpen}
+        onClose={() => setIsAboutModalOpen(false)}
+      />
+
+      {/* 14. Automatic Install App Prompt on New Devices */}
       <InstallAppPrompt isDarkMode={isDarkMode} />
     </div>
   );
