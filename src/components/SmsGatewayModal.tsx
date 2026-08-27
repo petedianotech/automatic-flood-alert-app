@@ -105,57 +105,54 @@ export const SmsGatewayModal: React.FC<SmsGatewayModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-[#006A4E] text-white flex items-center justify-center shadow-xs shrink-0">
               <MessageSquare className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-extrabold text-[#1C1B1F] leading-tight">
-                SMS Broadcast Gateway
+              <h2 className="text-base sm:text-lg font-bold text-[#1C1B1F] leading-tight">
+                SMS Alert Broadcast
               </h2>
-              <p className="text-xs text-[#49454F] font-medium">
-                Traccar SIM Relay for Local Airtel/TNM SMS
+              <p className="text-xs text-[#49454F]">
+                Send emergency warning SMS messages to residents
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-9 h-9 rounded-full bg-white hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-800 transition active:scale-95 border border-slate-200 cursor-pointer"
+            className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-[#49454F] transition active:scale-95 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Status Card showing screenshot token connection */}
+        {/* Status Card */}
         <div className="bg-white rounded-2xl p-4 border border-slate-200 space-y-3 shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold text-[#1C1B1F] flex items-center gap-1.5">
-              <Smartphone className="w-4 h-4 text-emerald-600" />
-              <span>Traccar Gateway Phone Status</span>
+            <span className="text-xs font-bold text-[#1C1B1F] flex items-center gap-1.5">
+              <Smartphone className="w-4 h-4 text-[#006A4E]" />
+              <span>Gateway Phone Connection</span>
             </span>
-            <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-              <span>CONNECTED</span>
+            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+              <span>Active</span>
             </span>
           </div>
 
-          <div className="grid grid-cols-1 gap-2 text-xs">
-            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 font-mono text-[11px] text-slate-700 break-all">
-              <span className="font-bold text-slate-500 block mb-0.5">Cloud Service Token (Registered):</span>
+          <div className="space-y-1.5 text-xs text-[#49454F]">
+            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 font-mono text-[11px] text-slate-700 break-all">
+              <span className="font-sans font-bold text-slate-500 block text-[10px] uppercase mb-0.5">
+                Gateway Token ID:
+              </span>
               {config.cloudToken}
-            </div>
-
-            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 font-mono text-[11px] text-slate-700">
-              <span className="font-bold text-slate-500 block mb-0.5">Local Service Endpoint:</span>
-              {config.localEndpoint} (Token: {config.localToken})
             </div>
           </div>
         </div>
 
         {/* Mode Selector */}
         <div className="space-y-2">
-          <span className="text-xs font-extrabold text-[#49454F] px-1 uppercase tracking-wide">
-            Broadcast Relay Mode
+          <span className="text-xs font-bold text-[#49454F] px-1 uppercase tracking-wide">
+            Sending Method
           </span>
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -163,7 +160,7 @@ export const SmsGatewayModal: React.FC<SmsGatewayModalProps> = ({
               onClick={() => handleSaveConfig({ gatewayType: 'traccar_cloud' })}
               className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition cursor-pointer ${
                 config.gatewayType === 'traccar_cloud'
-                  ? 'bg-emerald-50 border-emerald-600 ring-2 ring-emerald-600/20'
+                  ? 'bg-emerald-50/80 border-emerald-600 ring-1 ring-emerald-600'
                   : 'bg-white border-slate-200 hover:bg-slate-50'
               }`}
             >
@@ -171,8 +168,8 @@ export const SmsGatewayModal: React.FC<SmsGatewayModalProps> = ({
                 <Cloud className={`w-4 h-4 ${config.gatewayType === 'traccar_cloud' ? 'text-emerald-700' : 'text-slate-500'}`} />
                 {config.gatewayType === 'traccar_cloud' && <Check className="w-3.5 h-3.5 text-emerald-700 stroke-[3]" />}
               </div>
-              <span className="text-xs font-bold text-[#1C1B1F]">Traccar Cloud</span>
-              <span className="text-[10px] text-[#49454F]">Internet to Gateway Phone</span>
+              <span className="text-xs font-bold text-[#1C1B1F]">Internet Mode</span>
+              <span className="text-[11px] text-[#49454F]">Cloud server to gateway</span>
             </button>
 
             <button
@@ -180,7 +177,7 @@ export const SmsGatewayModal: React.FC<SmsGatewayModalProps> = ({
               onClick={() => handleSaveConfig({ gatewayType: 'traccar_local' })}
               className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition cursor-pointer ${
                 config.gatewayType === 'traccar_local'
-                  ? 'bg-emerald-50 border-emerald-600 ring-2 ring-emerald-600/20'
+                  ? 'bg-emerald-50/80 border-emerald-600 ring-1 ring-emerald-600'
                   : 'bg-white border-slate-200 hover:bg-slate-50'
               }`}
             >
@@ -188,8 +185,8 @@ export const SmsGatewayModal: React.FC<SmsGatewayModalProps> = ({
                 <Wifi className={`w-4 h-4 ${config.gatewayType === 'traccar_local' ? 'text-emerald-700' : 'text-slate-500'}`} />
                 {config.gatewayType === 'traccar_local' && <Check className="w-3.5 h-3.5 text-emerald-700 stroke-[3]" />}
               </div>
-              <span className="text-xs font-bold text-[#1C1B1F]">Local Wi-Fi (Offline)</span>
-              <span className="text-[10px] text-[#49454F]">Direct IP 192.168.88.254</span>
+              <span className="text-xs font-bold text-[#1C1B1F]">Local Wi-Fi</span>
+              <span className="text-[11px] text-[#49454F]">Direct router IP</span>
             </button>
           </div>
         </div>
@@ -198,75 +195,84 @@ export const SmsGatewayModal: React.FC<SmsGatewayModalProps> = ({
         <div className="bg-white rounded-2xl p-4 border border-slate-200 space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-xs font-extrabold text-[#1C1B1F] block">
-                Emergency SMS Broadcast List ({activeRecipients.length} Active)
+              <span className="text-xs font-bold text-[#1C1B1F] block">
+                Emergency Contact List ({activeRecipients.length} Active)
               </span>
               <span className="text-[11px] text-[#49454F]">
-                Phone numbers stored inside your app that will receive flood SMS
+                Residents from your database who receive SMS
               </span>
             </div>
           </div>
 
           <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
-            {config.recipients.map((rec) => (
-              <div
-                key={rec.id}
-                className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between gap-2"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <input
-                    type="checkbox"
-                    checked={rec.enabled}
-                    onChange={(e) => handleToggleRecipient(rec.id, e.target.checked)}
-                    className="w-4 h-4 rounded-md accent-emerald-600 cursor-pointer"
-                  />
-                  <div className="min-w-0">
-                    <span className="text-xs font-bold text-[#1C1B1F] block truncate">
-                      {rec.name} ({rec.village})
-                    </span>
-                    <span className="text-[11px] font-mono text-[#49454F]">
-                      {rec.phone} • {rec.role}
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleRemoveRecipient(rec.id)}
-                  className="w-7 h-7 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 flex items-center justify-center transition"
-                  title="Remove number"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+            {config.recipients.length === 0 ? (
+              <div className="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-center space-y-1">
+                <p className="text-xs font-bold text-[#1C1B1F]">No Phone Numbers in Database Yet</p>
+                <p className="text-[11px] text-[#49454F]">
+                  Add phone numbers below or ask residents to save their number during sign-in.
+                </p>
               </div>
-            ))}
+            ) : (
+              config.recipients.map((rec) => (
+                <div
+                  key={rec.id}
+                  className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-2"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <input
+                      type="checkbox"
+                      checked={rec.enabled}
+                      onChange={(e) => handleToggleRecipient(rec.id, e.target.checked)}
+                      className="w-4 h-4 rounded-md accent-[#006A4E] cursor-pointer"
+                    />
+                    <div className="min-w-0">
+                      <span className="text-xs font-bold text-[#1C1B1F] block truncate">
+                        {rec.name} ({rec.village})
+                      </span>
+                      <span className="text-[11px] font-mono text-[#49454F]">
+                        {rec.phone} • {rec.role}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveRecipient(rec.id)}
+                    className="w-7 h-7 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 flex items-center justify-center transition cursor-pointer"
+                    title="Remove number"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))
+            )}
           </div>
 
           {/* Add New Recipient Form */}
-          <form onSubmit={handleAddRecipient} className="pt-2 border-t border-slate-200/80 space-y-2">
-            <span className="text-[11px] font-extrabold text-[#49454F] block">
-              Add Phone Number to App Broadcast List
+          <form onSubmit={handleAddRecipient} className="pt-2 border-t border-slate-100 space-y-2">
+            <span className="text-[11px] font-bold text-[#49454F] block">
+              Add Phone Number to App
             </span>
             <div className="grid grid-cols-2 gap-2">
               <input
                 type="text"
-                placeholder="Name (e.g., Village Head)"
+                placeholder="Full Name"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                className="px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#006A4E]"
               />
               <input
                 type="tel"
-                placeholder="Phone (e.g., +265999...)"
+                placeholder="Phone Number"
                 value={newPhone}
                 onChange={(e) => setNewPhone(e.target.value)}
-                className="px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-mono font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono font-medium focus:outline-none focus:ring-2 focus:ring-[#006A4E]"
                 required
               />
             </div>
             <button
               type="submit"
-              className="w-full py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-800 flex items-center justify-center gap-1 transition cursor-pointer"
+              className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-800 flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-98"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add Phone Number to App</span>
@@ -275,25 +281,25 @@ export const SmsGatewayModal: React.FC<SmsGatewayModalProps> = ({
         </div>
 
         {/* Test Broadcast Action */}
-        <div className="bg-emerald-50/70 rounded-2xl p-4 border border-emerald-200 space-y-2">
-          <span className="text-xs font-extrabold text-emerald-900 block">
-            Test Send Emergency SMS
+        <div className="bg-emerald-50/60 rounded-2xl p-4 border border-emerald-200/80 space-y-2.5">
+          <span className="text-xs font-bold text-emerald-950 block">
+            Test Send Emergency SMS Now
           </span>
           <textarea
             rows={2}
             value={testMessage}
             onChange={(e) => setTestMessage(e.target.value)}
-            className="w-full p-2.5 rounded-xl bg-white border border-emerald-200 text-xs text-[#1C1B1F] font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+            className="w-full p-2.5 rounded-xl bg-white border border-emerald-200 text-xs text-[#1C1B1F] font-medium focus:outline-none focus:ring-2 focus:ring-[#006A4E] resize-none"
           />
 
           <button
             type="button"
             onClick={handleSendTestBroadcast}
             disabled={isSending || activeRecipients.length === 0}
-            className="w-full py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white text-xs font-bold shadow-xs flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50"
+            className="w-full py-3 rounded-full bg-[#006A4E] hover:bg-emerald-800 active:scale-98 text-white text-xs font-bold shadow-xs flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50"
           >
             {isSending ? (
-              <span>Sending via Traccar SMS Gateway...</span>
+              <span>Sending SMS via Gateway...</span>
             ) : (
               <>
                 <Send className="w-3.5 h-3.5 fill-current" />
@@ -304,10 +310,10 @@ export const SmsGatewayModal: React.FC<SmsGatewayModalProps> = ({
 
           {sendResult && (
             <div
-              className={`p-2.5 rounded-xl text-xs font-medium flex items-center gap-2 mt-2 ${
+              className={`p-3 rounded-xl text-xs font-medium flex items-center gap-2.5 mt-2 ${
                 sendResult.success
-                  ? 'bg-emerald-100 border border-emerald-300 text-emerald-900'
-                  : 'bg-red-50 border border-red-200 text-red-900'
+                  ? 'bg-emerald-100/80 border border-emerald-300 text-emerald-950'
+                  : 'bg-red-50 border border-red-200 text-red-950'
               }`}
             >
               {sendResult.success ? (
@@ -315,10 +321,10 @@ export const SmsGatewayModal: React.FC<SmsGatewayModalProps> = ({
               ) : (
                 <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
               )}
-              <span>
+              <span className="leading-snug">
                 {sendResult.success
-                  ? `SMS dispatched! Sent to ${sendResult.sentCount} out of ${sendResult.recipientsCount} numbers.`
-                  : sendResult.error || 'Failed to dispatch SMS.'}
+                  ? `SMS dispatched successfully! Sent to ${sendResult.sentCount} active contacts.`
+                  : sendResult.error || 'Failed to send SMS.'}
               </span>
             </div>
           )}
@@ -328,7 +334,7 @@ export const SmsGatewayModal: React.FC<SmsGatewayModalProps> = ({
         <button
           type="button"
           onClick={onClose}
-          className="w-full py-3 rounded-full bg-[#1C1B1F] hover:bg-black text-white text-xs font-bold shadow-xs cursor-pointer transition"
+          className="w-full py-3 rounded-full bg-[#1C1B1F] hover:bg-black text-white text-xs font-bold shadow-xs cursor-pointer transition active:scale-98"
         >
           Done
         </button>

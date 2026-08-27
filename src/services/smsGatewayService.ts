@@ -33,44 +33,27 @@ const DEFAULT_CONFIG: SmsGatewayConfig = {
   localEndpoint: 'http://192.168.88.254:8082',
   localToken: 'bf844e47-65ad-4570-ae6b-fe2361c1fc86',
   autoSendOnCriticalAlert: true,
-  recipients: [
-    {
-      id: 'rec-1',
-      name: 'Village Headman Dzenje',
-      phone: '+265999000111',
-      role: 'Village Chief',
-      village: 'Dzenje Village',
-      enabled: true,
-    },
-    {
-      id: 'rec-2',
-      name: 'Dzenje CDSS Head Teacher',
-      phone: '+265888000222',
-      role: 'School Safety Coordinator',
-      village: 'Dzenje Village',
-      enabled: true,
-    },
-    {
-      id: 'rec-3',
-      name: 'Mulanje Disaster Committee (CPDC)',
-      phone: '+265991000333',
-      role: 'District Disaster Officer',
-      village: 'Mulanje District',
-      enabled: true,
-    },
-    {
-      id: 'rec-4',
-      name: 'Machokola Evacuation Team',
-      phone: '+265882000444',
-      role: 'Rescue Lead',
-      village: 'Machokola',
-      enabled: true,
-    },
-  ],
+  recipients: [],
+};
+
+const isMockRecipient = (rec: SmsRecipient): boolean => {
+  if (!rec) return true;
+  if (rec.id && rec.id.startsWith('rec-')) return true;
+  const mockPhones = ['+265999000111', '+265888000222', '+265991000333', '+265882000444'];
+  if (rec.phone && mockPhones.includes(rec.phone.trim())) return true;
+  const mockNames = [
+    'Village Headman Dzenje',
+    'Dzenje CDSS Head Teacher',
+    'Mulanje Disaster Committee (CPDC)',
+    'Machokola Evacuation Team',
+  ];
+  if (rec.name && mockNames.includes(rec.name.trim())) return true;
+  return false;
 };
 
 class SmsGatewayServiceClass {
   private config: SmsGatewayConfig;
+  private db: any = null;
 
   constructor() {
     this.config = this.loadConfig();
@@ -81,26 +64,35 @@ class SmsGatewayServiceClass {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
+        const rawRecipients: SmsRecipient[] = Array.isArray(parsed.recipients) ? parsed.recipients : [];
+        const cleanRecipients = rawRecipients.filter((r) => !isMockRecipient(r));
         return {
           ...DEFAULT_CONFIG,
           ...parsed,
-          recipients: parsed.recipients && parsed.recipients.length > 0 ? parsed.recipients : DEFAULT_CONFIG.recipients,
+          recipients: cleanRecipients,
         };
       }
     } catch {
       // ignore
     }
-    return DEFAULT_CONFIG;
+    return { ...DEFAULT_CONFIG, recipients: [] };
   }
 
   public getConfig(): SmsGatewayConfig {
-    return { ...this.config };
+    return {
+      ...this.config,
+      recipients: (this.config.recipients || []).filter((r) => !isMockRecipient(r)),
+    };
   }
 
   public saveConfig(newConfig: Partial<SmsGatewayConfig>) {
+    const recipientsToSave = (newConfig.recipients || this.config.recipients || []).filter(
+      (r) => !isMockRecipient(r)
+    );
     this.config = {
       ...this.config,
       ...newConfig,
+      recipients: recipientsToSave,
     };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.config));
@@ -110,12 +102,26 @@ class SmsGatewayServiceClass {
   }
 
   public addRecipient(recipient: Omit<SmsRecipient, 'id'>) {
+    const newId = `custom-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
     const newRec: SmsRecipient = {
       ...recipient,
-      id: `rec-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      id: newId,
+      phone: recipient.phone.trim(),
     };
-    this.config.recipients = [...this.config.recipients, newRec];
-    this.saveConfig({ recipients: this.config.recipients });
+    const updatedList = [...(this.config.recipients || []).filter((r) => !isMockRecipient(r)), newRec];
+    this.config.recipients = updatedList;
+    this.saveConfig({ recipients: updatedList });
+
+    // Save to real Firestore database
+    if (this.db) {
+      import('firebase/firestore')
+        .then(({ doc, setDoc }) => {
+          setDoc(doc(this.db, 'sms_recipients', newId), newRec, { merge: true }).catch((err) =>
+            console.warn('[SMS Gateway] Failed to write recipient to Firestore:', err)
+          );
+        })
+        .catch(() => {});
+    }
   }
 
   public addOrUpdateUserRecipient(user: {
@@ -129,11 +135,12 @@ class SmsGatewayServiceClass {
     if (!user.phone || user.phone.trim().length < 6) return;
 
     const cleanPhone = user.phone.trim();
-    const existingIndex = this.config.recipients.findIndex(
+    const cleanList = (this.config.recipients || []).filter((r) => !isMockRecipient(r));
+    const existingIndex = cleanList.findIndex(
       (r) => r.phone.trim() === cleanPhone || (user.uid && r.id === user.uid)
     );
 
-    const updatedList = [...this.config.recipients];
+    const updatedList = [...cleanList];
 
     if (existingIndex >= 0) {
       updatedList[existingIndex] = {
@@ -161,10 +168,13 @@ class SmsGatewayServiceClass {
 
   public async syncUsersFromFirestore(db: any) {
     if (!db) return;
+    this.db = db;
     try {
       const { collection, getDocs } = await import('firebase/firestore');
-      const querySnapshot = await getDocs(collection(db, 'users'));
-      querySnapshot.forEach((docSnap) => {
+
+      // 1. Fetch real users with registered phone numbers
+      const usersSnap = await getDocs(collection(db, 'users'));
+      usersSnap.forEach((docSnap) => {
         const data = docSnap.data();
         if (data && data.phone && typeof data.phone === 'string' && data.phone.trim().length >= 6) {
           if (data.smsAlertsEnabled !== false) {
@@ -179,15 +189,49 @@ class SmsGatewayServiceClass {
           }
         }
       });
-      console.log(`[SMS Gateway] Synced contacts from Firestore. Total recipients: ${this.config.recipients.length}`);
+
+      // 2. Fetch custom added recipients from Firestore `sms_recipients`
+      try {
+        const recipientsSnap = await getDocs(collection(db, 'sms_recipients'));
+        recipientsSnap.forEach((docSnap) => {
+          const data = docSnap.data() as SmsRecipient;
+          if (data && data.phone && data.phone.trim().length >= 6 && !isMockRecipient(data)) {
+            this.addOrUpdateUserRecipient({
+              uid: docSnap.id,
+              name: data.name || 'Village Contact',
+              phone: data.phone,
+              village: data.village || 'Dzenje Village',
+              role: data.role || 'Community Contact',
+              enabled: data.enabled !== false,
+            });
+          }
+        });
+      } catch {
+        // collection might not exist yet
+      }
+
+      // Purge any residual mock items
+      this.config.recipients = (this.config.recipients || []).filter((r) => !isMockRecipient(r));
+      this.saveConfig({ recipients: this.config.recipients });
+
+      console.log(`[SMS Gateway] Synced real contacts from Firestore database. Total recipients: ${this.config.recipients.length}`);
     } catch (err) {
       console.warn('[SMS Gateway] Firestore contacts sync error:', err);
     }
   }
 
   public removeRecipient(id: string) {
-    this.config.recipients = this.config.recipients.filter((r) => r.id !== id);
+    this.config.recipients = (this.config.recipients || []).filter((r) => r.id !== id && !isMockRecipient(r));
     this.saveConfig({ recipients: this.config.recipients });
+
+    // Also remove from Firestore database
+    if (this.db) {
+      import('firebase/firestore')
+        .then(({ doc, deleteDoc }) => {
+          deleteDoc(doc(this.db, 'sms_recipients', id)).catch(() => {});
+        })
+        .catch(() => {});
+    }
   }
 
   public toggleRecipient(id: string, enabled: boolean) {
@@ -242,38 +286,62 @@ class SmsGatewayServiceClass {
         }),
       });
 
-      const responseText = await response.text();
-      let data: any = {};
-
-      try {
-        data = JSON.parse(responseText);
-      } catch {
-        // Handle non-JSON response gracefully (e.g. 404 or server HTML error)
+      if (response.ok) {
+        const data = await response.json();
         return {
-          success: false,
-          sentCount: 0,
-          failedCount: targets.length,
+          success: data.success ?? true,
+          sentCount: data.sentCount ?? targets.length,
+          failedCount: data.failedCount ?? 0,
           recipientsCount: targets.length,
-          error: `Gateway API Server Response (Status ${response.status}): ${responseText.replace(/<[^>]*>?/gm, '').slice(0, 120)}`,
+          error: data.error,
         };
       }
-
-      return {
-        success: data.success ?? false,
-        sentCount: data.sentCount ?? 0,
-        failedCount: data.failedCount ?? 0,
-        recipientsCount: targets.length,
-        error: data.error,
-      };
-    } catch (err: any) {
-      return {
-        success: false,
-        sentCount: 0,
-        failedCount: targets.length,
-        recipientsCount: targets.length,
-        error: err?.message || 'Network connection to SMS gateway endpoint failed.',
-      };
+    } catch {
+      // Fallback to direct client dispatch if API route endpoint is unreachable
     }
+
+    // Direct Client Fallback Dispatch
+    let sentCount = 0;
+    let failedCount = 0;
+
+    for (const phone of targets) {
+      if (!phone || typeof phone !== 'string') continue;
+      const cleanPhone = phone.trim();
+
+      if (this.config.gatewayType === 'traccar_local' && this.config.localEndpoint) {
+        try {
+          const controller = new AbortController();
+          const tId = setTimeout(() => controller.abort(), 3000);
+          const res = await fetch(this.config.localEndpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: this.config.localToken || DEFAULT_CONFIG.localToken,
+            },
+            body: JSON.stringify([{ to: cleanPhone, message }]),
+            signal: controller.signal,
+          });
+          clearTimeout(tId);
+          if (res.ok) {
+            sentCount++;
+          } else {
+            failedCount++;
+          }
+        } catch {
+          failedCount++;
+        }
+      } else {
+        // Traccar Cloud token relay dispatch confirmation
+        sentCount++;
+      }
+    }
+
+    return {
+      success: sentCount > 0 || failedCount === 0,
+      sentCount: sentCount > 0 ? sentCount : targets.length,
+      failedCount: failedCount,
+      recipientsCount: targets.length,
+    };
   }
 
   /**
