@@ -297,7 +297,7 @@ export const ReceiverNodeView: React.FC<ReceiverNodeViewProps> = ({
                       <div>
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <h4 className="font-bold text-sm text-[#1C1B1F] leading-tight">
-                            {alert.headline || (isRed ? 'Flood Danger Detected!' : 'River Warning')}
+                            {alert.title || (isRed ? 'Flood Danger Detected!' : 'River Warning')}
                           </h4>
                           <span
                             className={`text-[10px] font-bold px-2 py-0.2 rounded-full ${

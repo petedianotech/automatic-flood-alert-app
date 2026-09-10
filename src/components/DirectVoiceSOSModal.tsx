@@ -112,6 +112,9 @@ export const DirectVoiceSOSModal: React.FC<DirectVoiceSOSModalProps> = ({
   const startRecordingNow = async () => {
     try {
       setMicError(null);
+      if (!navigator?.mediaDevices?.getUserMedia) {
+        throw new Error('Microphone recording is not supported on this browser.');
+      }
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -121,19 +124,25 @@ export const DirectVoiceSOSModal: React.FC<DirectVoiceSOSModalProps> = ({
       });
       streamRef.current = stream;
 
-      let mimeType = 'audio/webm';
-      if (typeof MediaRecorder !== 'undefined') {
+      let mimeType = '';
+      if (typeof MediaRecorder !== 'undefined' && typeof MediaRecorder.isTypeSupported === 'function') {
         if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
           mimeType = 'audio/webm;codecs=opus';
+        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+          mimeType = 'audio/webm';
         } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
           mimeType = 'audio/mp4';
         } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
           mimeType = 'audio/ogg';
         }
       }
-      audioMimeTypeRef.current = mimeType;
+      audioMimeTypeRef.current = mimeType || 'audio/webm';
 
-      const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      if (typeof MediaRecorder === 'undefined') {
+        throw new Error('Voice recorder is not available on this device.');
+      }
+
+      const mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 

@@ -130,14 +130,22 @@ export const AboutLegalModal: React.FC<AboutLegalModalProps> = ({
             <div className="bg-white rounded-2xl p-4 border border-slate-200 space-y-2.5 shadow-2xs">
               <h4 className="text-xs font-bold text-[#49454F] uppercase tracking-wider flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5 text-blue-600" />
-                <span>Club Leadership &amp; Team</span>
+                <span>Club Team &amp; Contributors</span>
               </h4>
 
               <div className="space-y-2">
                 <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-2">
-                  <div>
+                  <div className="min-w-0">
                     <span className="font-bold text-[#1C1B1F] block text-xs">Peter Damiano</span>
-                    <span className="text-[11px] text-slate-500">Club Leader &amp; Innovator</span>
+                    <a
+                      href="https://peterdamiano.vercel.app"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] text-blue-600 hover:underline flex items-center gap-1 font-medium mt-0.5"
+                    >
+                      <span className="truncate">peterdamiano.vercel.app</span>
+                      <ExternalLink className="w-3 h-3 inline shrink-0" />
+                    </a>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <a
@@ -147,19 +155,16 @@ export const AboutLegalModal: React.FC<AboutLegalModalProps> = ({
                       className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition flex items-center gap-1 cursor-pointer"
                       title="Open Peter Damiano's Web Portfolio"
                     >
-                      <span>Web Portfolio</span>
+                      <span>Portfolio</span>
                       <ExternalLink className="w-3 h-3" />
                     </a>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-900">
-                      Lead
-                    </span>
                   </div>
                 </div>
 
                 <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
                   <div>
                     <span className="font-bold text-[#1C1B1F] block text-xs">Mr. H. Skinner</span>
-                    <span className="text-[11px] text-slate-500">STEM Club Patron &amp; Mentor</span>
+                    <span className="text-[11px] text-slate-500">Club Patron &amp; Mentor</span>
                   </div>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900">
                     Patron
@@ -176,6 +181,17 @@ export const AboutLegalModal: React.FC<AboutLegalModalProps> = ({
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* Special Acknowledgment to Club Patron */}
+            <div className="bg-emerald-50 rounded-2xl p-3.5 border border-emerald-200 text-emerald-950 space-y-1.5 shadow-2xs">
+              <div className="flex items-center gap-1.5 font-bold text-xs text-emerald-900">
+                <HeartHandshake className="w-4 h-4 text-emerald-700" />
+                <span>Special Thanks to Our Club Patron</span>
+              </div>
+              <p className="text-xs text-emerald-900 leading-relaxed">
+                Special gratitude and thanks to our club patron <strong>Mr. H. Skinner</strong> for guiding us, mentoring our team, and working together every step of the way.
+              </p>
             </div>
 
             {/* Special Acknowledgment & Quote */}

@@ -615,14 +615,14 @@ export default function App() {
   return (
     <div
       id="app-root-container"
-      className={`h-[100dvh] overflow-hidden flex justify-center transition-colors duration-200 font-sans ${
+      className={`min-h-screen h-screen h-[100vh] h-[100dvh] w-full overflow-hidden flex justify-center transition-colors duration-200 font-sans ${
         isDarkMode ? 'bg-[#141218] text-[#E6E1E5]' : 'bg-[#FEF7FF] text-[#1C1B1F]'
       }`}
     >
-      {/* Mobile Device Frame Container */}
+      {/* Mobile Device & Tablet Frame Container */}
       <div
         id="mobile-phone-frame"
-        className={`w-full max-w-md h-full sm:h-[96vh] sm:my-auto sm:rounded-[32px] sm:shadow-lg sm:border flex flex-col relative overflow-hidden transition-all ${
+        className={`w-full max-w-lg md:max-w-xl h-full sm:h-[98vh] sm:my-auto sm:rounded-[28px] sm:shadow-lg sm:border flex flex-col relative overflow-hidden transition-all ${
           isDarkMode
             ? 'bg-[#1E1F20] sm:border-[#303134] text-[#E6E1E5]'
             : 'bg-[#FEF7FF] sm:border-slate-200 text-[#1C1B1F]'

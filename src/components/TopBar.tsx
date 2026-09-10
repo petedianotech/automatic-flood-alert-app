@@ -9,6 +9,16 @@ interface TopBarProps {
   onOpenVoiceSOS?: () => void;
   onOpenAboutModal?: () => void;
   selectedVillage?: string;
+  currentMode?: string;
+  onSelectMode?: (mode: any) => void;
+  isDarkMode?: boolean;
+  isArmed?: boolean;
+  isPaused?: boolean;
+  sensorState?: any;
+  wakeLockState?: any;
+  isFirebaseConnected?: boolean;
+  onOpenFirebaseModal?: () => void;
+  activeAlertCount?: number;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({

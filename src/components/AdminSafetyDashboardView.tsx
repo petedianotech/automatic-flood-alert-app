@@ -366,39 +366,50 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
         </div>
       </div>
 
-      {/* ================= 1.5 TOTAL APP USERS CARD (REAL DATABASE) ================= */}
-      <div className="bg-[#F3F3FA] rounded-[24px] p-4 border border-slate-100 shadow-xs space-y-2">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-purple-700 text-white flex items-center justify-center shrink-0 shadow-xs font-bold">
-              <UserCheck className="w-5 h-5" />
+      {/* ================= 1.5 TOTAL APP USERS CARD (REAL DATABASE - BLUE THEME, SPACIOUS) ================= */}
+      <div
+        id="admin-total-app-users-card"
+        className="bg-[#F3F3FA] rounded-[24px] p-4.5 border border-slate-200/80 shadow-xs space-y-3.5"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+          {/* Header Info */}
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-[#1F71E8] text-white flex items-center justify-center shrink-0 shadow-xs font-bold">
+              <UserCheck className="w-6 h-6" />
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-sm text-[#1C1B1F] leading-tight">
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-bold text-base sm:text-lg text-[#1C1B1F] leading-snug">
                   Total App Users
                 </h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 flex items-center gap-1.5 shrink-0">
+                  <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
                   Real Database
                 </span>
               </div>
-              <p className="text-xs text-[#49454F] font-medium mt-0.5 truncate">
-                People registered on Firestore
+              <p className="text-xs text-[#49454F] font-medium mt-0.5 leading-normal">
+                All registered community users stored in live Firestore database
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-base font-bold text-purple-900 bg-white px-3 py-1 rounded-2xl border border-slate-200 shadow-2xs">
-              {registeredUsers.length} {registeredUsers.length === 1 ? 'User' : 'Users'}
-            </span>
+          {/* Action & User Count Badge */}
+          <div className="flex items-center gap-2.5 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-slate-200/80 justify-between sm:justify-end shrink-0">
+            <div className="flex items-center gap-1.5 bg-white px-3.5 py-1.5 rounded-2xl border border-blue-200 shadow-2xs">
+              <Users className="w-4 h-4 text-[#1F71E8]" />
+              <span className="text-sm font-bold text-blue-950">
+                {registeredUsers.length} {registeredUsers.length === 1 ? 'User' : 'Users'}
+              </span>
+            </div>
+
             <button
               type="button"
+              id="btn-admin-view-users-list"
               onClick={() => setShowUsersListModal(true)}
-              className="px-3 py-1.5 bg-[#1F71E8] hover:bg-blue-700 text-white rounded-full text-xs font-bold transition cursor-pointer shadow-2xs flex items-center gap-1"
+              className="px-4 py-2 bg-[#1F71E8] hover:bg-blue-700 active:scale-98 text-white rounded-2xl text-xs font-bold transition cursor-pointer shadow-xs flex items-center gap-1.5 shrink-0"
             >
-              <span>View List</span>
+              <Users className="w-4 h-4" />
+              <span>View User List</span>
             </button>
           </div>
         </div>
@@ -996,7 +1007,7 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
             {/* Modal Header */}
             <div className="p-4 border-b border-slate-200/80 flex items-center justify-between bg-[#F3F3FA]">
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-purple-700 text-white flex items-center justify-center shadow-xs shrink-0 font-bold">
+                <div className="w-10 h-10 rounded-2xl bg-[#1F71E8] text-white flex items-center justify-center shadow-xs shrink-0 font-bold">
                   <UserCheck className="w-5 h-5" />
                 </div>
                 <div>
@@ -1026,7 +1037,7 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                   placeholder="Search user name or village..."
                   value={userSearchQuery}
                   onChange={(e) => setUserSearchQuery(e.target.value)}
-                  className="w-full pl-3.5 pr-4 py-2.5 rounded-2xl bg-[#F3F3FA] border border-slate-200 text-xs font-medium text-[#1C1B1F] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  className="w-full pl-3.5 pr-4 py-2.5 rounded-2xl bg-[#F3F3FA] border border-slate-200 text-xs font-medium text-[#1C1B1F] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1F71E8]"
                 />
               </div>
 
@@ -1043,7 +1054,7 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                       className="p-3 bg-[#F3F3FA] rounded-2xl border border-slate-200/80 flex items-center justify-between gap-2"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-800 flex items-center justify-center shrink-0 font-bold text-xs">
+                        <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-800 flex items-center justify-center shrink-0 font-bold text-xs">
                           {usr.name.substring(0, 2).toUpperCase()}
                         </div>
                         <div className="min-w-0">
@@ -1052,7 +1063,7 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                               {usr.name}
                             </span>
                             {usr.role === 'admin' && (
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-200">
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 border border-blue-200">
                                 Admin
                               </span>
                             )}
