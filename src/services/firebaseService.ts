@@ -239,6 +239,24 @@ class FirebaseFloodService {
     }
   }
 
+  public async manualRefreshAll(): Promise<void> {
+    if (!this.db) return;
+    try {
+      console.log('[Firebase] Executing manual full data sync...');
+      // 1. Re-sync SMS Gateway recipients
+      await smsGatewayService.syncUsersFromFirestore(this.db);
+      
+      // 2. Trigger onSnapshot listeners again by re-subscribing
+      this.subscribeFirestoreAlerts();
+      this.subscribeFirestoreSafetyReports();
+      this.subscribeFirestoreUsers();
+      
+      console.log('[Firebase] Manual full sync completed successfully.');
+    } catch (err) {
+      console.warn('[Firebase] Manual sync failed:', err);
+    }
+  }
+
   private async syncUserProfile(fbUser: User) {
     let profile: UserProfile | null = null;
 
@@ -1189,6 +1207,19 @@ class FirebaseFloodService {
 
     if (this.broadcastChannel) {
       this.broadcastChannel.postMessage({ type: 'DELETE_SAFETY_REPORT', reportId });
+    }
+  }
+
+  public async deleteUser(userId: string): Promise<void> {
+    if (this.db) {
+      try {
+        const docRef = doc(this.db, 'users', userId);
+        await deleteDoc(docRef);
+        console.log(`User ${userId} successfully deleted from Firestore.`);
+      } catch (err) {
+        console.warn('Firestore delete user failed:', err);
+        this.handleFirestoreError(err, OperationType.DELETE, `users/${userId}`);
+      }
     }
   }
 

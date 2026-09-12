@@ -178,6 +178,20 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
     }
   };
 
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    if (currentUser?.uid === userId) {
+      alert("You cannot delete your own admin account.");
+      return;
+    }
+    if (window.confirm(`Are you sure you want to permanently delete user "${userName}" from the database?`)) {
+      try {
+        await firebaseFloodService.deleteUser(userId);
+      } catch (err) {
+        alert("Failed to delete user: " + String(err));
+      }
+    }
+  };
+
   const handleCopyCoordinates = (lat: number, lng: number) => {
     try {
       navigator.clipboard.writeText(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
@@ -1339,9 +1353,21 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                         </div>
                       </div>
 
-                      <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-white text-slate-700 border border-slate-200 shrink-0 capitalize">
-                        {usr.authProvider === 'google' ? 'Google' : 'Village ID'}
-                      </span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-white text-slate-700 border border-slate-200 capitalize">
+                          {usr.authProvider === 'google' ? 'Google' : 'Village ID'}
+                        </span>
+                        {currentUser?.uid !== usr.uid && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteUser(usr.uid, usr.name)}
+                            className="w-8 h-8 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 flex items-center justify-center transition cursor-pointer"
+                            title="Delete User"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
 

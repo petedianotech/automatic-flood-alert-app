@@ -120,6 +120,59 @@ export default function App() {
     setCurrentMode(mode);
   };
 
+  // Manual Sync & Refresh States
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await firebaseFloodService.manualRefreshAll();
+    } catch (err) {
+      console.warn('Manual refresh error:', err);
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 800);
+    }
+  };
+
+  // Touch gestures for swipe navigation
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+    setTouchStartY(e.touches[0].clientY);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null || touchStartY === null) return;
+    
+    const diffX = e.changedTouches[0].clientX - touchStartX;
+    const diffY = e.changedTouches[0].clientY - touchStartY;
+    
+    // Horizontal swipe must be significantly wider than vertical drag
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 60) {
+      const allowedModes: NodeMode[] = isAdmin 
+        ? ['village', 'receiver', 'sensor', 'admin'] 
+        : ['village', 'receiver'];
+        
+      const currentIndex = allowedModes.indexOf(currentMode);
+      
+      if (diffX < 0) {
+        // Swipe Left -> Next Page
+        if (currentIndex < allowedModes.length - 1) {
+          handleSelectMode(allowedModes[currentIndex + 1]);
+        }
+      } else {
+        // Swipe Right -> Previous Page
+        if (currentIndex > 0) {
+          handleSelectMode(allowedModes[currentIndex - 1]);
+        }
+      }
+    }
+    
+    setTouchStartX(null);
+    setTouchStartY(null);
+  };
+
   // Selected village state
   const [selectedVillage, setSelectedVillage] = useState<string>('Dzenje Village');
 
@@ -646,12 +699,16 @@ export default function App() {
           onOpenVoiceSOS={handleOpenDirectVoiceSOS}
           activeAlertCount={activeAlertCount}
           selectedVillage={selectedVillage}
+          onRefresh={handleManualRefresh}
+          isRefreshing={isRefreshing}
         />
 
         {/* 2. Fixed Mobile Content Screen (Smoothly scrollable, Bottom Nav stays fixed) */}
         <main
           id="mobile-main-scroll-area"
-          className="flex-1 w-full overflow-y-auto min-h-0 px-3.5 sm:px-4 py-3.5 overscroll-contain"
+          className="flex-1 w-full overflow-y-auto min-h-0 px-3.5 sm:px-4 py-3.5 overscroll-contain select-none"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
         >
           {currentMode === 'admin' && (
             <AdminSafetyDashboardView

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Info } from 'lucide-react';
+import { Info, RefreshCw } from 'lucide-react';
 import { UserProfile } from '../types';
 
 interface TopBarProps {
@@ -19,12 +19,16 @@ interface TopBarProps {
   isFirebaseConnected?: boolean;
   onOpenFirebaseModal?: () => void;
   activeAlertCount?: number;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
   currentUser,
   onOpenAuthModal,
   onOpenAboutModal,
+  onRefresh,
+  isRefreshing = false,
 }) => {
   // Get initials for user avatar badge
   const getInitials = () => {
@@ -76,6 +80,19 @@ export const TopBar: React.FC<TopBarProps> = ({
             title="About Project & Legal"
           >
             <Info className="w-4 h-4 text-blue-700" />
+          </button>
+        )}
+
+        {/* Manual Refresh Button */}
+        {onRefresh && (
+          <button
+            type="button"
+            id="btn-topbar-refresh"
+            onClick={onRefresh}
+            className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition active:scale-95 cursor-pointer border border-slate-200 shadow-2xs"
+            title="Refresh database data"
+          >
+            <RefreshCw className={`w-4 h-4 text-emerald-700 ${isRefreshing ? 'animate-spin' : ''}`} />
           </button>
         )}
 

@@ -197,7 +197,7 @@ class SmsGatewayServiceClass {
             village: data.village || 'Dzenje Village',
             role: data.role === 'admin' ? 'Village Admin' : 'Registered Resident',
             language: data.alertLanguage || 'ny',
-            // Do not force enabled = true; preserve or default to false
+            enabled: data.smsAlertsEnabled ?? false,
           });
         }
       });
@@ -237,11 +237,12 @@ class SmsGatewayServiceClass {
     this.config.recipients = (this.config.recipients || []).filter((r) => r.id !== id && !isMockRecipient(r));
     this.saveConfig({ recipients: this.config.recipients });
 
-    // Also remove from Firestore database
+    // Also remove from Firestore database (from both custom sms_recipients and users collection to prevent syncing back)
     if (this.db) {
       import('firebase/firestore')
         .then(({ doc, deleteDoc }) => {
           deleteDoc(doc(this.db, 'sms_recipients', id)).catch(() => {});
+          deleteDoc(doc(this.db, 'users', id)).catch(() => {});
         })
         .catch(() => {});
     }
@@ -252,6 +253,15 @@ class SmsGatewayServiceClass {
       r.id === id ? { ...r, enabled } : r
     );
     this.saveConfig({ recipients: this.config.recipients });
+
+    if (this.db) {
+      import('firebase/firestore')
+        .then(({ doc, updateDoc }) => {
+          updateDoc(doc(this.db, 'users', id), { smsAlertsEnabled: enabled }).catch(() => {});
+          updateDoc(doc(this.db, 'sms_recipients', id), { enabled: enabled }).catch(() => {});
+        })
+        .catch(() => {});
+    }
   }
 
   public updateRecipientLanguage(id: string, language: 'en' | 'ny') {
@@ -269,6 +279,18 @@ class SmsGatewayServiceClass {
       return { ...r, enabled };
     });
     this.saveConfig({ recipients: this.config.recipients });
+
+    if (this.db) {
+      import('firebase/firestore')
+        .then(({ doc, updateDoc }) => {
+          this.config.recipients.forEach((r) => {
+            if (languageFilter && (r.language || 'ny') !== languageFilter) return;
+            updateDoc(doc(this.db, 'users', r.id), { smsAlertsEnabled: enabled }).catch(() => {});
+            updateDoc(doc(this.db, 'sms_recipients', r.id), { enabled: enabled }).catch(() => {});
+          });
+        })
+        .catch(() => {});
+    }
   }
 
   public getActiveRecipients(): SmsRecipient[] {
