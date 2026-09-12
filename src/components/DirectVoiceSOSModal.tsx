@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { ResidentSafetyReport, SafetyStatusType, UserProfile } from '../types';
 import { firebaseFloodService } from '../services/firebaseService';
+import { locationService } from '../services/locationService';
 
 interface DirectVoiceSOSModalProps {
   isOpen: boolean;
@@ -52,22 +53,25 @@ export const DirectVoiceSOSModal: React.FC<DirectVoiceSOSModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
-    if (navigator.geolocation) {
-      setGpsStatus('acquiring');
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setLatitude(pos.coords.latitude);
-          setLongitude(pos.coords.longitude);
-          setGpsStatus('ready');
-        },
-        () => {
-          setGpsStatus('unavailable');
-        },
-        { enableHighAccuracy: true, timeout: 6000 }
-      );
-    } else {
-      setGpsStatus('unavailable');
-    }
+    setGpsStatus('acquiring');
+    locationService.getDeviceGpsCoordinates({ enableHighAccuracy: true, timeout: 8000 })
+      .then((coords) => {
+        setLatitude(coords.latitude);
+        setLongitude(coords.longitude);
+        setGpsStatus('ready');
+      })
+      .catch((err) => {
+        console.warn('High accuracy GPS background acquisition failed, trying standard...', err);
+        locationService.getDeviceGpsCoordinates({ enableHighAccuracy: false, timeout: 8000 })
+          .then((coords) => {
+            setLatitude(coords.latitude);
+            setLongitude(coords.longitude);
+            setGpsStatus('ready');
+          })
+          .catch(() => {
+            setGpsStatus('unavailable');
+          });
+      });
   }, [isOpen]);
 
   // Start recording on modal open

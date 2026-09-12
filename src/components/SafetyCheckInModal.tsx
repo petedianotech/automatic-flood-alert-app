@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { ResidentSafetyReport, SafetyStatusType, UserProfile } from '../types';
 import { firebaseFloodService } from '../services/firebaseService';
+import { locationService } from '../services/locationService';
 
 interface SafetyCheckInModalProps {
   isOpen: boolean;
@@ -61,52 +62,41 @@ export const SafetyCheckInModal: React.FC<SafetyCheckInModalProps> = ({
     'Mathambi': { lat: -16.0120, lng: 35.5560, label: 'Mathambi Flood Basin' },
   };
 
-  const handleGetLocation = () => {
-    if (!navigator.geolocation) {
-      // Fallback to village preset
-      const preset = VILLAGE_COORDS[village] || VILLAGE_COORDS['Dzenje Village'];
-      setLatitude(preset.lat);
-      setLongitude(preset.lng);
-      setLocationStatusText(`Using ${preset.label} preset GPS`);
-      return;
-    }
-
+  const handleGetLocation = async () => {
     setIsLocating(true);
     setLocationStatusText('Getting GPS satellite location...');
 
-    // Attempt high accuracy first with 8s timeout
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLatitude(position.coords.latitude);
-        setLongitude(position.coords.longitude);
-        setAccuracyMeters(Math.round(position.coords.accuracy));
-        setLocationStatusText(`GPS attached (±${Math.round(position.coords.accuracy)}m accuracy)`);
+    try {
+      const coords = await locationService.getDeviceGpsCoordinates({
+        enableHighAccuracy: true,
+        timeout: 10000,
+      });
+      setLatitude(coords.latitude);
+      setLongitude(coords.longitude);
+      setAccuracyMeters(coords.accuracy);
+      setLocationStatusText(`GPS attached (±${coords.accuracy}m accuracy)`);
+      setIsLocating(false);
+    } catch (err: any) {
+      console.warn('High-accuracy GPS failed, trying standard accuracy...', err);
+      try {
+        const coords = await locationService.getDeviceGpsCoordinates({
+          enableHighAccuracy: false,
+          timeout: 10000,
+        });
+        setLatitude(coords.latitude);
+        setLongitude(coords.longitude);
+        setAccuracyMeters(coords.accuracy);
+        setLocationStatusText(`GPS attached (±${coords.accuracy}m)`);
         setIsLocating(false);
-      },
-      (error) => {
-        console.warn('High-accuracy GPS failed, trying standard accuracy:', error);
-        // Fallback attempt with standard accuracy
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            setLatitude(position.coords.latitude);
-            setLongitude(position.coords.longitude);
-            setAccuracyMeters(Math.round(position.coords.accuracy));
-            setLocationStatusText(`GPS attached (±${Math.round(position.coords.accuracy)}m)`);
-            setIsLocating(false);
-          },
-          () => {
-            // If GPS permission blocked or unavailable, use village preset so the user can still attach location
-            const preset = VILLAGE_COORDS[village] || VILLAGE_COORDS['Dzenje Village'];
-            setLatitude(preset.lat);
-            setLongitude(preset.lng);
-            setLocationStatusText(`GPS access blocked. Set to ${village} center point.`);
-            setIsLocating(false);
-          },
-          { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
-        );
-      },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
-    );
+      } catch (finalErr: any) {
+        // If GPS permission blocked or unavailable, use village preset so the user can still attach location
+        const preset = VILLAGE_COORDS[village] || VILLAGE_COORDS['Dzenje Village'];
+        setLatitude(preset.lat);
+        setLongitude(preset.lng);
+        setLocationStatusText(`GPS access blocked. Set to ${village} center point.`);
+        setIsLocating(false);
+      }
+    }
   };
 
   const handleClearLocation = () => {

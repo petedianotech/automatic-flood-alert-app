@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { ResidentSafetyReport, UserProfile } from '../types';
 import { firebaseFloodService } from '../services/firebaseService';
+import { locationService } from '../services/locationService';
 
 interface VillageReportFloodModalProps {
   isOpen: boolean;
@@ -92,56 +93,51 @@ export const VillageReportFloodModal: React.FC<VillageReportFloodModalProps> = (
     'Mathambi': { lat: -16.0120, lng: 35.5560, label: 'Mathambi Flood Basin' },
   };
 
-  const handleGetLocation = () => {
-    if (!navigator.geolocation) {
-      const preset = VILLAGE_COORDS[village] || VILLAGE_COORDS['Dzenje Village'];
-      setLatitude(preset.lat);
-      setLongitude(preset.lng);
-      setLocationStatusText(`Browser does not support GPS. Fallback set to ${village} location.`);
-      return;
-    }
-
+  const handleGetLocation = async () => {
     setIsLocating(true);
     setLocationStatusText('Acquiring live satellite GPS from phone...');
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLatitude(pos.coords.latitude);
-        setLongitude(pos.coords.longitude);
-        setAccuracyMeters(Math.round(pos.coords.accuracy));
-        setLocationStatusText(`Live GPS Attached (±${Math.round(pos.coords.accuracy)}m accuracy)`);
+    try {
+      const coords = await locationService.getDeviceGpsCoordinates({
+        enableHighAccuracy: true,
+        timeout: 10000,
+      });
+      setLatitude(coords.latitude);
+      setLongitude(coords.longitude);
+      setAccuracyMeters(coords.accuracy);
+      setLocationStatusText(`Live GPS Attached (±${coords.accuracy}m accuracy)`);
+      setIsLocating(false);
+    } catch (err: any) {
+      console.warn('High accuracy GPS error, trying standard accuracy...', err);
+      try {
+        const coords = await locationService.getDeviceGpsCoordinates({
+          enableHighAccuracy: false,
+          timeout: 10000,
+        });
+        setLatitude(coords.latitude);
+        setLongitude(coords.longitude);
+        setAccuracyMeters(coords.accuracy);
+        setLocationStatusText(`Live GPS Attached (±${coords.accuracy}m)`);
         setIsLocating(false);
-      },
-      (err) => {
-        console.warn('High accuracy GPS error, trying standard accuracy:', err);
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            setLatitude(pos.coords.latitude);
-            setLongitude(pos.coords.longitude);
-            setAccuracyMeters(Math.round(pos.coords.accuracy));
-            setLocationStatusText(`Live GPS Attached (±${Math.round(pos.coords.accuracy)}m)`);
-            setIsLocating(false);
-          },
-          (finalErr) => {
-            const preset = VILLAGE_COORDS[village] || VILLAGE_COORDS['Dzenje Village'];
-            setLatitude(preset.lat);
-            setLongitude(preset.lng);
-            let reason = 'Phone GPS unavailable';
-            if (finalErr.code === 1) {
-              reason = 'Location permission denied in phone browser. (Allow Location in Via/Chrome settings)';
-            } else if (finalErr.code === 2) {
-              reason = 'GPS signal lost or device Location toggle is OFF.';
-            } else if (finalErr.code === 3) {
-              reason = 'GPS satellite fix timed out.';
-            }
-            setLocationStatusText(`${reason} Defaulting to ${village} center.`);
-            setIsLocating(false);
-          },
-          { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
-        );
-      },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
-    );
+      } catch (finalErr: any) {
+        const preset = VILLAGE_COORDS[village] || VILLAGE_COORDS['Dzenje Village'];
+        setLatitude(preset.lat);
+        setLongitude(preset.lng);
+        
+        let reason = 'Phone GPS unavailable';
+        const errStr = String(err.message || '').toLowerCase();
+        if (errStr.includes('denied') || errStr.includes('permission')) {
+          reason = 'Location permission denied in phone browser or APK. (Allow Location in App/Chrome settings)';
+        } else if (errStr.includes('signal') || errStr.includes('unavailable')) {
+          reason = 'GPS signal lost or device Location toggle is OFF.';
+        } else if (errStr.includes('timeout') || errStr.includes('timed out')) {
+          reason = 'GPS satellite fix timed out.';
+        }
+        
+        setLocationStatusText(`${reason} Defaulting to ${village} center.`);
+        setIsLocating(false);
+      }
+    }
   };
 
   const handleClearLocation = () => {
@@ -557,9 +553,16 @@ export const VillageReportFloodModal: React.FC<VillageReportFloodModalProps> = (
                   </button>
 
                   {locationStatusText && (
-                    <p className="text-[11px] font-medium text-slate-700 text-center">
-                      {locationStatusText}
-                    </p>
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-medium text-slate-700 text-center">
+                        {locationStatusText}
+                      </p>
+                      {locationStatusText.includes('permission denied') && (
+                        <p className="text-[10px] text-amber-700 bg-amber-50 p-1.5 rounded-lg border border-amber-200 text-center">
+                          💡 <strong>Android Tip:</strong> If Chrome says <em>"This site can't ask for your permission"</em>, drag down & close any <strong>floating bubbles</strong> or screen recorders on your screen, then try again. Or tap Chrome <strong>⋮ Settings → Site settings → Location → Allow</strong>.
+                        </p>
+                      )}
+                    </div>
                   )}
 
                   <div>

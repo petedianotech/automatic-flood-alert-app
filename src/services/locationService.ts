@@ -7,6 +7,8 @@
  */
 
 import { GeoLocationCoordinates, SensorLocation } from '../types';
+import { Capacitor } from '@capacitor/core';
+import { Geolocation as CapGeolocation } from '@capacitor/geolocation';
 
 export const DEFAULT_MALAWI_SENSOR_LOCATION: SensorLocation = {
   riverName: 'Ruo River',
@@ -106,8 +108,43 @@ class LocationService {
 
   /**
    * Acquire real GPS hardware coordinates from the mobile device
+   * Supports native Capacitor Geolocation (APK) with fallback to standard web browser API.
    */
-  public async getDeviceGpsCoordinates(): Promise<GeoLocationCoordinates> {
+  public async getDeviceGpsCoordinates(options?: { enableHighAccuracy?: boolean; timeout?: number }): Promise<GeoLocationCoordinates> {
+    const enableHighAccuracy = options?.enableHighAccuracy ?? true;
+    const timeout = options?.timeout ?? 10000;
+
+    // Check if we are running on a native Capacitor platform (Android APK)
+    if (Capacitor.isNativePlatform()) {
+      try {
+        console.log('Detecting native Capacitor platform - initiating GPS permissions check...');
+        const perm = await CapGeolocation.checkPermissions();
+        if (perm.location !== 'granted' && perm.coarseLocation !== 'granted') {
+          const req = await CapGeolocation.requestPermissions();
+          if (req.location !== 'granted' && req.coarseLocation !== 'granted') {
+            throw new Error('Native location permission was denied by the user.');
+          }
+        }
+
+        const pos = await CapGeolocation.getCurrentPosition({
+          enableHighAccuracy,
+          timeout,
+          maximumAge: 10000
+        });
+
+        return {
+          latitude: Number(pos.coords.latitude.toFixed(6)),
+          longitude: Number(pos.coords.longitude.toFixed(6)),
+          accuracy: Math.round(pos.coords.accuracy),
+          altitude: pos.coords.altitude ? Number(pos.coords.altitude.toFixed(1)) : null,
+          timestamp: pos.timestamp || Date.now(),
+        };
+      } catch (nativeErr: any) {
+        console.warn('Native Capacitor Geolocation failed, trying standard WebView/navigator fallback:', nativeErr);
+        // Fall through to standard web geolocation below
+      }
+    }
+
     if (!navigator.geolocation) {
       throw new Error('Hardware GPS is not supported on this device/browser.');
     }
@@ -136,8 +173,8 @@ class LocationService {
           reject(new Error(msg));
         },
         {
-          enableHighAccuracy: true,
-          timeout: 15000,
+          enableHighAccuracy,
+          timeout,
           maximumAge: 10000,
         }
       );
