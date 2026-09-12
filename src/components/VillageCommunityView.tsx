@@ -9,10 +9,13 @@ import {
   Building,
   CheckCircle2,
   Info,
+  Droplets,
+  AlertTriangle,
 } from 'lucide-react';
 import { UserProfile, FloodAlert, ResidentSafetyReport, isAppAdmin } from '../types';
 import { NotificationEnableCard } from './NotificationEnableCard';
 import { BatteryOptimizationCard } from './BatteryOptimizationCard';
+import { VillageReportFloodModal } from './VillageReportFloodModal';
 
 interface VillageCommunityViewProps {
   currentUser: UserProfile | null;
@@ -24,6 +27,7 @@ interface VillageCommunityViewProps {
   onOpenAuthModal?: () => void;
   onOpenDirectVoiceSOS?: () => void;
   onOpenCheckInModal?: () => void;
+  onOpenReportFloodModal?: () => void;
   onOpenAboutModal?: () => void;
 }
 
@@ -78,6 +82,7 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
   onOpenAuthModal,
   onOpenDirectVoiceSOS,
   onOpenCheckInModal,
+  onOpenReportFloodModal,
   onOpenAboutModal,
 }) => {
   const isAdmin = isAppAdmin(currentUser);
@@ -90,6 +95,15 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
     ) || VILLAGES_DATA[0];
 
   const [activeTabSection, setActiveTabSection] = useState<'villages' | 'shelters' | 'guide'>('villages');
+  const [isInternalReportModalOpen, setIsInternalReportModalOpen] = useState(false);
+
+  const handleTriggerReportFlood = () => {
+    if (onOpenReportFloodModal) {
+      onOpenReportFloodModal();
+    } else {
+      setIsInternalReportModalOpen(true);
+    }
+  };
 
   // Real-time Firestore dynamic stats calculation
   const allReports = safetyReports || [];
@@ -281,23 +295,32 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2 pt-1">
+        <div className="flex flex-wrap items-center gap-2 pt-1">
           {onOpenCheckInModal && (
             <button
               type="button"
               onClick={onOpenCheckInModal}
-              className="flex-1 py-2.5 px-3 rounded-full bg-[#1F71E8] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs hover:bg-blue-700 active:scale-98 transition cursor-pointer"
+              className="flex-1 min-w-[130px] py-2.5 px-3 rounded-full bg-[#1F71E8] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs hover:bg-blue-700 active:scale-98 transition cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>Mark I Am Safe</span>
             </button>
           )}
 
+          <button
+            type="button"
+            onClick={handleTriggerReportFlood}
+            className="flex-1 min-w-[130px] py-2.5 px-3 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs hover:bg-blue-100 active:scale-98 transition cursor-pointer"
+          >
+            <Droplets className="w-4 h-4 text-[#1F71E8]" />
+            <span>Report Floods</span>
+          </button>
+
           {!isAdmin && onOpenDirectVoiceSOS && (
             <button
               type="button"
               onClick={onOpenDirectVoiceSOS}
-              className="py-2.5 px-4 rounded-full bg-red-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs hover:bg-red-700 active:scale-98 transition cursor-pointer shrink-0"
+              className="py-2.5 px-3.5 rounded-full bg-red-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs hover:bg-red-700 active:scale-98 transition cursor-pointer shrink-0"
               title="Voice SOS"
             >
               <Mic className="w-4 h-4" />
@@ -305,6 +328,37 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
             </button>
           )}
         </div>
+      </div>
+
+      {/* ================= OPTIONAL FLOOD SIGHTING REPORT CARD ================= */}
+      <div className="bg-gradient-to-r from-blue-50/90 to-slate-100/90 rounded-[24px] p-4.5 border border-blue-200 space-y-3 shadow-xs">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-[#1F71E8] text-white flex items-center justify-center shadow-xs shrink-0 mt-0.5">
+            <Droplets className="w-5 h-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h4 className="font-bold text-sm sm:text-base text-[#1C1B1F] leading-tight">
+                See Flood Waters Rising?
+              </h4>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                Optional Report
+              </span>
+            </div>
+            <p className="text-xs text-[#49454F] font-medium mt-1 leading-relaxed">
+              If you see river overflowing, bridges underwater, or flooding in {activeVillageData.name}, send a quick report with your GPS location directly to the admin.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleTriggerReportFlood}
+          className="w-full py-2.5 px-4 rounded-full bg-[#1F71E8] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xs hover:bg-blue-700 active:scale-98 transition cursor-pointer"
+        >
+          <AlertTriangle className="w-4 h-4" />
+          <span>Send Flood Report with My Location to Admin</span>
+        </button>
       </div>
 
       {/* ================= 2. SECTION TABS ================= */}
@@ -556,6 +610,14 @@ export const VillageCommunityView: React.FC<VillageCommunityViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Village Citizen Flood Reporting Modal */}
+      <VillageReportFloodModal
+        isOpen={isInternalReportModalOpen}
+        onClose={() => setIsInternalReportModalOpen(false)}
+        currentUser={currentUser}
+        selectedVillage={activeVillageData.name}
+      />
     </div>
   );
 };

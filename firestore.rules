@@ -35,7 +35,7 @@ service cloud.firestore {
       return data.userId is string && data.userId.size() <= 128 &&
         data.userName is string && data.userName.size() > 0 && data.userName.size() <= 128 &&
         data.village is string && data.village.size() > 0 && data.village.size() <= 128 &&
-        (data.status in ['safe', 'in_flooding', 'needs_help', 'evacuated']) &&
+        (data.status in ['safe', 'in_flooding', 'needs_help', 'evacuated', 'flood_sighting']) &&
         data.timestamp is number &&
         (!('voiceAudioBase64' in data) || (data.voiceAudioBase64 is string && data.voiceAudioBase64.size() <= 600000));
     }

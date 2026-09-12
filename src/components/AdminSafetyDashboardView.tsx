@@ -28,6 +28,7 @@ import {
   BellRing,
   Power,
   Send,
+  Droplets,
 } from 'lucide-react';
 import { ResidentSafetyReport, FloodAlert, UserProfile } from '../types';
 import { firebaseFloodService } from '../services/firebaseService';
@@ -62,7 +63,7 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
   onTurnOffSensorAndDismiss,
   onDismissAlert,
 }) => {
-  const [filterCategory, setFilterCategory] = useState<'all' | 'safe' | 'shelters' | 'help'>('all');
+  const [filterCategory, setFilterCategory] = useState<'all' | 'sightings' | 'safe' | 'shelters' | 'help'>('all');
   const [villageFilter, setVillageFilter] = useState<string>('all');
   const [isVillageDropdownOpen, setIsVillageDropdownOpen] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState<string | null>(null);
@@ -72,6 +73,8 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
   const [registeredUsers, setRegisteredUsers] = useState<UserProfile[]>([]);
   const [showUsersListModal, setShowUsersListModal] = useState(false);
   const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [broadcastSuccessMsg, setBroadcastSuccessMsg] = useState<string | null>(null);
+  const [isBroadcastingId, setIsBroadcastingId] = useState<string | null>(null);
 
   useEffect(() => {
     const unsub = firebaseFloodService.subscribeUsers((usersList) => {
@@ -184,13 +187,56 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
     }
   };
 
+  // Broadcast Alert from citizen flood sighting to wake all village phones
+  const handleBroadcastFromSighting = async (report: ResidentSafetyReport) => {
+    setIsBroadcastingId(report.id);
+    try {
+      await firebaseFloodService.recordFloodAlert({
+        timestamp: Date.now(),
+        formattedTime: new Date().toLocaleTimeString(),
+        peakDelta: report.floodLevel === 'critical' ? 3.0 : 2.0,
+        durationSeconds: 20,
+        nodeId: `citizen-report-${report.id.substring(0, 6)}`,
+        nodeName: `Citizen Alert: ${report.userName}`,
+        village: report.village,
+        riverName: 'Ruo River / ' + report.village,
+        latitude: report.latitude,
+        longitude: report.longitude,
+        mapsUrl: report.mapsUrl,
+        status: 'active',
+        severity: report.floodLevel === 'critical' ? 'red' : 'yellow',
+        title: `🚨 FLOOD ALERT: ${report.village}`,
+        message: `Citizen Flood Report by ${report.userName}: ${report.waterDescription || report.message || 'Water rising rapidly'}. Move to safe high ground!`,
+        source: 'manual_test',
+        notes: `Broadcast by Admin Peter from report by ${report.userName} (${report.phone || 'No phone'})`,
+      });
+
+      setBroadcastSuccessMsg(`Flood Alert & Sirens broadcasted for ${report.village}!`);
+      setTimeout(() => setBroadcastSuccessMsg(null), 5000);
+    } catch (err) {
+      console.error('Failed to broadcast alert:', err);
+    } finally {
+      setIsBroadcastingId(null);
+    }
+  };
+
   const activeReportsList = safetyReports;
 
   // Counts for summary metrics and filter pills
+  const sightingReports = activeReportsList.filter(
+    (r) => r.status === 'flood_sighting' || r.reportType === 'flood_sighting'
+  );
+  const sightingCount = sightingReports.length;
   const safeCount = activeReportsList.filter((r) => r.status === 'safe').length;
-  const shelterCount = activeReportsList.filter((r) => r.status === 'evacuated' || r.message?.toLowerCase().includes('shelter')).length;
-  const helpCount = activeReportsList.filter((r) => r.status === 'needs_help' || r.status === 'in_flooding').length;
-  const reportsWithGps = activeReportsList.filter((r) => r.latitude !== undefined && r.longitude !== undefined);
+  const shelterCount = activeReportsList.filter(
+    (r) => r.status === 'evacuated' || r.message?.toLowerCase().includes('shelter')
+  ).length;
+  const helpCount = activeReportsList.filter(
+    (r) => r.status === 'needs_help' || r.status === 'in_flooding'
+  ).length;
+  const reportsWithGps = activeReportsList.filter(
+    (r) => r.latitude !== undefined && r.longitude !== undefined
+  );
 
   // Filter list
   const filteredRecords = activeReportsList.filter((rec) => {
@@ -199,6 +245,9 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
       return false;
     }
     // Category filter
+    if (filterCategory === 'sightings' && rec.status !== 'flood_sighting' && rec.reportType !== 'flood_sighting') {
+      return false;
+    }
     if (filterCategory === 'safe' && rec.status !== 'safe') return false;
     if (filterCategory === 'shelters' && rec.status !== 'evacuated' && !rec.message?.toLowerCase().includes('shelter')) return false;
     if (filterCategory === 'help' && rec.status !== 'needs_help' && rec.status !== 'in_flooding') return false;
@@ -415,6 +464,195 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
         </div>
       </div>
 
+      {/* ================= 1.75 VILLAGE FLOOD SIGHTINGS & CITIZEN REPORTS (DEDICATED ADMIN SECTION) ================= */}
+      <div
+        id="admin-village-flood-sightings-section"
+        className="bg-[#F3F3FA] rounded-[24px] p-4.5 border border-slate-200/80 shadow-xs space-y-3.5"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-[#1F71E8] text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Droplets className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-bold text-base sm:text-lg text-[#1C1B1F] leading-snug">
+                  Village Flood Sightings &amp; Reports
+                </h3>
+                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-900 border border-blue-200">
+                  {sightingCount} {sightingCount === 1 ? 'Report' : 'Reports'}
+                </span>
+              </div>
+              <p className="text-xs text-[#49454F] font-medium mt-0.5">
+                Incoming flood reports from villagers with GPS location &amp; water level
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {broadcastSuccessMsg && (
+          <div className="p-3 bg-emerald-50 text-emerald-900 rounded-2xl border border-emerald-200 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{broadcastSuccessMsg}</span>
+          </div>
+        )}
+
+        {/* Sighting reports list */}
+        {sightingReports.length === 0 ? (
+          <div className="bg-white rounded-2xl p-5 text-center space-y-1.5 border border-slate-100">
+            <p className="text-xs font-bold text-[#1C1B1F]">No Active Flood Sightings</p>
+            <p className="text-xs text-[#49454F] max-w-md mx-auto">
+              When residents in Dzenje, Machokola, or Mathambi report rising river water, flooded bridges, or flash floods with their GPS, they will appear here instantly.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {sightingReports.map((report) => {
+              const hasVoice = report.hasVoiceNote || !!report.voiceAudioBase64 || report.voiceDurationSec;
+              const durationLabel = report.voiceDurationSec ? `${report.voiceDurationSec}s` : '10s';
+              const isCritical = report.floodLevel === 'critical' || report.floodLevel === 'high';
+              const isBroadcasting = isBroadcastingId === report.id;
+
+              return (
+                <div
+                  key={report.id}
+                  className="bg-white rounded-2xl p-4 border border-blue-200/90 shadow-2xs space-y-3"
+                >
+                  {/* Top Bar */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                        <Droplets className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm text-[#1C1B1F] leading-tight">
+                          {report.userName}
+                        </h4>
+                        <div className="flex items-center gap-2 mt-0.5 text-xs text-[#49454F] font-medium">
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-red-500 shrink-0" />
+                            <span>{report.village}</span>
+                          </span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1 text-slate-500 text-[11px]">
+                            <Clock className="w-3 h-3" />
+                            <span>{report.formattedTime || 'Recent'}</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                      <span
+                        className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 ${
+                          isCritical
+                            ? 'bg-red-100 text-red-800 border border-red-200'
+                            : 'bg-amber-100 text-amber-800 border border-amber-200'
+                        }`}
+                      >
+                        <AlertTriangle className="w-3 h-3 shrink-0" />
+                        <span className="capitalize">{report.floodLevel || 'High'} Water</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Water description / Landmark / notes */}
+                  {report.message && (
+                    <div className="bg-[#F3F3FA] p-3 rounded-xl border border-slate-200/60 text-xs text-[#1C1B1F] space-y-1">
+                      <p className="font-semibold text-blue-900 leading-relaxed">
+                        {report.message}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* GPS Coordinates Box */}
+                  {report.latitude !== undefined && report.longitude !== undefined && (
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-blue-50/80 p-2.5 rounded-xl border border-blue-200/70 text-xs">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <MapPin className="w-4 h-4 text-red-600 shrink-0" />
+                        <span className="font-bold text-[#1C1B1F] truncate">
+                          GPS Location: {report.latitude.toFixed(5)}, {report.longitude.toFixed(5)}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedReportForMap(report)}
+                          className="px-2.5 py-1 rounded-lg bg-[#1F71E8] hover:bg-blue-700 active:scale-95 text-white font-bold text-[11px] flex items-center gap-1 transition cursor-pointer shadow-2xs"
+                        >
+                          <Navigation className="w-3 h-3" />
+                          <span>View Map</span>
+                        </button>
+
+                        <a
+                          href={`https://www.google.com/maps?q=${report.latitude},${report.longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[#1C1B1F] font-semibold text-[11px] flex items-center gap-1 hover:bg-slate-50 transition shadow-2xs"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          <span>Google Maps</span>
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action row: Broadcast alarm to village + Call reporter + Voice + Delete */}
+                  <div className="flex flex-wrap items-center justify-between pt-1 gap-2 border-t border-slate-100">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleBroadcastFromSighting(report)}
+                        disabled={isBroadcasting}
+                        className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white px-3.5 py-1.5 rounded-full text-xs font-bold transition cursor-pointer shadow-xs disabled:opacity-50"
+                      >
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        <span>{isBroadcasting ? 'Broadcasting...' : 'Broadcast Flood Alarm to Village'}</span>
+                      </button>
+
+                      {hasVoice && (
+                        <button
+                          type="button"
+                          onClick={() => toggleAudio(report.id, report.voiceAudioBase64, report.voiceDurationSec || 3)}
+                          className="flex items-center gap-1.5 bg-[#1F71E8] hover:bg-blue-700 active:scale-95 text-white px-3 py-1.5 rounded-full text-xs font-bold transition cursor-pointer shadow-2xs"
+                        >
+                          {isPlayingAudio === report.id ? (
+                            <Pause className="w-3.5 h-3.5" />
+                          ) : (
+                            <Play className="w-3.5 h-3.5 fill-current" />
+                          )}
+                          <span>{isPlayingAudio === report.id ? 'Playing...' : `Voice Note (${durationLabel})`}</span>
+                        </button>
+                      )}
+
+                      {report.phone && (
+                        <a
+                          href={`tel:${report.phone.replace(/\s+/g, '')}`}
+                          className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3 py-1.5 rounded-full text-xs font-bold transition shadow-2xs"
+                        >
+                          <Phone className="w-3.5 h-3.5" />
+                          <span>Call Reporter ({report.phone})</span>
+                        </a>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteRecord(report.id, report.userName)}
+                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition cursor-pointer"
+                      title="Dismiss report"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* ================= 2. FILTER CHIPS ================= */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
         {/* Village Dropdown */}
@@ -468,6 +706,20 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
         >
           {filterCategory === 'all' && <Check className="w-3.5 h-3.5" />}
           <span>All ({activeReportsList.length})</span>
+        </button>
+
+        {/* Flood Sightings Chip */}
+        <button
+          type="button"
+          onClick={() => setFilterCategory('sightings')}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold transition shrink-0 cursor-pointer ${
+            filterCategory === 'sightings'
+              ? 'bg-[#1F71E8] text-white shadow-xs'
+              : 'bg-blue-100 text-blue-900 hover:bg-blue-200'
+          }`}
+        >
+          <Droplets className="w-3.5 h-3.5" />
+          <span>Flood Reports ({sightingCount})</span>
         </button>
 
         {/* Safe Chip */}
@@ -534,9 +786,10 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
             </div>
           ) : (
             filteredRecords.map((rec) => {
-              const isNeedsHelp = rec.status === 'needs_help' || rec.status === 'in_flooding';
-              const isSafe = rec.status === 'safe';
-              const isShelter = rec.status === 'evacuated' || rec.message?.toLowerCase().includes('shelter');
+              const isFloodSighting = rec.status === 'flood_sighting' || rec.reportType === 'flood_sighting';
+              const isNeedsHelp = !isFloodSighting && (rec.status === 'needs_help' || rec.status === 'in_flooding');
+              const isSafe = !isFloodSighting && rec.status === 'safe';
+              const isShelter = !isFloodSighting && (rec.status === 'evacuated' || rec.message?.toLowerCase().includes('shelter'));
               const hasVoice = rec.hasVoiceNote || !!rec.voiceAudioBase64 || rec.voiceDurationSec;
               const durationLabel = rec.voiceDurationSec ? `${rec.voiceDurationSec}s` : '11s';
 
@@ -544,7 +797,9 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                 <div
                   key={rec.id}
                   className={`rounded-2xl p-4 border transition shadow-xs space-y-2.5 ${
-                    isNeedsHelp
+                    isFloodSighting
+                      ? 'bg-blue-50/60 border-blue-200'
+                      : isNeedsHelp
                       ? 'bg-red-50 border-red-200'
                       : isShelter
                       ? 'bg-blue-50 border-blue-200'
@@ -556,14 +811,18 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                     <div className="flex items-start gap-2.5">
                       <div
                         className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${
-                          isNeedsHelp
+                          isFloodSighting
+                            ? 'bg-blue-600 text-white'
+                            : isNeedsHelp
                             ? 'bg-red-600 text-white'
                             : isShelter
                             ? 'bg-blue-600 text-white'
                             : 'bg-emerald-600 text-white'
                         }`}
                       >
-                        {isNeedsHelp ? (
+                        {isFloodSighting ? (
+                          <Droplets className="w-5 h-5" />
+                        ) : isNeedsHelp ? (
                           <AlertTriangle className="w-5 h-5 animate-pulse" />
                         ) : isShelter ? (
                           <Home className="w-5 h-5" />
@@ -591,6 +850,13 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                     </div>
 
                     <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                      {isFloodSighting && (
+                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 bg-blue-100 text-blue-900 border border-blue-200">
+                          <Droplets className="w-3 h-3 shrink-0" />
+                          <span>Flood Sighting</span>
+                        </span>
+                      )}
+
                       {isNeedsHelp && (
                         <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 bg-red-200 text-red-900">
                           <ShieldAlert className="w-3 h-3 shrink-0" />
@@ -612,9 +878,11 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                         </span>
                       )}
 
-                      <span className="text-[11px] bg-[#F3EDF7] text-[#1D192B] px-2.5 py-0.5 rounded-full font-bold">
-                        {rec.peopleCount || 1} {(rec.peopleCount || 1) === 1 ? 'person' : 'people'}
-                      </span>
+                      {!isFloodSighting && (
+                        <span className="text-[11px] bg-[#F3EDF7] text-[#1D192B] px-2.5 py-0.5 rounded-full font-bold">
+                          {rec.peopleCount || 1} {(rec.peopleCount || 1) === 1 ? 'person' : 'people'}
+                        </span>
+                      )}
                     </div>
                   </div>
 

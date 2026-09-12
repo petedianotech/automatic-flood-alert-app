@@ -187,7 +187,7 @@ export interface BatteryState {
   dischargingTime?: number;
 }
 
-export type SafetyStatusType = 'safe' | 'in_flooding' | 'needs_help' | 'evacuated';
+export type SafetyStatusType = 'safe' | 'in_flooding' | 'needs_help' | 'evacuated' | 'flood_sighting';
 
 export interface ResidentSafetyReport {
   id: string;
@@ -204,6 +204,10 @@ export interface ResidentSafetyReport {
   latitude?: number;
   longitude?: number;
   mapsUrl?: string;
+  floodLevel?: 'low' | 'medium' | 'high' | 'critical';
+  waterDescription?: string;
+  landmark?: string;
+  reportType?: 'safety_status' | 'flood_sighting';
   voiceAudioBase64?: string;
   voiceDurationSec?: number;
   hasVoiceNote?: boolean;
