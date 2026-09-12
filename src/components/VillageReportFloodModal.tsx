@@ -97,42 +97,50 @@ export const VillageReportFloodModal: React.FC<VillageReportFloodModalProps> = (
       const preset = VILLAGE_COORDS[village] || VILLAGE_COORDS['Dzenje Village'];
       setLatitude(preset.lat);
       setLongitude(preset.lng);
-      setLocationStatusText(`Using ${preset.label} preset GPS`);
+      setLocationStatusText(`Browser does not support GPS. Fallback set to ${village} location.`);
       return;
     }
 
     setIsLocating(true);
-    setLocationStatusText('Acquiring satellite GPS...');
+    setLocationStatusText('Acquiring live satellite GPS from phone...');
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setLatitude(pos.coords.latitude);
         setLongitude(pos.coords.longitude);
         setAccuracyMeters(Math.round(pos.coords.accuracy));
-        setLocationStatusText(`GPS Attached (±${Math.round(pos.coords.accuracy)}m accuracy)`);
+        setLocationStatusText(`Live GPS Attached (±${Math.round(pos.coords.accuracy)}m accuracy)`);
         setIsLocating(false);
       },
       (err) => {
-        console.warn('High accuracy GPS error, trying fallback:', err);
+        console.warn('High accuracy GPS error, trying standard accuracy:', err);
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             setLatitude(pos.coords.latitude);
             setLongitude(pos.coords.longitude);
             setAccuracyMeters(Math.round(pos.coords.accuracy));
-            setLocationStatusText(`GPS Attached (±${Math.round(pos.coords.accuracy)}m)`);
+            setLocationStatusText(`Live GPS Attached (±${Math.round(pos.coords.accuracy)}m)`);
             setIsLocating(false);
           },
-          () => {
+          (finalErr) => {
             const preset = VILLAGE_COORDS[village] || VILLAGE_COORDS['Dzenje Village'];
             setLatitude(preset.lat);
             setLongitude(preset.lng);
-            setLocationStatusText(`GPS unavailable. Set to ${village} location.`);
+            let reason = 'Phone GPS unavailable';
+            if (finalErr.code === 1) {
+              reason = 'Location permission denied in phone browser. (Allow Location in Via/Chrome settings)';
+            } else if (finalErr.code === 2) {
+              reason = 'GPS signal lost or device Location toggle is OFF.';
+            } else if (finalErr.code === 3) {
+              reason = 'GPS satellite fix timed out.';
+            }
+            setLocationStatusText(`${reason} Defaulting to ${village} center.`);
             setIsLocating(false);
           },
-          { enableHighAccuracy: false, timeout: 7000, maximumAge: 60000 }
+          { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
         );
       },
-      { enableHighAccuracy: true, timeout: 7000, maximumAge: 30000 }
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
     );
   };
 

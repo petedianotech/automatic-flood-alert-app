@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { ResidentSafetyReport, FloodAlert, UserProfile } from '../types';
 import { firebaseFloodService } from '../services/firebaseService';
+import { GoogleMapsGPSViewer, MapMarkerItem } from './GoogleMapsGPSViewer';
 
 interface AdminSafetyDashboardViewProps {
   safetyReports: ResidentSafetyReport[];
@@ -1042,57 +1043,29 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
                 </div>
               )}
 
-              {/* Embedded Live Map */}
+              {/* High-Precision Google Maps GPS Viewer (Satellite & Hybrid) */}
               {selectedReportForMap.latitude !== undefined && selectedReportForMap.longitude !== undefined ? (
                 <div className="space-y-2">
-                  <div className="relative w-full h-56 rounded-2xl overflow-hidden border border-slate-300 bg-slate-100 shadow-inner">
-                    <iframe
-                      title="Resident GPS Map"
-                      width="100%"
-                      height="100%"
-                      frameBorder="0"
-                      scrolling="no"
-                      marginHeight={0}
-                      marginWidth={0}
-                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${selectedReportForMap.longitude - 0.012}%2C${selectedReportForMap.latitude - 0.009}%2C${selectedReportForMap.longitude + 0.012}%2C${selectedReportForMap.latitude + 0.009}&layer=mapnik&marker=${selectedReportForMap.latitude}%2C${selectedReportForMap.longitude}`}
-                      className="w-full h-full"
-                    />
-                  </div>
-
-                  {/* GPS Coordinates Bar & Quick Copy */}
-                  <div className="bg-[#F3EDF7] rounded-2xl p-3 flex items-center justify-between gap-2 border border-slate-200">
-                    <div className="min-w-0">
-                      <span className="text-[11px] text-[#49454F] font-bold block uppercase tracking-wider">
-                        GPS Coordinates
-                      </span>
-                      <span className="text-xs font-bold text-[#1C1B1F]">
-                        {selectedReportForMap.latitude.toFixed(5)}, {selectedReportForMap.longitude.toFixed(5)}
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleCopyCoordinates(
-                          selectedReportForMap.latitude!,
-                          selectedReportForMap.longitude!
-                        )
-                      }
-                      className="px-3 py-1.5 bg-white hover:bg-slate-100 text-[#1C1B1F] rounded-full text-xs font-bold flex items-center gap-1 border border-slate-300 transition cursor-pointer shadow-2xs"
-                    >
-                      {copiedGps ? (
-                        <>
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
-                          <span className="text-emerald-700">Copied!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3.5 h-3.5 text-slate-600" />
-                          <span>Copy GPS</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+                  <GoogleMapsGPSViewer
+                    centerLat={selectedReportForMap.latitude}
+                    centerLng={selectedReportForMap.longitude}
+                    title={selectedReportForMap.userName}
+                    subtitle={`${selectedReportForMap.village} • ${selectedReportForMap.formattedTime || 'Recent'}`}
+                    statusType={
+                      selectedReportForMap.status === 'needs_help' || selectedReportForMap.status === 'in_flooding'
+                        ? 'needs_help'
+                        : selectedReportForMap.status === 'evacuated'
+                        ? 'evacuated'
+                        : 'safe'
+                    }
+                    message={selectedReportForMap.message}
+                    phone={selectedReportForMap.phone}
+                    peopleCount={selectedReportForMap.peopleCount}
+                    formattedTime={selectedReportForMap.formattedTime}
+                    height="280px"
+                    zoom={17}
+                    showControls={true}
+                  />
                 </div>
               ) : (
                 <div className="p-6 text-center bg-slate-50 rounded-2xl border border-slate-200">
@@ -1194,18 +1167,30 @@ export const AdminSafetyDashboardView: React.FC<AdminSafetyDashboardViewProps> =
 
             {/* Content */}
             <div className="p-4 space-y-3.5 overflow-y-auto flex-1">
-              {/* Interactive Regional Map Embed */}
-              <div className="relative w-full h-64 rounded-2xl overflow-hidden border border-slate-300 bg-slate-100 shadow-inner">
-                <iframe
-                  title="All Villages Safety Map"
-                  width="100%"
-                  height="100%"
-                  frameBorder="0"
-                  scrolling="no"
-                  marginHeight={0}
-                  marginWidth={0}
-                  src={`https://www.openstreetmap.org/export/embed.html?bbox=35.5100%2C-16.0300%2C35.5800%2C-15.9500&layer=mapnik`}
-                  className="w-full h-full"
+              {/* Interactive Google Maps Satellite / Hybrid Regional Overview */}
+              <div className="space-y-2">
+                <GoogleMapsGPSViewer
+                  markers={reportsWithGps.map((rep) => ({
+                    id: rep.id,
+                    latitude: rep.latitude!,
+                    longitude: rep.longitude!,
+                    title: rep.userName,
+                    subtitle: `${rep.village} • ${rep.formattedTime || 'Recent'}`,
+                    type:
+                      rep.status === 'needs_help' || rep.status === 'in_flooding'
+                        ? ('report_sos' as const)
+                        : rep.status === 'evacuated'
+                        ? ('report_shelter' as const)
+                        : ('report_safe' as const),
+                    message: rep.message,
+                    peopleCount: rep.peopleCount,
+                    phone: rep.phone,
+                    timestamp: rep.timestamp,
+                    formattedTime: rep.formattedTime,
+                  }))}
+                  height="300px"
+                  zoom={14}
+                  showControls={true}
                 />
               </div>
 

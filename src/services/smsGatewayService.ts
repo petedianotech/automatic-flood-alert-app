@@ -32,8 +32,12 @@ const STORAGE_KEY = 'flood_alert_sms_gateway_config_v1';
 const DEFAULT_CONFIG: SmsGatewayConfig = {
   enabled: true,
   gatewayType: 'textbee',
-  textbeeApiKey: 'txb_qFXRYTTd0wxVbT5sXIw8sHCHPygvhSrQ',
-  textbeeDeviceId: '6a8fc290f3dc6f0f7b175829', // Samsung SM-A105F connected phone
+  textbeeApiKey:
+    (import.meta as any).env?.VITE_TEXTBEE_API_KEY ||
+    'txb_qFXRYTTd0wxVbT5sXIw8sHCHPygvhSrQ',
+  textbeeDeviceId:
+    (import.meta as any).env?.VITE_TEXTBEE_DEVICE_ID ||
+    '6a8fc290f3dc6f0f7b175829', // Samsung SM-A105F connected phone
   autoSendOnCriticalAlert: true,
   recipients: [],
 };
